@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - Delicate, continuous-like outlines (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, airy composition
+    
+    Palette:
+    Red/Button: #E8725C
+    Grey/Cloud/WiFi/Marks: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+    White/Icon: #FAF8F5
+  -->
+
+  <!-- Background Abstract Watercolor-like Splashes -->
+  <!-- Soft grey ambient background (Airy, unsettled feeling) -->
+  <path d="M 120 180 C 100 120, 160 80, 220 100 C 280 120, 290 190, 240 220 C 190 250, 140 240, 120 180 Z" fill="#D4CEC8" opacity="0.15" />
+  <circle cx="200" cy="120" r="70" fill="#D4CEC8" opacity="0.1" />
+
+  <!-- Offset Color Fills -->
+  <!-- Left Cloud Fill -->
+  <path d="M 215 95 C 190 70, 130 80, 125 110 C 105 110, 95 130, 105 145 C 100 170, 140 180, 165 175 L 180 135 Z" fill="#D4CEC8" opacity="0.6" />
+  <!-- Right Cloud Fill -->
+  <path d="M 205 75 C 240 60, 280 80, 275 115 C 300 120, 305 150, 285 165 C 290 180, 250 190, 225 180 L 195 125 Z" fill="#D4CEC8" opacity="0.5" />
+  
+  <!-- The Refresh Button Fill (The only bright color) -->
+  <circle cx="200" cy="240" r="18" fill="#E8725C" opacity="0.9" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- The Split Cloud -->
+    <!-- Left Cloud Half -->
+    <path d="M 185 85 C 170 65, 120 70, 120 105 C 95 108, 90 135, 110 145 C 105 170, 150 185, 175 165 L 188 128 L 175 115 Z" />
+    <!-- Right Cloud Half -->
+    <path d="M 210 70 C 250 50, 300 85, 280 120 C 310 125, 310 160, 280 170 C 285 195, 235 200, 215 175 L 200 120 L 215 110 Z" />
+    
+    <!-- Lightning Crack Lines (Inner edges of the split) -->
+    <path d="M 197 75 L 188 105 L 205 112 L 187 148 C 187 148, 192 155, 195 167" stroke="#D4CEC8" stroke-width="2.5" />
+
+    <!-- WiFi Arcs (Below the cloud) -->
+    <g stroke="#D4CEC8" stroke-width="2.5">
+      <!-- Top Arc (Outer) -->
+      <path d="M 155 185 A 60 40 0 0 1 245 185" />
+      <!-- Middle Arc (Broken) -->
+      <path d="M 170 200 A 40 25 0 0 1 190 195" /> <!-- Left side of break -->
+      <path d="M 215 195 A 40 25 0 0 1 230 200" /> <!-- Right side of break -->
+      <!-- Small Dot (Inner) -->
+      <circle cx="200" cy="210" r="2.5" fill="#D4CEC8" />
+    </g>
+
+    <!-- The Refresh Button -->
+    <circle cx="204" cy="237" r="18" /> <!-- Offset line for hand-drawn feel -->
+    
+    <!-- Refresh Arrow Icon inside button -->
+    <path d="M 190 232 A 10 10 0 1 1 192 245" stroke="#FAF8F5" stroke-width="2.5" />
+    <polyline points="187,232 191,232 192,228" stroke="#FAF8F5" stroke-width="2.5" />
+  </g>
+
+  <!-- Delicate Sparkles and Abstract Marks -->
+  <!-- Small Cross (Error hint 1) -->
+  <path d="M 100 80 L 106 86 M 106 80 L 100 86" stroke="#D4CEC8" stroke-width="2" stroke-linecap="round" />
+  <!-- Small Cross (Error hint 2) -->
+  <path d="M 300 90 L 305 95 M 305 90 L 300 95" stroke="#D4CEC8" stroke-width="2" stroke-linecap="round" />
+  
+  <!-- Little dots for texture -->
+  <circle cx="150" cy="65" r="1.5" fill="#D4CEC8" opacity="0.8" />
+  <circle cx="290" cy="190" r="2" fill="#D4CEC8" opacity="0.6" />
+  <circle cx="120" cy="220" r="2" fill="#D4CEC8" opacity="0.5" />
+
+</svg>

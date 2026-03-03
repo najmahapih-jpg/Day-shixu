@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Red/Star: #E8725C
+    Yellow/Sun: #F5C563
+    Green/Horizon: #8BA888
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Sun Fill (Half circle, rising) -->
+  <path d="M 64 54 A 20 20 0 0 1 104 54 Z" fill="#F5C563" opacity="0.9" />
+  
+  <!-- Horizon Line Fill (Abstract offset block below line) -->
+  <path d="M 38 58 C 70 55, 100 55, 130 58 L 125 62 C 90 60, 60 60, 42 62 Z" fill="#8BA888" opacity="0.3" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Horizon Line (Abstract arc) -->
+    <path d="M 40 55 C 70 52, 100 52, 130 55" stroke="#8BA888" stroke-width="2.5" />
+
+    <!-- Half Sun (Rising from horizon) -->
+    <path d="M 66 54 A 18 18 0 0 1 102 54" />
+    
+    <!-- Short Sun Rays (3 rays) -->
+    <line x1="84" y1="30" x2="84" y2="22" stroke="#F5C563" stroke-width="2" />
+    <line x1="62" y1="40" x2="55" y2="35" stroke="#F5C563" stroke-width="2" />
+    <line x1="106" y1="40" x2="113" y2="35" stroke="#F5C563" stroke-width="2" />
+    
+  </g>
+
+  <!-- Solid fills for aesthetic elements -->
+  <!-- Tiny red star (Sparkle) beside rays -->
+  <path d="M 116 26 Q 118 26, 118 24 Q 118 26, 120 26 Q 118 26, 118 28 Q 118 26, 116 26 Z" fill="#E8725C" />
+  
+  <!-- Tiny abstract offset dot -->
+  <circle cx="50" cy="24" r="1.5" fill="#8BA888" opacity="0.5" />
+
+</svg>

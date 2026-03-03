@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Red/Tip/Dot: #E8725C
+    Yellow/Body: #F5C563
+    Purple/Eraser: #B8A9C9
+    Grey/Shadows: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Shadow offset -->
+  <rect x="36" y="38" width="96" height="6" rx="3" fill="#D4CEC8" opacity="0.3" transform="rotate(-5 84 36)" />
+
+  <!-- Body Fill (Offset slightly) -->
+  <rect x="42" y="33" width="70" height="8" rx="1.5" fill="#F5C563" opacity="0.9" transform="rotate(-5 84 36)" />
+  
+  <!-- Eraser Fill (Purple) -->
+  <path d="M 120 28 L 126 28 C 130 28, 130 36, 126 36 L 120 36 Z" fill="#B8A9C9" opacity="0.9" transform="rotate(-5 84 36)" />
+  
+  <!-- Lead Tip Fill (Red) -->
+  <polygon points="32,32 30,34 33,36" fill="#E8725C" opacity="0.9" transform="rotate(-5 84 36)" />
+  <!-- Under Tip Dot (Red) -->
+  <circle cx="28" cy="46" r="2.5" fill="#E8725C" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="rotate(-5 84 36)">
+    
+    <!-- Main Pencil Body -->
+    <rect x="44" y="30" width="68" height="8" rx="1" />
+    
+    <!-- Wood section -->
+    <polygon points="44,30 31,34 44,38" />
+    
+    <!-- Red Lead Tip Detail (Abstract triangle cap) -->
+    <path d="M 36 32 L 31 34 L 36 36" />
+    
+    <!-- Metal band before eraser -->
+    <line x1="112" y1="30" x2="112" y2="38" />
+    <line x1="116" y1="30" x2="116" y2="38" />
+    
+    <!-- Lavender Eraser cap -->
+    <path d="M 112 30 L 124 30 C 128 30, 128 38, 124 38 L 112 38 Z" stroke="#2D2A26" stroke-width="2" />
+    
+    <!-- Central longitudinal line detail -->
+    <line x1="46" y1="34" x2="110" y2="34" stroke-width="1.5" />
+  </g>
+
+  <!-- Some abstract floating "just landed" lines -->
+  <path d="M 22 41 C 24 39, 27 39, 29 41" stroke="#E8725C" stroke-width="1.5" fill="none" stroke-linecap="round" />
+  <circle cx="40" cy="50" r="1.5" fill="#F5C563" opacity="0.6" />
+
+</svg>

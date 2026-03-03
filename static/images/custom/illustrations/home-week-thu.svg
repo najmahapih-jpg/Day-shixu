@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Red/Outer Flame: #E8725C
+    Yellow/Inner Flame: #F5C563
+    Grey/Base Line: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Outer Flame Fill (Red, gently offset down/right) -->
+  <path d="M 84 15 C 95 35, 100 45, 95 55 C 90 65, 75 65, 72 55 C 68 45, 75 35, 84 15 Z" fill="#E8725C" opacity="0.9" />
+
+  <!-- Inner Flame Fill (Yellow, slightly offset) -->
+  <path d="M 84 28 C 90 40, 95 48, 90 53 C 85 58, 77 58, 75 52 C 73 45, 80 35, 84 28 Z" fill="#F5C563" />
+
+  <!-- Shadow/Base Sillhouette Fill (Grey) -->
+  <ellipse cx="84" cy="61" rx="14" ry="2" fill="#D4CEC8" opacity="0.4" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Outer Flame Silhouette outline -->
+    <path d="M 84 12 C 98 32, 105 45, 95 56 C 85 68, 72 65, 68 55 C 64 45, 74 30, 84 12 Z" />
+    
+    <!-- Inner Flame Silhouette outline -->
+    <path d="M 84 25 C 92 38, 98 48, 92 54 C 86 60, 75 58, 74 50 C 73 42, 80 32, 84 25 Z" stroke-width="1.5" />
+
+    <!-- Tiny abstract curve underneath for the base -->
+    <path d="M 72 63 C 80 65, 88 65, 96 63" stroke="#D4CEC8" stroke-width="2" />
+  </g>
+
+  <!-- Sparkle dots for heat -->
+  <circle cx="60" cy="30" r="1.5" fill="#E8725C" opacity="0.5" />
+  <circle cx="108" cy="40" r="1.5" fill="#F5C563" opacity="0.7" />
+
+</svg>

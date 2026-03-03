@@ -1,0 +1,270 @@
+﻿// ============================================
+// 星划pro Animations v2.0
+// ============================================
+@import './variables.scss';
+
+// --- Keyframes ---
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-24rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  70% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  75% {
+    transform: scale(0.9);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(200rpx) rotate(720deg);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8rpx);
+  }
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba($brand-primary, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 16rpx 4rpx rgba($brand-primary, 0.15);
+  }
+}
+
+@keyframes progressFill {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(12rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// --- Utility Classes ---
+
+.anim-fade-in {
+  animation: fadeIn $duration-normal $ease-out-soft both;
+}
+
+.anim-slide-up {
+  animation: slideUp $duration-slow $ease-spring both;
+}
+
+.anim-slide-down {
+  animation: slideDown $duration-slow $ease-spring both;
+}
+
+.anim-scale-in {
+  animation: scaleIn $duration-slow $ease-spring both;
+}
+
+.anim-bounce-in {
+  animation: bounceIn $duration-slower $ease-out-back both;
+}
+
+.anim-check-pop {
+  animation: checkPop $duration-slow $ease-out-back both;
+}
+
+.anim-pulse {
+  animation: pulse 1.5s $ease-in-out infinite;
+}
+
+.anim-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg,
+      $neutral-100 25%,
+      $neutral-200 50%,
+      $neutral-100 75%);
+  background-size: 200% 100%;
+}
+
+.anim-float {
+  animation: float 3s $ease-in-out infinite;
+}
+
+.anim-glow {
+  animation: glow 2s $ease-in-out infinite;
+}
+
+.anim-count-up {
+  animation: countUp $duration-normal $ease-spring both;
+}
+
+// Staggered delay helpers
+@for $i from 1 through 12 {
+  .anim-delay-#{$i} {
+    animation-delay: #{$i * 50}ms;
+  }
+}
+
+// --- Transitions ---
+
+.transition-all {
+  transition: all $duration-normal $ease-smooth;
+}
+
+.transition-transform {
+  transition: transform $duration-normal $ease-spring;
+}
+
+.transition-colors {
+  transition: color $duration-normal ease,
+    background-color $duration-normal ease,
+    border-color $duration-normal ease;
+}
+
+// --- Reduce Motion ---
+page[data-reduce-motion="true"] {
+
+  view,
+  text,
+  image,
+  button,
+  input,
+  textarea,
+  scroll-view,
+  swiper,
+  swiper-item,
+  navigator,
+  .anim-fade-in,
+  .anim-slide-up,
+  .anim-slide-down,
+  .anim-scale-in,
+  .anim-bounce-in,
+  .anim-check-pop,
+  .anim-float,
+  .anim-shimmer,
+  .anim-glow,
+  .anim-pulse {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}

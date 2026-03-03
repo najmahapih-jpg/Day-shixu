@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - ViewBox 480x360
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, calm relaxing composition
+    - Centered subject sitting and resting
+    
+    Palette (Strict):
+    Green/Body/Leaf: #8BA888
+    Brown/Cup: #D4A574
+    Blue/Cloud: #7EB8C9
+    Yellow/Star: #F5C563
+    Grey/Ground/Steam: #D4CEC8
+    Skin/Head: #F5DCC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Background Abstract Watercolor-like Splashes -->
+  <!-- Gentle ground shadow (Pools around the sitting character) -->
+  <ellipse cx="240" cy="270" rx="130" ry="18" fill="#D4CEC8" opacity="0.2" />
+
+  <!-- Big abstract plant leaf behind the character -->
+  <path d="M 180 260 C 130 200, 160 120, 240 100 C 270 90, 310 110, 310 160 C 310 220, 260 260, 240 260 Z" fill="#8BA888" opacity="0.15" />
+
+  <!-- Offset Color Fills -->
+  <!-- Character Head Fill (Tilted slightly to the side) -->
+  <circle cx="230" cy="150" r="28" fill="#F5DCC8" />
+  
+  <!-- Sitting Character Body Fill (Green, curled up) -->
+  <path d="M 200 180 C 240 170, 260 180, 270 210 C 275 230, 280 265, 235 265 C 195 265, 185 240, 190 200 C 190 190, 195 185, 200 180 Z" fill="#8BA888" opacity="0.85" />
+  
+  <!-- Hot Drink Cup Fill (Brown hue borrowed from palette) -->
+  <path d="M 155 245 C 150 245, 145 250, 145 260 C 145 270, 155 265, 165 265 C 170 265, 175 255, 175 250 C 175 245, 165 245, 155 245 Z" fill="#D4A574" opacity="0.9" />
+
+  <!-- The Top Cloud & Star (Delicate background elements) -->
+  <path d="M 360 120 C 360 100, 380 90, 400 90 C 420 90, 430 100, 440 100 C 450 100, 460 120, 440 130 C 420 140, 370 140, 360 120 Z" fill="#7EB8C9" opacity="0.3" />
+  <path d="M 100 80 L 105 95 L 120 95 L 108 105 L 112 120 L 100 110 L 88 120 L 92 105 L 80 95 L 95 95 Z" fill="#F5C563" opacity="0.2" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Ground Line (Abstract, broken) -->
+    <path d="M 80 270 C 150 275, 240 275, 300 270" stroke="#D4CEC8" stroke-width="2.5" />
+    <path d="M 330 268 C 360 265, 380 262, 400 260" stroke="#D4CEC8" stroke-width="1.5" />
+
+    <!-- Big Leaf Veins (Subtle background details) -->
+    <path d="M 233 260 C 235 200, 245 150, 255 120" stroke="#8BA888" stroke-width="1.5" opacity="0.5" />
+    <path d="M 245 180 C 220 170, 200 160, 185 150" stroke="#8BA888" stroke-width="1" opacity="0.4" />
+    <path d="M 250 145 C 275 135, 290 130, 300 125" stroke="#8BA888" stroke-width="1" opacity="0.4" />
+
+    <!-- Character Outline and Features -->
+    <!-- Head Outline (Tilted right) -->
+    <circle cx="230" cy="150" r="26" />
+    
+    <!-- Relaxed Sleeping/Resting Face -->
+    <!-- Closed eyes (small happy curves) -->
+    <path d="M 220 145 Q 225 148, 230 145" stroke-width="1.5" /> <!-- Left eye -->
+    <path d="M 238 145 Q 243 148, 248 145" stroke-width="1.5" /> <!-- Right eye -->
+    
+    <!-- Tiny contented smile -->
+    <path d="M 232 153 Q 235 155, 238 152" stroke-width="1.5" /> 
+    
+    <!-- Blush -->
+    <circle cx="218" cy="150" r="3.5" fill="#E8725C" opacity="0.2" stroke="none" />
+    <circle cx="250" cy="150" r="3.5" fill="#E8725C" opacity="0.2" stroke="none" />
+
+    <!-- Sitting Body (Knees hugged) -->
+    <!-- Back curve -->
+    <path d="M 215 174 C 190 185, 185 220, 195 260 C 200 265, 220 270, 240 270" />
+    <!-- Knees pulled up -->
+    <path d="M 255 170 C 275 180, 280 220, 275 250 C 270 265, 250 270, 240 270" />
+    <!-- Arm wrapped around knees -->
+    <path d="M 220 195 C 240 200, 260 210, 280 205" stroke-width="1.5" />
+    <!-- Foot peeking out -->
+    <path d="M 270 262 C 280 265, 285 265, 288 260 C 290 255, 280 250, 275 250" />
+
+    <!-- The Mug / Hot Drink -->
+    <path d="M 148 245 L 168 245 C 172 245, 172 265, 168 265 L 148 265 C 144 265, 144 245, 148 245 Z" />
+    <!-- Cup handle -->
+    <path d="M 148 250 C 140 250, 140 260, 148 260" stroke-width="1.5" />
+    
+    <!-- Gentle Steam Lines -->
+    <g stroke="#D4CEC8" stroke-width="2" opacity="0.8">
+      <path d="M 154 240 C 158 230, 148 220, 154 210" />
+      <path d="M 164 235 C 160 225, 170 215, 164 205" />
+    </g>
+
+    <!-- Cloud Outline -->
+    <path d="M 365 125 C 360 100, 390 85, 410 95 C 425 85, 450 100, 440 120 C 455 130, 435 145, 410 140 C 385 145, 360 140, 365 125" stroke="#7EB8C9" stroke-width="1" opacity="0.6" />
+
+    <!-- Star Outline -->
+    <path d="M 98 78 L 103 93 L 118 93 L 106 103 L 110 118 L 98 108 L 86 118 L 90 103 L 78 93 L 93 93 Z" stroke="#F5C563" stroke-width="1" stroke-linejoin="round" opacity="0.5" />
+
+  </g>
+
+  <!-- Delicate Sparkles and Abstract Marks -->
+  <!-- Relaxing Zzz / Breath marks -->
+  <path d="M 260 120 L 268 120 L 260 128 L 268 128" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.7" />
+  <path d="M 275 105 L 281 105 L 275 111 L 281 111" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.5" />
+
+  <!-- A few floating dots representing dust motes in sunbeams -->
+  <circle cx="340" cy="180" r="2.5" fill="#F5C563" opacity="0.3" />
+  <circle cx="120" cy="180" r="1.5" fill="#D4CEC8" opacity="0.6" />
+  <circle cx="290" cy="240" r="2" fill="#E8725C" opacity="0.2" />
+
+</svg>

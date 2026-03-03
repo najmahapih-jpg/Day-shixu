@@ -1,0 +1,52 @@
+<svg width="750" height="960" viewBox="0 0 750 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - Faint background elements matching the character line-art palette
+    - Painterly color blocks, extremely offset
+  -->
+
+  <!-- Ground / Scene anchors (faint ellipses) -->
+  <ellipse cx="600" cy="250" rx="160" ry="20" fill="#D4CEC8" opacity="0.1" />
+  <ellipse cx="150" cy="550" rx="120" ry="15" fill="#D4CEC8" opacity="0.1" />
+  <ellipse cx="400" cy="850" rx="100" ry="12" fill="#D4CEC8" opacity="0.1" />
+
+  <!-- Offset Fills -->
+  <!-- Top Right Warm Aura (Sun/Morning) -->
+  <circle cx="620" cy="180" r="140" fill="#F5C563" fill-opacity="0.06" />
+  <circle cx="580" cy="220" r="100" fill="#E8725C" fill-opacity="0.04" />
+  
+  <!-- Middle Left Purple Aura (Afternoon/Dusk) -->
+  <circle cx="120" cy="460" r="130" fill="#B8A9C9" fill-opacity="0.06" />
+  <circle cx="160" cy="500" r="90" fill="#7EB8C9" fill-opacity="0.04" />
+
+  <!-- Bottom Blue Aura (Evening/Night) -->
+  <circle cx="450" cy="780" r="120" fill="#7EB8C9" fill-opacity="0.05" />
+  <circle cx="380" cy="800" r="80" fill="#8BA888" fill-opacity="0.04" />
+
+  <!-- Faint strokes crossing the background (The unifying editorial line) -->
+  <path d="M 50 850 C 300 900, 450 600, 700 550" stroke="#D4CEC8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <path d="M -20 350 C 200 250, 500 500, 800 800" stroke="#D4CEC8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+  
+  <!-- Subtle Abstract Shapes (Floating leaves/buds) -->
+  <path d="M 650 350 C 660 340, 670 350, 660 360 C 650 370, 640 360, 650 350 Z" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.7" />
+  <path d="M 180 300 C 190 290, 200 300, 190 310 C 180 320, 170 300, 180 300 Z" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.6" />
+
+  <!-- Scattered Offset Color Dots -->
+  <circle cx="80" cy="180" r="5" fill="#E8725C" fill-opacity="0.15" />
+  <circle cx="680" cy="650" r="4" fill="#E8725C" fill-opacity="0.1" />
+
+  <circle cx="280" cy="120" r="6" fill="#8BA888" fill-opacity="0.15" />
+  <circle cx="120" cy="750" r="5" fill="#8BA888" fill-opacity="0.15" />
+
+  <circle cx="580" cy="820" r="5" fill="#F5C563" fill-opacity="0.15" />
+  <circle cx="700" cy="380" r="6" fill="#B8A9C9" fill-opacity="0.1" />
+
+  <!-- The Editorial Scribbles -->
+  <path d="M 120 280 L 125 285 M 120 290 L 125 285" stroke="#D4CEC8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <path d="M 620 450 L 625 445 M 630 450 L 625 445" stroke="#D4CEC8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.7" />
+  <path d="M 450 880 L 452 875 M 454 880 L 452 875" stroke="#D4CEC8" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Claude Sparkles (Star marks) -->
+  <path d="M 320 180 Q 325 180, 325 175 Q 325 180, 330 180 Q 325 180, 325 185 Q 325 180, 320 180 Z" fill="#F5C563" opacity="0.4" />
+  <path d="M 500 680 Q 505 680, 505 675 Q 505 680, 510 680 Q 505 680, 505 685 Q 505 680, 500 680 Z" fill="#7EB8C9" opacity="0.3" />
+</svg>

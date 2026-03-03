@@ -1,0 +1,225 @@
+// ============================================
+// 星划pro Mixins v2.0
+// ============================================
+@import './variables.scss';
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+@mixin text-ellipsis($lines: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @if $lines ==1 {
+    white-space: nowrap;
+  }
+
+  @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    white-space: normal;
+    word-break: break-all;
+  }
+}
+
+@mixin safe-area-bottom($extra: 0rpx) {
+  padding-bottom: calc(env(safe-area-inset-bottom) + #{$extra});
+}
+
+// --- Card Styles (v2: larger radius, softer shadow) ---
+
+@mixin card-base {
+  background: $neutral-50;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-card;
+  padding: $space-5;
+}
+
+@mixin card-elevated {
+  background: $color-white;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-elevated;
+  padding: $space-5;
+}
+
+@mixin card-flat {
+  background: $neutral-100;
+  border-radius: $radius-2xl;
+  padding: $space-5;
+}
+
+@mixin card-glass {
+  background: $overlay-blur;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-card;
+  padding: $space-5;
+}
+
+// --- Section spacing ---
+
+@mixin section-gap {
+  margin-bottom: $space-6;
+}
+
+// --- Touch Feedback (3-level system) ---
+
+// L1 — Light tap: lists, links, tags, icon buttons
+@mixin tap-light {
+  &:active {
+    opacity: 0.7;
+    transition: opacity $duration-fast ease-out;
+  }
+}
+
+// L2 — Press: buttons, pressable cards, FAB, check-in
+@mixin tap-active {
+  &:active {
+    transform: scale(0.97);
+    box-shadow: $shadow-sm;
+    transition: transform $duration-fast $ease-spring, box-shadow $duration-fast ease-out;
+  }
+}
+
+// L3 — Long-press: habit context menu, note long-press
+@mixin tap-heavy {
+  &:active {
+    transform: scale(0.95);
+    filter: brightness(0.97);
+    transition: transform 200ms ease-out, filter 200ms ease-out;
+  }
+}
+
+@mixin divider {
+  height: 1rpx;
+  background: $neutral-200;
+  margin: $space-3 0;
+}
+
+@mixin full-overlay {
+  position: fixed;
+  inset: 0;
+}
+
+@mixin display-text {
+  font-family: $font-display;
+  letter-spacing: $letter-spacing-tight;
+  font-weight: $font-bold;
+}
+
+// --- v2: New utility mixins ---
+
+@mixin heading-xl {
+  font-size: $text-3xl;
+  font-weight: $font-extrabold;
+  letter-spacing: $letter-spacing-tight;
+  line-height: $line-height-tight;
+  color: $neutral-900;
+}
+
+@mixin heading-lg {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  letter-spacing: $letter-spacing-tight;
+  line-height: $line-height-snug;
+  color: $neutral-900;
+}
+
+@mixin heading-md {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  line-height: $line-height-snug;
+  color: $neutral-900;
+}
+
+@mixin body-text {
+  font-size: $text-base;
+  font-weight: $font-normal;
+  line-height: $line-height-normal;
+  color: $neutral-700;
+}
+
+@mixin caption-text {
+  font-size: $text-sm;
+  font-weight: $font-normal;
+  line-height: $line-height-normal;
+  color: $neutral-500;
+}
+
+@mixin label-text {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  text-transform: uppercase;
+  letter-spacing: $letter-spacing-wider;
+  color: $neutral-500;
+}
+
+// Gradient text (for hero/accent text)
+@mixin gradient-text($gradient) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// Icon wrapper (circle background with icon)
+@mixin icon-circle($size: 44rpx, $bg: $neutral-100) {
+  width: $size;
+  height: $size;
+  border-radius: $radius-full;
+  background: $bg;
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+// Scroll hide scrollbar
+@mixin hide-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Dark mode card
+@mixin dark-card {
+  .dark-mode & {
+    background: $dark-card;
+    box-shadow: none;
+  }
+}
+
+@mixin dark-text {
+  .dark-mode & {
+    color: $dark-text-primary;
+  }
+}
+
+@mixin dark-text-secondary {
+  .dark-mode & {
+    color: $dark-text-secondary;
+  }
+}
+
+@mixin dark-border {
+  .dark-mode & {
+    border-color: $dark-border;
+  }
+}

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Blue/Moon: #7EB8C9
+    Yellow/Star: #F5C563
+    Purple/Dot: #B8A9C9
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Moon Fill (Right/Down offset) -->
+  <path d="M 75 18 C 95 18, 105 32, 105 45 C 105 58, 85 58, 75 50 C 90 52, 95 38, 75 18 Z" fill="#7EB8C9" opacity="0.9" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Fat Crescent Moon -->
+    <path d="M 72 16 C 92 16, 102 30, 102 43 C 102 56, 82 56, 72 48 C 87 50, 92 36, 72 16 Z" />
+    
+    <!-- Little Five-Pointed Star -->
+    <path d="M 112 30 L 114 36 L 120 36 L 115 40 L 117 46 L 112 42 L 107 46 L 109 40 L 104 36 L 110 36 Z" fill="#F5C563" stroke="none" />
+    <!-- Hand-drawn Offset Outline for Star -->
+    <path d="M 111 29 L 113 35 L 119 35 L 114 39 L 116 45 L 111 41 L 106 45 L 108 39 L 103 35 L 109 35 Z" stroke-width="1.5" />
+  </g>
+
+  <!-- Tiny aesthetic dots -->
+  <circle cx="85" cy="62" r="2" fill="#B8A9C9" opacity="0.9" />
+  <circle cx="55" cy="35" r="1.5" fill="#F5C563" opacity="0.6" />
+
+</svg>

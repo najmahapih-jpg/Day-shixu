@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" width="100%" height="100%">
+  <g stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Star Base Background -->
+    <path d="M 140 20 L 160 80 L 220 100 L 160 120 L 140 180 L 120 120 L 60 100 L 120 80 Z" fill="#F4CD34" opacity="0.2"/>
+    
+    <!-- Central Highlight Icon/Subject -->
+    <!-- Large glowing lightbulb outline occupying 70% of 280x280 -> roughly 196px height -->
+    <path d="M 100 60 C 50 60, 50 140, 100 160 C 110 165, 110 180, 110 190 L 170 190 C 170 180, 170 165, 180 160 C 230 140, 230 60, 180 60 C 160 50, 120 50, 100 60 Z" fill="#F4CD34"/>
+    
+    <!-- Bulb Base -->
+    <rect x="110" y="190" width="60" height="15" rx="4" fill="#E54D51"/>
+    <rect x="115" y="210" width="50" height="15" rx="4" fill="#E54D51"/>
+    <path d="M 125 230 L 155 230 L 145 250 L 135 250 Z" fill="#94C3D7"/>
+    
+    <!-- Inner Filament line -->
+    <path d="M 125 150 L 140 100 L 155 150" fill="none" stroke-width="6"/>
+    <circle cx="140" cy="100" r="10" fill="#FFFFFF"/>
+
+    <!-- Shine Lines / Sparkles -->
+    <line x1="140" y1="20" x2="140" y2="40" stroke-width="6"/>
+    <line x1="50" y1="110" x2="70" y2="110" stroke-width="6"/>
+    <line x1="230" y1="110" x2="210" y2="110" stroke-width="6"/>
+    <line x1="75" y1="50" x2="90" y2="65" stroke-width="6"/>
+    <line x1="205" y1="50" x2="190" y2="65" stroke-width="6"/>
+  </g>
+</svg>

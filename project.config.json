@@ -1,0 +1,49 @@
+{
+    "description":  "HabitFlow WeChat Mini Program",
+    "packOptions":  {
+                        "ignore":  [
+
+                                   ]
+                    },
+    "setting":  {
+                    "urlCheck":  false,
+                    "es6":  true,
+                    "postcss":  true,
+                    "minified":  true,
+                    "newFeature":  true,
+                    "bigPackageSizeSupport":  true,
+                    "enhance":  true
+                },
+    "compileType":  "miniprogram",
+    "libVersion":  "",
+    "appid":  "wx538aff9186f53281",
+    "projectname":  "HabitFlow",
+    "miniprogramRoot":  "",
+    "cloudfunctionRoot":  "cloudfunctions/",
+    "condition":  {
+                      "search":  {
+                                     "current":  -1,
+                                     "list":  [
+
+                                              ]
+                                 },
+                      "conversation":  {
+                                           "current":  -1,
+                                           "list":  [
+
+                                                    ]
+                                       },
+                      "game":  {
+                                   "current":  -1,
+                                   "list":  [
+
+                                            ]
+                               },
+                      "miniprogram":  {
+                                          "current":  -1,
+                                          "list":  [
+
+                                                   ]
+                                      }
+                  }
+}

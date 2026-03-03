@@ -1,0 +1,7 @@
+{
+  "triggers": [{
+    "name": "reminderTrigger",
+    "type": "timer",
+    "config": "0 */30 7-23 * * * *"
+  }]
+}

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 188 188">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - ViewBox 188x188
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Center 60% (Radius ~56) absolutely empty for avatar
+    - Decor on an implied circular orbit near the edges
+    
+    Palette (Strict):
+    Yellow/Top Left Star: #F5C563
+    Red/Top Right Heart: #E8725C
+    Purple/Bottom Left Note: #B8A9C9
+    Green/Bottom Right Leaf: #8BA888
+    Grey/Joining Arc: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- The Faint connecting orbit (The "Wreath" effect) -->
+  <!-- A perfectly balanced dashed circle to tie them together but not overwhelm the center -->
+  <circle cx="94" cy="94" r="82" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.4" stroke-dasharray="6 8" stroke-linecap="round" />
+  
+  <!-- Add a secondary, even fainter inner orbit ring for depth -->
+  <circle cx="94" cy="94" r="74" stroke="#D4CEC8" stroke-width="1" fill="none" opacity="0.15" stroke-dasharray="2 6" stroke-linecap="round" />
+
+  <!-- Offset Color Fills -->
+  
+  <!-- Left Top: Yellow Star (Orbiting outwards) -->
+  <g transform="translate(32, 32) rotate(-15) scale(1.1)">
+    <path d="M 0 -8 L 2 0 L 10 0 L 3 5 L 6 13 L -1 8 L -8 13 L -5 5 L -12 0 L -4 0 Z" fill="#F5C563" opacity="0.95" />
+  </g>
+
+  <!-- Right Top: Red Heart (Tilted outward) -->
+  <g transform="translate(156, 32) rotate(20)">
+    <path d="M -5 -8 C -12 -12, -20 -3, -13 5 C -6 13, 0 16, 0 16 C 0 16, 6 13, 13 5 C 20 -3, 12 -12, 5 -8 C 3 -6, -3 -6, -5 -8 Z" fill="#E8725C" opacity="0.9" scale="0.6" transform="scale(0.8)" />
+  </g>
+
+  <!-- Left Bottom: Purple Music Note (Tilted outward) -->
+  <g transform="translate(32, 156) rotate(-20)">
+    <rect x="-2" y="-12" width="5" height="15" fill="#B8A9C9" opacity="0.9" />
+    <circle cx="-6" cy="2" r="5" fill="#B8A9C9" opacity="0.9" />
+    <path d="M 3 -12 C 8 -12, 13 -8, 15 -2" fill="none" stroke="#B8A9C9" stroke-width="3" opacity="0.9" />
+  </g>
+
+  <!-- Right Bottom: Green Leaf (Tilted outward) -->
+  <g transform="translate(156, 156) rotate(35)">
+    <path d="M -5 5 C -20 -5, -10 -20, 5 -10 C 20 0, 10 15, -5 5 Z" fill="#8BA888" opacity="0.9" />
+  </g>
+
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Left Top: Yellow Star Outline -->
+    <g transform="translate(32, 32) rotate(-15) scale(1.1)">
+      <path d="M -2 -9 L 1 -1 L 9 -1 L 2 4 L 5 12 L -2 7 L -9 12 L -6 4 L -13 -1 L -4 -1 Z" stroke-width="1.5" />
+    </g>
+
+    <!-- Right Top: Red Heart Outline (Drawn loose and offset) -->
+    <g transform="translate(156, 32) rotate(20)">
+      <path d="M -7 -10 C -14 -14, -22 -5, -15 3 C -8 11, -2 14, -2 14 C -2 14, 4 11, 11 3 C 18 -5, 10 -14, 3 -10 Q -2 -4, -7 -10 Z" stroke-width="1.5" transform="scale(0.8)" />
+    </g>
+
+    <!-- Left Bottom: Purple Music Note Outline -->
+    <g transform="translate(32, 156) rotate(-20)" stroke-width="1.5">
+      <circle cx="-8" cy="1" r="5" />
+      <line x1="-3" y1="1" x2="-3" y2="-13" />
+      <path d="M -3 -13 C 4 -13, 11 -9, 13 -3" />
+    </g>
+
+    <!-- Right Bottom: Green Leaf Outline -->
+    <g transform="translate(156, 156) rotate(35)">
+      <path d="M -7 3 C -22 -7, -12 -22, 3 -12 C 18 -2, 8 13, -7 3 Z" stroke-width="1.5" />
+      <path d="M -7 3 C -3 -7, 0 -10, 3 -12" stroke-width="1" /> <!-- Central vein -->
+      <line x1="3" y1="-12" x2="6" y2="-15" stroke-width="1.5" /> <!-- Stem tip -->
+    </g>
+
+  </g>
+
+  <!-- Aesthetic tiny dots orbiting on the dashed paths -->
+  <circle cx="94" cy="12" r="2.5" fill="#7EB8C9" opacity="0.7" /> <!-- Top Center -->
+  <circle cx="176" cy="94" r="2.5" fill="#F5C563" opacity="0.7" /> <!-- Right Center -->
+  <circle cx="94" cy="176" r="2.5" fill="#E8725C" opacity="0.6" /> <!-- Bottom Center -->
+  <circle cx="12" cy="94" r="2.5" fill="#B8A9C9" opacity="0.5" /> <!-- Left Center -->
+
+  <!-- A few more sparkles extremely close to the ornament objects -->
+  <circle cx="45" cy="15" r="2" fill="#D4CEC8" opacity="0.8" /> <!-- Top Left -->
+  <path d="M 143 14 L 145 10 L 147 14 L 151 16 L 147 18 L 145 22 L 143 18 L 139 16 Z" fill="#7EB8C9" opacity="0.5" /> <!-- Top Right -->
+  <circle cx="15" cy="140" r="1.5" fill="#8BA888" opacity="0.6" /> <!-- Bottom Left -->
+  <circle cx="140" cy="175" r="1.5" fill="#F5C563" opacity="0.7" /> <!-- Bottom Right -->
+
+</svg>

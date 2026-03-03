@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - Delicate, continuous-like outlines (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, airy composition
+    
+    Palette:
+    Red/Flag/Heart: #E8725C
+    Yellow/Flower/Star: #F5C563
+    Green/Grass: #8BA888
+    Blue/Mailbox: #7EB8C9
+    Purple/Accent Dot: #B8A9C9
+    Grey/Shadows: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Background Abstract Watercolor-like Splashes -->
+  <!-- Soft ground glow -->
+  <ellipse cx="200" cy="245" rx="70" ry="12" fill="#D4CEC8" opacity="0.3" />
+  <!-- Airy blue mist around mailbox -->
+  <path d="M 120 180 C 100 120, 160 80, 220 100 C 280 120, 290 190, 240 220 C 190 250, 140 240, 120 180 Z" fill="#7EB8C9" opacity="0.1" />
+  <!-- Gentle yellow sunrise/sunset hint -->
+  <circle cx="280" cy="110" r="40" fill="#F5C563" opacity="0.1" />
+
+  <!-- Offset Color Fills -->
+  <!-- Mailbox Body (Main blue) -->
+  <path d="M 145 155 C 145 125, 175 115, 205 115 L 265 115 C 265 115, 275 145, 275 165 C 275 185, 255 195, 215 195 L 145 195 Z" fill="#7EB8C9" opacity="0.8" />
+  <!-- Mailbox Inside (Darker blue/grey shadow implied) -->
+  <path d="M 130 155 C 130 140, 140 125, 155 125 C 150 145, 150 175, 155 185 C 140 185, 130 170, 130 155 Z" fill="#D4CEC8" opacity="0.6" />
+  
+  <!-- Lowered Flag Fill (Red) -->
+  <path d="M 235 155 L 255 155 L 255 175 L 235 175 Z" fill="#E8725C" opacity="0.8" />
+  
+  <!-- Post Fill -->
+  <rect x="200" y="195" width="12" height="40" fill="#D4CEC8" opacity="0.5" />
+
+  <!-- Heart Fill -->
+  <path d="M 183 158 C 183 154, 189 154, 189 158 C 189 154, 195 154, 195 158 C 195 163, 189 167, 189 167 C 189 167, 183 163, 183 158 Z" fill="#E8725C" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- American Mailbox Body -->
+    <!-- Front Opening (Arc) -->
+    <path d="M 150 190 C 120 190, 120 120, 150 120" />
+    <!-- Back End (Arc) -->
+    <path d="M 250 190 C 280 190, 280 120, 250 120" />
+    <!-- Top and Bottom Edges joining front and back -->
+    <path d="M 150 120 C 180 120, 210 120, 250 120" />
+    <path d="M 150 190 C 180 190, 210 190, 250 190" />
+    <!-- Base plate edge -->
+    <path d="M 145 195 L 255 195 L 265 190" stroke-width="1.5" />
+
+    <!-- Open Mailbox Door (Hanging down/open) -->
+    <path d="M 150 190 C 130 195, 110 205, 120 220 C 130 230, 155 210, 150 190 Z" />
+    <!-- Door handle -->
+    <path d="M 125 213 L 132 208" stroke-width="1.5" />
+
+    <!-- Lowered Flag (Signal there's no mail) -->
+    <!-- Flag hinge -->
+    <circle cx="230" cy="180" r="2" />
+    <!-- Flag pole -->
+    <path d="M 230 180 L 255 180" />
+    <!-- Flag metal piece -->
+    <rect x="235" y="160" width="20" height="15" />
+
+    <!-- Mailbox Post -->
+    <path d="M 200 195 L 200 240" />
+    <path d="M 212 195 L 212 235" />
+
+    <!-- Ground Grass Line (Arc) -->
+    <path d="M 170 245 C 190 235, 230 240, 250 245" stroke="#8BA888" stroke-width="2.5" />
+    <path d="M 140 242 C 150 240, 160 244, 165 244" stroke="#8BA888" stroke-width="1.5" />
+    <path d="M 255 247 C 265 245, 275 245, 280 242" stroke="#8BA888" stroke-width="1.5" />
+
+    <!-- A Little Flower near the base -->
+    <path d="M 160 242 C 155 235, 165 225, 160 215" stroke="#8BA888" stroke-width="1.5" />
+    <path d="M 160 230 Q 155 228, 158 225" stroke="#8BA888" stroke-width="1" />
+  </g>
+
+  <!-- Offset color for flower -->
+  <circle cx="160" cy="215" r="4" fill="#F5C563" />
+  <circle cx="156" cy="211" r="2.5" fill="#F5C563" opacity="0.8" />
+  <circle cx="164" cy="211" r="2.5" fill="#F5C563" opacity="0.8" />
+  <circle cx="156" cy="219" r="2.5" fill="#F5C563" opacity="0.8" />
+  <circle cx="164" cy="219" r="2.5" fill="#F5C563" opacity="0.8" />
+  <!-- Center -->
+  <circle cx="160" cy="215" r="1.5" fill="#E8725C" />
+
+  <!-- Delicate Sparkles and Abstract Marks -->
+  <!-- Tiny subtle star hovering (Yellow) -->
+  <path d="M 180 80 Q 185 80, 185 75 Q 185 80, 190 80 Q 185 80, 185 85 Q 185 80, 180 80 Z" fill="#F5C563" opacity="0.6" />
+  <circle cx="195" cy="70" r="1.5" fill="#F5C563" opacity="0.4" />
+  
+  <!-- Purple Dot (Bottom Right) -->
+  <circle cx="290" cy="220" r="4" fill="#B8A9C9" opacity="0.5" />
+  
+  <!-- Floating ambient dots -->
+  <circle cx="260" cy="90" r="2" fill="#E8725C" opacity="0.5" />
+  <circle cx="110" cy="150" r="2" fill="#8BA888" opacity="0.4" />
+  <circle cx="140" cy="260" r="1.5" fill="#D4CEC8" />
+
+</svg>

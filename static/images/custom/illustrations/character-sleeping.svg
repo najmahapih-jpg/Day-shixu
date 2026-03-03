@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- 5. SLEEPING: Exhausted but Handsome (Resting on Suit Sleeve) -->
+  <rect width="180" height="180" fill="transparent" />
+
+  <!-- === BACKGROUND: Moon and Zzz === -->
+  <path d="M 130 50 C 145 40, 160 55, 150 75 C 125 70, 115 55, 130 50 Z" fill="#FFCF36" />
+  <path d="M 130 50 C 145 40, 160 55, 150 75 C 125 70, 115 55, 130 50" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+  
+  <path d="M 40 40 L 65 40 L 45 65 L 70 65" stroke="#1A1A1A" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none" />
+  <path d="M 75 15 L 95 15 L 80 35 L 100 35" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none" />
+
+  <!-- === CLOTHING & DESK === -->
+  <path d="M 10 165 L 170 165" fill="none" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Arms folded on desk (Suit Jacket Dark Navy #1C2D42 to match Profile/Evening) -->
+  <path d="M 30 165 C 50 120, 110 130, 150 165 Z" fill="#1C2D42" />
+  <path d="M 30 165 C 50 120, 110 130, 150 165" fill="none" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round" />
+  <path d="M 60 142 C 80 140, 100 145, 120 152" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Inner Shirt Collar & Tie (peeking out) -->
+  <path d="M 80 138 L 95 145 L 90 135 Z" fill="#FFFFFF" />
+  <path d="M 105 145 L 115 130 L 100 130 Z" fill="#FFFFFF" />
+  <path d="M 80 138 L 95 145 L 90 135" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" />
+  <path d="M 105 145 L 115 130 L 100 130" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" />
+  
+  <!-- Red Tie highlight -->
+  <path d="M 98 135 L 105 135 L 105 148 L 95 148 Z" fill="#9A2A2A" />
+  <path d="M 95 148 C 100 150, 100 150, 105 148" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" />
+  
+  <!-- === HEAD & SKIN === -->
+  <!-- Sleeping on folded arms, sharp jawline -->
+  <path d="M 80 125 C 80 100, 95 85, 110 90 L 120 95 C 130 100, 140 120, 135 140 C 130 135, 100 135, 80 125 Z" fill="#FFE5D9" />
+  <path d="M 80 125 C 80 100, 95 85, 110 90 L 120 95 C 130 100, 140 120, 135 140" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 115 140 L 115 130 L 122 135" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- === YOUTHFUL FULL HAIR (Thick, sprawling, preventing baldness) === -->
+  <!-- Solid back/base volume covering the top of the head -->
+  <path d="M 75 115 C 60 100, 70 80, 85 70 C 100 60, 125 55, 140 85 C 145 95, 150 115, 135 135 C 125 125, 110 115, 100 120 C 95 110, 85 115, 75 115 Z" fill="#1A1A1A" />
+  <path d="M 75 115 C 60 100, 70 80, 85 70 C 100 60, 125 55, 140 85 C 145 95, 150 115, 135 135" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+  
+  <!-- Swept bangs covering forehead heavily -->
+  <path d="M 85 95 L 95 80 L 110 100 L 120 80 L 130 95 L 135 80 L 140 95 C 125 80, 105 85, 85 95 Z" fill="#1A1A1A" />
+  <path d="M 85 95 L 95 80 L 110 100 L 120 80 L 130 95 L 135 80 L 140 95" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+  
+  <!-- Subtle line details -->
+  <path d="M 70 85 C 65 80, 60 85, 65 90 M 135 75 C 140 70, 145 75, 140 80" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" />
+  <path d="M 100 65 L 110 75 M 120 60 L 130 70" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
+  
+  <!-- === YOUTHFUL FACIAL FEATURES === -->
+  <!-- Closed eye (Thick relaxed curve) -->
+  <path d="M 100 110 C 103 113, 108 113, 110 110" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M 95 102 L 112 105" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" /> <!-- Brow -->
+
+  <!-- Sharp Nose Bridge -->
+  <path d="M 103 118 L 105 125 L 108 122" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linejoin="miter" stroke-linecap="round" />
+
+  <!-- Peaceful smirk -->
+  <path d="M 116 125 C 118 128, 122 128, 124 125" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" />
+
+</svg>
