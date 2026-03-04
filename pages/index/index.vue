@@ -133,19 +133,20 @@
         <view class="section">
           <HfSectionHeader
             title="今日待完成"
-            :subtitle="habitStore.pendingHabits.length + ' 项任务'"
+            :subtitle="displayPendingHabits.length + ' 项任务'"
             actionText="新建"
             actionIcon="add-circle-linear"
             @action="goCreate"
           />
 
-          <view v-if="habitStore.pendingHabits.length > 0" class="habit-list">
+          <view v-if="displayPendingHabits.length > 0" class="habit-list">
             <HabitListItem
-              v-for="(habit, idx) in habitStore.pendingHabits"
+              v-for="(habit, idx) in displayPendingHabits"
               :key="habit._id"
               :habit="habit"
               :check-in="habitStore.todayCheckIns.get(habit._id!)"
               :anim-index="idx"
+              :is-fading="fadingHabitIds.includes(habit._id!)"
               @check="handleCheck"
               @uncheck="handleUncheck"
               @delete="handleDelete"
@@ -202,7 +203,7 @@
           <view v-show="showCompleted" class="completed-body">
             <view class="habit-list habit-list--completed">
               <HabitListItem
-                v-for="habit in habitStore.completedHabits"
+                v-for="habit in displayCompletedHabits"
                 :key="habit._id"
                 :habit="habit"
                 :check-in="habitStore.todayCheckIns.get(habit._id!)"
@@ -486,6 +487,22 @@ const aiInsight = ref<HabitInsight | null>(null)
 
 const completed = computed(() => habitStore.completedHabits.length)
 const total = computed(() => habitStore.todayHabits.length)
+
+// --- UX Fading Pool (Global Sync with Timeline V4) ---
+const dyingHabitIds = ref<string[]>([])
+const fadingHabitIds = ref<string[]>([])
+
+const displayPendingHabits = computed(() => {
+  return habitStore.todayHabits.filter(h =>
+    h._id && (!habitStore.todayCheckIns.has(h._id) || dyingHabitIds.value.includes(h._id))
+  )
+})
+
+const displayCompletedHabits = computed(() => {
+  return habitStore.todayHabits.filter(h =>
+    h._id && habitStore.todayCheckIns.has(h._id) && !dyingHabitIds.value.includes(h._id)
+  )
+})
 
 const weekRates = ref<number[]>(Array.from({ length: 7 }, () => 0))
 const weekDelta = ref(0)
@@ -987,10 +1004,28 @@ function toggleCompleted() {
 
 function handleCheck(habitId: string, value: number) {
   habitStore.checkIn(habitId, value)
+  
+  // UX fusion: Keep the item in pending display for 2500ms before moving to completed
+  if (!dyingHabitIds.value.includes(habitId)) {
+    dyingHabitIds.value.push(habitId)
+  }
+  
+  // Trigger fading CSS at 2000ms
+  setTimeout(() => {
+    if (!fadingHabitIds.value.includes(habitId)) fadingHabitIds.value.push(habitId)
+  }, 2000)
+
+  // Unmount completely at 2500ms
+  setTimeout(() => {
+    dyingHabitIds.value = dyingHabitIds.value.filter(id => id !== habitId)
+    fadingHabitIds.value = fadingHabitIds.value.filter(id => id !== habitId)
+  }, 2500)
 }
 
 function handleUncheck(habitId: string) {
   habitStore.uncheckIn(habitId)
+  dyingHabitIds.value = dyingHabitIds.value.filter(id => id !== habitId)
+  fadingHabitIds.value = fadingHabitIds.value.filter(id => id !== habitId)
 }
 
 const deleting = ref(false)

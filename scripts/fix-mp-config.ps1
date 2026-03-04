@@ -33,10 +33,15 @@ function Update-MiniprogramRoot {
   Write-Host "Updated: $ConfigPath -> miniprogramRoot='$MiniprogramRoot'"
 }
 
-# 稳定策略（适配 HBuilderX -> 微信开发者工具）：
-# - root 与 dist 都设为空字符串
-# - 避免 dist 工程出现 miniprogramRoot 二次拼接
-Update-MiniprogramRoot -ConfigPath $rootConfigPath -MiniprogramRoot ''
+# 稳定策略（兼容两种导入方式）：
+# - 导入仓库根目录时：root 指向 dist，避免 root 下无 app.json 报错
+# - 导入 dist 目录时：dist 设为空，避免路径二次拼接
+$distApp = Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin\app.json'
+if (Test-Path $distApp) {
+  Update-MiniprogramRoot -ConfigPath $rootConfigPath -MiniprogramRoot 'unpackage/dist/dev/mp-weixin/'
+} else {
+  Update-MiniprogramRoot -ConfigPath $rootConfigPath -MiniprogramRoot ''
+}
 Update-MiniprogramRoot -ConfigPath $distConfigPath -MiniprogramRoot ''
 
 if (Test-Path (Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin\app.json')) {

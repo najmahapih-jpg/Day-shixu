@@ -3,7 +3,10 @@
     "packOptions":  {
                         "ignore":  [
 
-                                   ]
+                                   ],
+                        "include":  [
+
+                                    ]
                     },
     "setting":  {
                     "urlCheck":  false,
@@ -12,13 +15,37 @@
                     "minified":  true,
                     "newFeature":  true,
                     "bigPackageSizeSupport":  true,
-                    "enhance":  true
+                    "enhance":  true,
+                    "compileWorklet":  false,
+                    "uglifyFileName":  false,
+                    "uploadWithSourceMap":  true,
+                    "packNpmManually":  false,
+                    "packNpmRelationList":  [
+
+                                            ],
+                    "minifyWXSS":  true,
+                    "minifyWXML":  true,
+                    "localPlugins":  false,
+                    "disableUseStrict":  false,
+                    "useCompilerPlugins":  false,
+                    "condition":  false,
+                    "swc":  false,
+                    "disableSWC":  true,
+                    "babelSetting":  {
+                                         "ignore":  [
+
+                                                    ],
+                                         "disablePlugins":  [
+
+                                                            ],
+                                         "outputPath":  ""
+                                     }
                 },
     "compileType":  "miniprogram",
     "libVersion":  "",
     "appid":  "wx538aff9186f53281",
     "projectname":  "HabitFlow",
-    "miniprogramRoot":  "",
+    "miniprogramRoot":  "unpackage/dist/dev/mp-weixin/",
     "cloudfunctionRoot":  "cloudfunctions/",
     "condition":  {
                       "search":  {
@@ -45,5 +72,11 @@
 
                                                    ]
                                       }
-                  }
+                  },
+    "simulatorPluginLibVersion":  {
+
+                                  },
+    "editorSetting":  {
+
+                      }
 }

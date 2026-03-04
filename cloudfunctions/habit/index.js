@@ -452,10 +452,11 @@ async function boardCreate(openid, data) {
   if (!data) return fail('缺少便签数据')
   const now = toIsoStr()
   const positionMode = data.positionMode === 'manual' ? 'manual' : 'auto'
+  const pick = (value, fallback) => (value === undefined || value === null ? fallback : value)
   const noteData = {
     content: data.content || '',
     color: data.color || 'yellow',
-    size: data.size ?? 2,
+    size: pick(data.size, 2),
     fontSize: data.fontSize || 'md',
     textAlign: data.textAlign || 'left',
     textVertical: data.textVertical || 'top',
@@ -465,9 +466,9 @@ async function boardCreate(openid, data) {
     noteType: data.noteType || 'text',
     checkItems: data.checkItems || [],
     linkedHabitId: data.linkedHabitId || '',
-    x: positionMode === 'manual' ? (data.x ?? 0) : 0,
-    y: positionMode === 'manual' ? (data.y ?? 0) : 0,
-    rotation: data.rotation ?? Math.round((Math.random() * 6 - 3) * 10) / 10,
+    x: positionMode === 'manual' ? pick(data.x, 0) : 0,
+    y: positionMode === 'manual' ? pick(data.y, 0) : 0,
+    rotation: pick(data.rotation, Math.round((Math.random() * 6 - 3) * 10) / 10),
     _openid: openid,
     createdAt: now,
     updatedAt: now,

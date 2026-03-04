@@ -1,5 +1,5 @@
 <template>
-  <view class="habit-item" :style="itemStyle" @tap="goDetail" @longpress="handleLongPress">
+  <view class="habit-item" :class="{ 'list-fading': isFading }" :style="itemStyle" @tap="goDetail" @longpress="handleLongPress">
     <view class="sheet-music-card" :class="{ 'sheet-music-card--played': isCompleted }">
       
       <!-- 微型网点纹理 -->
@@ -91,9 +91,11 @@ const props = withDefaults(defineProps<{
   habit: Habit
   checkIn?: CheckIn
   animIndex?: number
+  isFading?: boolean
 }>(), {
   checkIn: undefined,
   animIndex: 0,
+  isFading: false
 })
 
 const emit = defineEmits<{
@@ -259,6 +261,13 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   animation-delay: var(--item-delay, 0ms);
   margin-bottom: $space-2;
   padding: 0 6rpx;
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+
+  &.list-fading {
+    opacity: 0 !important;
+    transform: scale(0.95) translateY(10rpx);
+    pointer-events: none;
+  }
 }
 
 // ─── MAIN CARD (Sheet Music Score) ─────────────────────────────

@@ -7,7 +7,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+$scriptDir = $PSScriptRoot
+if (-not $scriptDir -and $MyInvocation.MyCommand.Path) {
+  $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+if (-not $scriptDir) {
+  $scriptDir = (Get-Location).Path
+}
+$scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
+$projectRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
 $cfgPath = Join-Path $projectRoot 'cloudbaserc.json'
 
 if (-not (Test-Path $cfgPath)) {
@@ -90,17 +98,30 @@ function Get-ChangedFunctionNames([string]$BaseRef) {
 
 function Deploy-One([string]$Name, [string]$EnvId) {
   Write-Output ("Deploying function: " + $Name)
-  npx --yes --package=@cloudbase/cli@latest tcb fn deploy $Name --force -e $EnvId
+  Invoke-Tcb -TcbArgs @('fn', 'deploy', $Name, '--force', '-e', $EnvId)
+}
+
+function Invoke-Tcb([string[]]$TcbArgs) {
+  $localTcbCmd = Join-Path $projectRoot 'node_modules\.bin\tcb.cmd'
+  if (Test-Path $localTcbCmd) {
+    & $localTcbCmd @TcbArgs
+  } else {
+    npx --yes --package=@cloudbase/cli@latest tcb @TcbArgs
+  }
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning ("tcb returned non-zero exit code (" + $LASTEXITCODE + "): tcb " + ($TcbArgs -join ' '))
+    Write-Warning 'Please inspect CLI output above to verify whether deployment/listing actually succeeded.'
+  }
 }
 
 Push-Location $projectRoot
 try {
   switch ($Action) {
     'list' {
-      npx --yes --package=@cloudbase/cli@latest tcb fn list -e $envId
+      Invoke-Tcb -TcbArgs @('fn', 'list', '-e', $envId)
     }
     'deployAll' {
-      npx --yes --package=@cloudbase/cli@latest tcb fn deploy --all --force -e $envId
+      Invoke-Tcb -TcbArgs @('fn', 'deploy', '--all', '--force', '-e', $envId)
     }
     'deploy' {
       Deploy-One -Name $FunctionName -EnvId $envId

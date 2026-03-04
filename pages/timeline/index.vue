@@ -26,6 +26,13 @@
 
     <!-- ===== TIMELINE MODE ===== -->
     <template v-if="viewMode === 'timeline'">
+
+    <!-- The Divine Zenith Spotlight Background -->
+    <view class="tl-abyss-bg">
+      <view class="tl-abyss-glow" />
+      <view class="tl-abyss-watermark" />
+    </view>
+
     <!-- 1. Date strip -->
     <view class="date-strip-wrap">
       <text class="month-badge">{{ monthDisplay }}</text>
@@ -116,10 +123,8 @@
       </view>
 
       <view v-else class="timeline-wrap">
-        <!-- Manga Character Hero Banner for Timeline -->
-        <view class="manga-hero-master">
-          <HfIllustration name="custom/illustrations/manga-hero-timeline" width="100%" height="100%" />
-        </view>
+        <!-- The Ultimate Timepiece: Astral Orchestra Chronograph -->
+        <AstralClock />
 
         <!-- ===== 散板区 Rubato — 无固定时间习惯 (Piano Keys) ===== -->
         <view v-if="floatingHabits.length > 0" class="rubato-strip">
@@ -205,7 +210,8 @@
                 :class="{
                   'habit-ticket--done': isHabitCompleted(habit),
                   'habit-ticket--missed': isHabitMissed(habit),
-                  'is-checking': isChecking === habit._id
+                  'is-checking': isChecking === habit._id,
+                  'is-fading': fadingHabitIds.includes(habit._id!)
                 }"
                 :style="{ 
                   '--stack-offset': hIdx * 12 + 'rpx', 
@@ -284,9 +290,6 @@
           </view>
         </view>
 
-        <!-- 底部大提琴黑底过渡 -->
-        <view class="timeline-velvet-fade" />
-
         <!-- ===== 书桌边沿 / Coda 选集区 ===== -->
         <view class="composer-desk">
           <view class="desk-edge" />
@@ -303,7 +306,7 @@
               <view class="coda-section__header" @tap="toggleCoda">
                 <text class="coda-section__title">Anthology. · {{ codaHabits.length }}</text>
                 <view class="coda-section__arrow" :class="{ 'is-open': codaOpen }">
-                  <HfIcon name="arrow-down-linear" size="xs" :color="isDark ? '#E5E5E5' : '#0C0D0F'" />
+                  <HfIcon name="arrow-down-linear" size="xs" color="rgba(255, 245, 230, 0.6)" />
                 </view>
               </view>
               <view v-show="codaOpen" class="coda-section__body">
@@ -333,18 +336,12 @@
       <scroll-view scroll-y class="canvas-scroll" style="flex: 1; height: 100%" enhanced :bounces="false" :show-scrollbar="false">
         <view class="canvas-view">
           
-          <!-- Manga Character Hero Banner for Calendar -->
-          <view class="manga-hero-master">
-            <HfIllustration name="custom/illustrations/manga-hero-calendar" width="100%" height="100%" />
-            
-            <!-- Broadcast Stickers for Calendar -->
-            <view v-if="todaySolarTerm" class="hero-sticker hero-sticker--top-left">
-              <text class="hero-sticker__text">{{ todaySolarTerm }}</text>
-            </view>
-            <view v-if="todayHoliday" class="hero-sticker hero-sticker--bottom-right">
-              <text class="hero-sticker__text">{{ todayHoliday }}</text>
-            </view>
-          </view>
+          <!-- The Grandorrery of the Seasons (Macro-Time Astronomy) -->
+          <Grandorrery 
+            :year="calYear" 
+            :month="calMonth" 
+            :date="calSelectedDate || todayStr" 
+          />
 
           <!-- Title Header for Calendar View -->
           <view class="calendar-magic-nav">
@@ -404,28 +401,45 @@
 
           <!-- 日期票据详情 (Ticket Details) -->
           <view v-if="calSelectedDate" class="ios-details-card">
-             <view class="card-content">
-               <text class="ticket-subtitle">{{ calSelectedSubtitle }}</text>
-               <!-- 当日习惯列表（仅今天可交互） -->
-               <view v-if="calSelectedDate === todayStr && habitStore.todayHabits.length > 0" class="cal-habit-list">
-                 <HabitListItem
-                   v-for="(habit, idx) in habitStore.todayHabits"
-                   :key="habit._id"
-                   :habit="habit"
-                   :check-in="habitStore.todayCheckIns.get(habit._id!)"
-                   :anim-index="idx"
-                   @check="handleCheck"
-                   @uncheck="handleUncheck"
-                   @delete="handleDelete"
-                 />
-               </view>
-               <!-- 非今天或无习惯 -->
-               <view v-else class="cal-habit-empty">
-                 <text class="cal-habit-empty__text">
-                   {{ calSelectedDate === todayStr ? '今天没有安排习惯' : '查看其他日期的打卡记录（即将开放）' }}
-                 </text>
-               </view>
-             </view>
+            <view class="card-content">
+              <!-- Header row with collapse toggle -->
+              <view id="cal-habit-header" class="ticket-header" @tap="toggleCalHabits">
+                <text class="ticket-subtitle">{{ calSelectedSubtitle }}</text>
+                <view class="ticket-toggle" :class="{ 'ticket-toggle--open': calHabitsExpanded }">
+                  <text class="ticket-toggle__label">
+                    {{ calSelectedDate === todayStr && habitStore.todayHabits.length > 0
+                      ? (calHabitsExpanded ? '收起' : `${habitStore.todayHabits.length} 项`)
+                      : (calHabitsExpanded ? '收起' : '展开') }}
+                  </text>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 10l5 5 5-5z"/>
+                  </svg>
+                </view>
+              </view>
+
+              <!-- Collapsible body -->
+              <view class="cal-habit-collapse" :class="{ 'cal-habit-collapse--open': calHabitsExpanded }">
+                <!-- 当日习惯列表（仅今天可交互） -->
+                <view v-if="calSelectedDate === todayStr && habitStore.todayHabits.length > 0" class="cal-habit-list">
+                  <HabitListItem
+                    v-for="(habit, idx) in habitStore.todayHabits"
+                    :key="habit._id"
+                    :habit="habit"
+                    :check-in="habitStore.todayCheckIns.get(habit._id!)"
+                    :anim-index="idx"
+                    @check="handleCheck"
+                    @uncheck="handleUncheck"
+                    @delete="handleDelete"
+                  />
+                </view>
+                <!-- 非今天或无习惯 -->
+                <view v-else class="cal-habit-empty">
+                  <text class="cal-habit-empty__text">
+                    {{ calSelectedDate === todayStr ? '今天没有安排习惯' : '查看其他日期的打卡记录（即将开放）' }}
+                  </text>
+                </view>
+              </view>
+            </view>
           </view>
 
         </view>
@@ -457,6 +471,8 @@ import HfPageBg from '@/components/base/HfPageBg.vue'
 import HfIllustration from '@/components/base/HfIllustration.vue'
 import HfButton from '@/components/base/HfButton.vue'
 import HabitListItem from '@/components/habit/HabitListItem.vue'
+import AstralClock from '@/components/timeline/AstralClock.vue'
+import Grandorrery from '@/components/calendar/Grandorrery.vue'
 import { usePageTransition } from '@/composables/usePageTransition'
 import {
   HABIT_CATEGORY_COLORS,
@@ -599,7 +615,64 @@ const codaOpen = ref(false)
 const pressingKeyId = ref<string | null>(null)
 const isChecking = ref<string | null>(null)
 const justCompletedId = ref<string | null>(null)
+const dyingHabitIds = ref<string[]>([]) // retaining pool
+const fadingHabitIds = ref<string[]>([]) // fading out pool
 const showBravura = ref(false)
+const ticketTimers = new Map<string, ReturnType<typeof setTimeout>[]>()
+
+function clearTicketTimers(habitId?: string) {
+  if (habitId) {
+    const timers = ticketTimers.get(habitId) || []
+    timers.forEach((t) => clearTimeout(t))
+    ticketTimers.delete(habitId)
+    return
+  }
+  ticketTimers.forEach((timers) => timers.forEach((t) => clearTimeout(t)))
+  ticketTimers.clear()
+}
+
+function removeTransientHabitState(habitId: string) {
+  dyingHabitIds.value = dyingHabitIds.value.filter((id) => id !== habitId)
+  fadingHabitIds.value = fadingHabitIds.value.filter((id) => id !== habitId)
+  if (justCompletedId.value === habitId) {
+    justCompletedId.value = null
+  }
+}
+
+function resetTransientHabitState() {
+  clearTicketTimers()
+  dyingHabitIds.value = []
+  fadingHabitIds.value = []
+  justCompletedId.value = null
+  isChecking.value = null
+}
+
+function scheduleTicketFadeOut(habitId: string) {
+  clearTicketTimers(habitId)
+  const timers: ReturnType<typeof setTimeout>[] = []
+
+  justCompletedId.value = habitId
+  if (!dyingHabitIds.value.includes(habitId)) dyingHabitIds.value.push(habitId)
+
+  timers.push(setTimeout(() => {
+    if (justCompletedId.value === habitId) {
+      justCompletedId.value = null
+    }
+  }, 800))
+
+  timers.push(setTimeout(() => {
+    if (!fadingHabitIds.value.includes(habitId)) {
+      fadingHabitIds.value.push(habitId)
+    }
+  }, 2000))
+
+  timers.push(setTimeout(() => {
+    removeTransientHabitState(habitId)
+    clearTicketTimers(habitId)
+  }, 2500))
+
+  ticketTimers.set(habitId, timers)
+}
 
 function toggleCoda() {
   codaOpen.value = !codaOpen.value
@@ -616,12 +689,11 @@ const anchoredHabits = computed(() =>
 
 // Habits completed on timeline (anchored + completed) go to coda
 const codaHabits = computed(() =>
-  habitStore.completedHabits.filter((h: Habit) => !!h.reminderTime),
+  habitStore.completedHabits.filter((h: Habit) => !!h.reminderTime && !dyingHabitIds.value.includes(h._id!)),
 )
 
 function isHabitCompleted(habit: Habit): boolean {
-  const ci = habitStore.todayCheckIns.get(habit._id!)
-  return Boolean(ci?.completed)
+  return habitStore.todayCheckIns.has(habit._id!)
 }
 
 function isHabitMissed(habit: Habit): boolean {
@@ -636,7 +708,7 @@ function getHabitsForHour(hour: number): Habit[] {
   return anchoredHabits.value.filter((h: Habit) => {
     if (!h.reminderTime) return false
     const hh = parseInt(h.reminderTime.split(':')[0], 10) || 0
-    return hh === hour && !isHabitCompleted(h)
+    return hh === hour && (!isHabitCompleted(h) || dyingHabitIds.value.includes(h._id!))
   })
 }
 
@@ -667,11 +739,13 @@ function getHabitTypeLabel(habit: Habit): string {
 
 // --- Habit interactions (no vibration) ---
 
-async function handleCheck(habitId: string, value: number) {
+async function handleCheck(habitId: string, value: number): Promise<boolean> {
   try {
     await habitStore.checkIn(habitId, value)
+    return true
   } catch {
     // handled in store
+    return false
   }
 }
 
@@ -721,12 +795,18 @@ function onPianoKeyTap(habit: Habit) {
   isChecking.value = habit._id
   setTimeout(async () => {
     isChecking.value = null
-    justCompletedId.value = habit._id!
-    setTimeout(() => { justCompletedId.value = null }, 800)
-    
-    await handleCheck(habit._id!, val)
+    const hid = habit._id!
+    const success = await handleCheck(hid, val)
+    if (!success) {
+      justCompletedId.value = null
+      return
+    }
+    justCompletedId.value = hid
+    setTimeout(() => {
+      if (justCompletedId.value === hid) justCompletedId.value = null
+    }, 800)
     checkBravura()
-  }, 400)
+  }, 600)
 }
 
 function onTicketTap(habit: Habit) {
@@ -739,12 +819,16 @@ function onTicketTap(habit: Habit) {
   isChecking.value = habit._id
   setTimeout(async () => {
     isChecking.value = null
-    justCompletedId.value = habit._id!
-    setTimeout(() => { justCompletedId.value = null }, 800)
-    
-    await handleCheck(habit._id!, val)
+    const hid = habit._id!
+    const success = await handleCheck(hid, val)
+    if (!success) {
+      removeTransientHabitState(hid)
+      clearTicketTimers(hid)
+      return
+    }
+    scheduleTicketFadeOut(hid)
     checkBravura()
-  }, 400)
+  }, 600)
 }
 
 function checkBravura() {
@@ -754,7 +838,7 @@ function checkBravura() {
     showBravura.value = false // reset to re-trigger
     setTimeout(() => {
       showBravura.value = true
-    }, 1000) // Delay bravura after the individual explosion
+    }, 2500) // Delay bravura to match the new 2500ms unmount fade
   }
 }
 
@@ -871,6 +955,10 @@ const beijingNow = getBeijingDateParts()
 const calYear = ref(beijingNow.year)
 const calMonth = ref(beijingNow.month)
 const calSelectedDate = ref('')
+const calHabitsExpanded = ref(true)
+function toggleCalHabits() {
+  calHabitsExpanded.value = !calHabitsExpanded.value
+}
 const calDateCheckSet = ref<Set<string>>(new Set())
 
 // Page Flip Animation State
@@ -908,7 +996,9 @@ function nextMonth() {
 }
 
 function selectCalDate(dateStr: string) {
-  calSelectedDate.value = calSelectedDate.value === dateStr ? '' : dateStr
+  const isToggleOff = calSelectedDate.value === dateStr
+  calSelectedDate.value = isToggleOff ? '' : dateStr
+  if (!isToggleOff) calHabitsExpanded.value = true
 }
 
 interface CalendarDay {
@@ -1104,6 +1194,7 @@ const totalActiveHabits = computed(() =>
 
 function selectDate(date: string) {
   if (date === selectedDate.value) return
+  resetTransientHabitState()
   dateDirection.value = date < selectedDate.value ? 'right' : 'left'
   blocksEntered.value = false
   dateFading.value = true
@@ -1121,6 +1212,7 @@ function selectDate(date: string) {
 
 function goToday() {
   if (isToday.value) return
+  resetTransientHabitState()
   dateDirection.value = todayStr.value < selectedDate.value ? 'right' : 'left'
   selectedDate.value = todayStr.value
   loadDateData().then(() => scrollToCurrentTime())
@@ -1535,9 +1627,9 @@ const dateSlideClass = computed(() => {
 async function loadDateData(isInitial = false, _forceRefreshHabits = false) {
   if (isInitial) loading.value = true
   try {
-    // Sync date in habit store (handles midnight crossover)
-    await habitStore.refreshDateIfNeeded()
-    // Fetch habits + today's check-ins from store
+    // Keep store date strictly aligned with selectedDate to avoid timeline stale state.
+    habitStore.setCurrentDate(selectedDate.value)
+    // Fetch habits + selected-date check-ins from store
     await habitStore.fetchHabits()
     // Mirror to local state for date strip dot calculations
     habits.value = habitStore.todayHabits
@@ -1598,6 +1690,7 @@ function stopMinuteTimer() {
 
 onShow(() => {
   appStore.switchTab('timeline')
+  resetTransientHabitState()
   nowMinuteOfDay.value = getCurrentMinute()
   todayStr.value = getToday()
   calcScrollHeight()
@@ -1615,10 +1708,12 @@ onShow(() => {
 })
 
 onHide(() => {
+  resetTransientHabitState()
   stopMinuteTimer()
 })
 
 onBeforeUnmount(() => {
+  resetTransientHabitState()
   stopMinuteTimer()
 })
 
@@ -2568,7 +2663,7 @@ onPullDownRefresh(async () => {
 .canvas-view {
   @include flex-col;
   gap: $space-4;
-  padding-bottom: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + $space-6);
+  padding-bottom: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + 40vh);
 }
 
 // -- Hero Header Ticket Removed (Replaced by iOS Page Header) --
@@ -2934,19 +3029,81 @@ onPullDownRefresh(async () => {
   padding: $space-4;
 }
 
-.ticket-subtitle {
-  font-family: $font-family;
-  font-size: $text-sm;
-  font-weight: $font-bold;
-  color: $neutral-900;
-  display: block;
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 4rpx dashed $neutral-900;
   padding-bottom: $space-2;
   margin-bottom: $space-3;
 
   .dark-mode & {
-    color: $dark-text-primary;
     border-bottom-color: $dark-text-primary;
+  }
+}
+
+.ticket-subtitle {
+  font-family: $font-family;
+  font-size: $text-sm;
+  font-weight: $font-bold;
+  color: $neutral-900;
+
+  .dark-mode & {
+    color: $dark-text-primary;
+  }
+}
+
+.ticket-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 32rpx;
+  background: $neutral-900;
+  border: none;
+  transition: background 0.2s $ease-out-soft, opacity 0.15s $ease-out-soft;
+  @include tap-active;
+
+  &__label {
+    font-size: $text-sm;
+    font-weight: $font-bold;
+    color: $color-white;
+    letter-spacing: 0.02em;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s $ease-out-soft;
+    transform: rotate(0deg);
+    color: $color-white;
+    flex-shrink: 0;
+  }
+
+  &--open svg {
+    transform: rotate(180deg);
+  }
+
+  .dark-mode & {
+    background: rgba(255, 255, 255, 0.15);
+
+    .ticket-toggle__label {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+// Collapsible container
+.cal-habit-collapse {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  &--open {
+    max-height: 4000rpx;
+    opacity: 1;
   }
 }
 
@@ -3186,7 +3343,14 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   overflow: hidden;
   animation: ticketSlideIn 0.35s ease both;
   animation-delay: var(--ticket-delay, 0ms);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
   @include tap-active;
+
+  &.is-fading {
+    opacity: 0 !important;
+    transform: scale(0.95) translateY(10rpx);
+    pointer-events: none;
+  }
 
   .dark-mode & {
     background-color: #1A1C20;
@@ -3489,32 +3653,69 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
 
 // ─── CODA / FINE SECTION ──────────────────────────────────────
 
-.timeline-velvet-fade {
-  height: 120rpx;
-  background: linear-gradient(to bottom, transparent, rgba(12, 13, 15, 0.8) 80%, #0C0D0F);
-  margin-top: $space-5;
-  
-  .dark-mode & {
-    background: linear-gradient(to bottom, transparent, rgba(12, 13, 15, 0.9) 80%, #0C0D0F);
-  }
+// Inlaid Gold Text Effect helper
+@mixin gold-foil-text {
+  color: transparent;
+  background: linear-gradient(135deg, #FFEFB3 0%, #D4AF37 40%, #FFF5D6 50%, #AA7C11 80%, #6E4F1F 100%);
+  -webkit-background-clip: text;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.9), 0 0 2rpx rgba(212, 175, 55, 0.2);
 }
 
 .composer-desk {
   position: relative;
-  background: #0C0D0F;
-  background-image: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+  // Deepized Mahogany color for ultimate contrast (Abyss effect)
+  background: linear-gradient(160deg, #100202 0%, #2a080f 40%, #100202 100%);
   min-height: 400rpx;
   padding-bottom: $space-8;
 
+  .dark-mode & {
+    background: linear-gradient(160deg, #090101 0%, #170407 40%, #060101 100%);
+  }
+
+  // Polished Wood Grain (Multi-layered gradients)
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: 
+      repeating-radial-gradient(ellipse at 50% -50%, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.01) 4rpx, transparent 4rpx, transparent 12rpx),
+      repeating-linear-gradient(2deg, rgba(0,0,0,0.15) 0, rgba(0,0,0,0.15) 2rpx, transparent 2rpx, transparent 16rpx),
+      repeating-linear-gradient(-3deg, rgba(255,100,100,0.03) 0, rgba(255,100,100,0.03) 4rpx, transparent 4rpx, transparent 24rpx);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+  
+  // High Gloss Glassmorphism Finish
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
   .desk-edge {
-    height: 16rpx;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
-    box-shadow: 0 -4rpx 12rpx rgba(0,0,0,0.8);
+    position: relative;
+    height: 18rpx;
+    // Metallic/Lacquered Piano Bevel
+    background: linear-gradient(to bottom, 
+      rgba(255, 255, 255, 0.2) 0%, 
+      rgba(255, 255, 255, 0.05) 20%, 
+      rgba(0, 0, 0, 0.6) 50%,
+      rgba(0, 0, 0, 0.95) 100%
+    );
+    // THE PARCHMENT DROP: Immediate powerful shadow projecting upwards onto the timeline
+    box-shadow: 0 -20rpx 40rpx rgba(0, 0, 0, 0.5),
+                0 12rpx 32rpx rgba(0, 0, 0, 0.9),
+                inset 0 2rpx 4rpx rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2;
   }
 
   .desk-content {
     padding: $space-6 $page-padding;
     position: relative;
+    z-index: 3; // Above gloss and grain
   }
 }
 
@@ -3522,57 +3723,52 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $space-3 $space-4;
-  background: linear-gradient(135deg, #E6C27A, #B38642);
+  padding: 40rpx 48rpx; // Enlarged padding for grand scale
   border-radius: 4rpx;
-  box-shadow: 0 8rpx 16rpx rgba(0,0,0,0.4), inset 0 2rpx 0 rgba(255,255,255,0.4), inset 0 -2rpx 0 rgba(0,0,0,0.2);
-  margin-bottom: $space-6;
   position: relative;
   overflow: hidden;
-
-  // Brushed brass texture
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2rpx,
-      rgba(0,0,0,0.03) 2rpx,
-      rgba(0,0,0,0.03) 4rpx
-    );
-    pointer-events: none;
-  }
+  margin-bottom: $space-6;
+  
+  // Carved into the wood
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 6rpx 12rpx rgba(0,0,0,0.8), 
+              0 2rpx 0 rgba(255,255,255,0.05);
+  border: 1px solid rgba(0,0,0,0.6);
 
   &__left {
     font-family: $serif-stack-key;
-    font-size: $text-sm;
+    font-size: 32rpx; // Boosted Title
     font-weight: 800;
-    color: #4A3311;
     letter-spacing: 0.05em;
     z-index: 1;
+    @include gold-foil-text;
   }
 
   &__right {
     font-family: $serif-stack-key;
-    font-size: $text-xs;
-    color: #4A3311;
+    font-size: 26rpx; // Boosted Sub
     z-index: 1;
+    @include gold-foil-text;
   }
 
   .flower-sign {
     font-family: 'Brush Script MT', 'Dancing Script', cursive, serif;
-    font-size: 32rpx;
-    margin-left: 8rpx;
+    font-size: 42rpx; // Boosted Signature
+    margin-left: 12rpx;
+    // Less prominent gold for signature
+    background: linear-gradient(135deg, #D4AF37, #8A6424);
+    -webkit-background-clip: text;
   }
 
   &__barlines {
     position: absolute;
-    right: $space-2;
-    font-size: 40rpx;
-    color: rgba(74, 51, 17, 0.2);
+    right: $space-4; // Inset balanced
+    font-size: 72rpx; // Majestic Barlines
+    line-height: 1;
     font-weight: 300;
+    z-index: 0;
+    @include gold-foil-text;
+    opacity: 0.4; // Etched deeper
   }
 }
 
@@ -3623,15 +3819,16 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
 
   &__title {
     font-family: $serif-stack-key;
-    font-size: $text-md;
+    font-size: 30rpx; // Harmonized scale
     font-style: italic;
-    font-weight: 700;
-    color: rgba(255,255,255,0.8);
+    font-weight: 800; // Boldened to match plate
     letter-spacing: 0.05em;
+    @include gold-foil-text; // Seamless Gold Finish
   }
 
   &__arrow {
     transition: transform $duration-normal $ease-out-soft;
+    color: rgba(255, 245, 230, 0.6);
     &.is-open { transform: rotate(180deg); }
   }
 
@@ -3648,24 +3845,21 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
 
   &__rest {
     font-size: 32rpx;
-    color: rgba(255,255,255,0.3);
-    width: 40rpx;
-    text-align: center;
+    color: rgba(212, 175, 55, 0.6); // Gold tint
   }
 
   &__name {
     flex: 1;
     font-family: $serif-stack-key;
-    font-size: $text-sm;
-    color: rgba(255,255,255,0.6);
-    text-decoration: line-through;
-    text-decoration-color: rgba(255,255,255,0.2);
+    font-size: 26rpx;
+    font-weight: 600;
+    color: rgba(255, 245, 230, 0.9);
   }
 
   &__time {
-    font-size: $text-xs;
-    color: rgba(255,255,255,0.3);
-    font-style: italic;
+    font-family: $mono-stack;
+    font-size: 18rpx;
+    color: rgba(255, 245, 230, 0.4);
   }
 }
 
@@ -3724,6 +3918,42 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
       color: $dark-text-secondary;
     }
   }
+}
+
+// ==========================================
+// THE ZENITH SPOTLIGHT & CATHEDRAL WATERMARK
+// ==========================================
+.tl-abyss-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0; // Behind everything
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tl-abyss-glow {
+  position: absolute;
+  top: 250rpx; // Center it perfectly behind the Astral Clock
+  left: 50%;
+  width: 1000rpx;
+  height: 1000rpx;
+  transform: translate(-50%, -50%);
+  // A majestic, ultra-soft optical backlight
+  background: radial-gradient(circle at center, rgba(212, 175, 55, 0.08) 0%, rgba(15, 20, 38, 0.05) 40%, transparent 65%);
+}
+
+.tl-abyss-watermark {
+  position: absolute;
+  top: 250rpx; left: 50%;
+  width: 1400rpx; height: 1400rpx;
+  transform: translate(-50%, -50%);
+  // A massive, extremely faint Cathedral / Astrolabe geometry watermark
+  background-image: 
+    radial-gradient(circle at center, transparent 36%, rgba(212, 175, 55, 0.02) 36.5%, transparent 37%),
+    radial-gradient(circle at center, transparent 46%, rgba(212, 175, 55, 0.015) 46.5%, transparent 47%),
+    radial-gradient(circle at center, transparent 56%, rgba(212, 175, 55, 0.01) 56.5%, transparent 57%),
+    repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(212, 175, 55, 0.02) 0.5deg, transparent 1.5deg, transparent 15deg);
+  border-radius: 50%;
 }
 </style>
 

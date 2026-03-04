@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@/types'
 import { useNetwork } from '@/composables/useNetwork'
+import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 // --- CloudError ---
 
@@ -151,6 +152,13 @@ export async function callCloud<T>(
 
     const errMsg: string = err.errMsg || err.message || ''
     const errCode = String(err?.errCode || err?.code || '')
+    const currentEnv = (() => {
+      try {
+        return wx?.cloud?.DYNAMIC_CURRENT_ENV || CLOUD_ENV_ID || ''
+      } catch {
+        return CLOUD_ENV_ID || ''
+      }
+    })()
 
     console.error('[云函数调用失败]', {
       functionName: name,
@@ -162,6 +170,10 @@ export async function callCloud<T>(
 
     if (errMsg.includes('timeout') || errMsg.includes('ETIMEOUT')) {
       throw new CloudError(-2, '请求超时，请稍后重试')
+    }
+    if (errMsg.toLowerCase().includes('env status is isolated') || errMsg.toLowerCase().includes('is isolated')) {
+      const envHint = currentEnv ? `（${currentEnv}）` : ''
+      throw new CloudError(-3, `云环境处于隔离状态${envHint}，请在微信开发者工具切换可用云环境后重试`)
     }
     if (
       errMsg.includes('-404016') ||
@@ -176,12 +188,17 @@ export async function callCloud<T>(
       (errMsg.toLowerCase().includes('env') && errMsg.toLowerCase().includes('invalid')) ||
       (errMsg.toLowerCase().includes('env') && errMsg.toLowerCase().includes('not exist')) ||
       errMsg.includes('环境') ||
-      errMsg.includes('cloud init')
+      errMsg.includes('cloud init') ||
+      errCode.includes('-501000')
     ) {
       throw new CloudError(-3, '云环境配置错误，请检查开发者工具中的云环境')
     }
     if (errMsg.includes('-502001') || errMsg.includes('permission')) {
       throw new CloudError(-4, '权限不足，请重新登录')
+    }
+    if (errMsg.includes('-504002') || errMsg.toLowerCase().includes('functions execute fail')) {
+      const detail = (errMsg || '').replace(/\s+/g, ' ').trim()
+      throw new CloudError(-1, `云函数执行失败：${detail}`)
     }
     if (errMsg.includes('network') || errMsg.includes('ERR_CONNECTION')) {
       throw new CloudError(-5, '网络不太给力，请检查连接')

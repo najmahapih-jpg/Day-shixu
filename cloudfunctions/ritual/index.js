@@ -78,9 +78,11 @@ async function list(openid) {
     .get()
 
   // 二次排序：按 type 分组顺序
-  const sorted = [...data].sort((a, b) =>
-    (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9)
-  )
+  const sorted = [...data].sort((a, b) => {
+    const aOrder = TYPE_ORDER[a.type] === undefined || TYPE_ORDER[a.type] === null ? 9 : TYPE_ORDER[a.type]
+    const bOrder = TYPE_ORDER[b.type] === undefined || TYPE_ORDER[b.type] === null ? 9 : TYPE_ORDER[b.type]
+    return aOrder - bOrder
+  })
   return ok(sorted)
 }
 

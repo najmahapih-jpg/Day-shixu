@@ -2,6 +2,7 @@
 import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { useAppStore } from '@/stores/app'
 import { useNetwork } from '@/composables/useNetwork'
+import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 // Global error handler
 import { createApp } from 'vue'
@@ -17,10 +18,12 @@ onLaunch(() => {
 
   // #ifdef MP-WEIXIN
   try {
+    // Prefer DevTools-selected env first; explicit envId is fallback.
     const dynamicEnv = wx.cloud && wx.cloud.DYNAMIC_CURRENT_ENV
       ? wx.cloud.DYNAMIC_CURRENT_ENV
       : undefined
-    wx.cloud.init(dynamicEnv ? { env: dynamicEnv, traceUser: true } : { traceUser: true })
+    const env = dynamicEnv || CLOUD_ENV_ID
+    wx.cloud.init(env ? { env, traceUser: true } : { traceUser: true })
   } catch (err) {
     console.error('[云开发初始化失败]', err)
   }

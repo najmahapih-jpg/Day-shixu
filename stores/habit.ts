@@ -392,6 +392,11 @@ export const useHabitStore = defineStore('habit', () => {
     fetchVersion = 0
   }
 
+  function setCurrentDate(date: string) {
+    if (!date || date === currentDate.value) return
+    currentDate.value = date
+  }
+
   /**
    * Refresh currentDate if the app stayed open past midnight.
    * Call this in every page's onShow to avoid stale-day data.
@@ -427,6 +432,7 @@ export const useHabitStore = defineStore('habit', () => {
     restoreHabit,
     fetchFreezeStatus,
     useFreeze,
+    setCurrentDate,
     refreshDateIfNeeded,
     $reset,
   }

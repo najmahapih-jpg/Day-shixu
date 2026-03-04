@@ -3,13 +3,22 @@
     "sync:cloudfunctions": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-cloudfunctions.ps1",
     "fix:mp-config": "powershell -ExecutionPolicy Bypass -File ./scripts/fix-mp-config.ps1",
     "prepare:devtools": "powershell -ExecutionPolicy Bypass -File ./scripts/prepare-devtools-project.ps1",
-    "prepare:wechat": "npm run fix:mp-config && npm run prepare:devtools"
+    "prepare:wechat": "npm run fix:mp-config && npm run prepare:devtools",
+    "set:cloud-env": "powershell -ExecutionPolicy Bypass -File ./scripts/set-cloud-env.ps1",
+    "cf:list": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 list",
+    "cf:deps": "powershell -ExecutionPolicy Bypass -File ./scripts/install-cloudfunction-deps.ps1",
+    "cf:deploy:all": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deployAll",
+    "cf:deploy:one": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy",
+    "cf:list:changed": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 listChanged",
+    "cf:deploy:changed": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deployChanged",
+    "deploy:cloud:all": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloud-all.ps1"
   },
   "dependencies": {
     "@qiun/ucharts": "^2.5.0-20230101",
     "pinia": "^3.0.4"
   },
   "devDependencies": {
+    "@cloudbase/cli": "^2.12.4",
     "@phosphor-icons/core": "^2.1.1",
     "sass": "^1.97.3",
     "sass-loader": "^16.0.7"
