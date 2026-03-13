@@ -1,0 +1,24 @@
+// ============================================
+// HabitFlow Dark Mode Override
+// ============================================
+//
+// Strategy:
+//   1. Each page root has :class="{ 'dark-mode': isDark }"
+//   2. Page-level scoped styles use `.dark-mode &` for overrides
+//      (works because .dark-mode is on the same component root)
+//   3. CSS custom properties on .dark-mode for base components
+//      that read from variables.
+
+.dark-mode {
+  // CSS custom properties — consumed by base components
+  --hf-bg: #{$dark-bg};
+  --hf-card: #{$dark-card};
+  --hf-text-primary: #{$dark-text-primary};
+  --hf-text-secondary: #{$dark-text-secondary};
+  --hf-border: #{$dark-border};
+  --hf-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
+
+  background-color: $dark-bg !important;
+  color: $dark-text-primary;
+}
+

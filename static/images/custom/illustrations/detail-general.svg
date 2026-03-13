@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 320" width="100%" height="100%">
+  <g stroke="#000000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Frame -->
+    <rect x="20" y="50" width="220" height="230" rx="16" fill="#FFFFFF"/>
+    <line x1="20" y1="230" x2="240" y2="230"/>
+    
+    <!-- Flag in Background Left Frontal -->
+    <line x1="60" y1="100" x2="60" y2="280"/>
+    <path d="M 60 110 L 100 120 L 60 140 Z" fill="#F4CD34"/>
+
+    <!-- Path BG Frontal straight down -->
+    <path d="M 110 230 L 70 280" fill="none" stroke-dasharray="8 8"/>
+    <path d="M 130 230 L 170 280" fill="none" stroke-dasharray="8 8"/>
+
+    <!-- Legs walking Frontal-ish -->
+    <path d="M 90 280 L 100 240 L 110 280 Z" fill="#94C3D7"/>
+    <path d="M 130 280 L 140 240 L 160 280 Z" fill="#94C3D7"/>
+
+    <!-- Torso Frontal: Blue Shirt Guy Frontal -->
+    <path d="M 70 240 L 70 160 C 70 130, 150 130, 150 160 L 150 240 Z" fill="#94C3D7"/>
+    
+    <!-- Shirt details -->
+    <!-- Collar & Seams -->
+    <path d="M 95 145 L 110 165 L 125 145 Z" fill="#FFFFFF"/>
+    <line x1="110" y1="165" x2="110" y2="240"/>
+    <line x1="85" y1="185" x2="85" y2="210" stroke-width="2"/>
+    <line x1="135" y1="185" x2="135" y2="210" stroke-width="2"/>
+
+    <!-- Right Arm holding Flag Pole (Frontal crossing internally) -->
+    <path d="M 70 160 C 50 200, 50 210, 60 210" fill="none" stroke-width="14"/>
+    <circle cx="60" cy="210" r="7" fill="#FFFFFF"/>
+
+    <!-- Left Arm down (Frontal) -->
+    <path d="M 150 160 C 170 200, 160 210, 150 200" fill="none" stroke-width="14"/>
+    <circle cx="150" cy="200" r="7" fill="#FFFFFF"/>
+
+    <!-- Head & Neck -->
+    <path d="M 100 145 L 100 110 L 120 110 L 120 145 Z" fill="#FFFFFF"/>
+    <circle cx="110" cy="90" r="32" fill="#FFFFFF"/>
+    
+    <!-- Hair Frontal (Guy bushy/curly top) -->
+    <path d="M 75 100 C 75 40, 145 40, 145 100 C 145 110, 130 90, 110 90 C 90 90, 75 110, 75 100 Z" fill="#000000" stroke="none"/>
+    <path d="M 75 100 C 75 40, 145 40, 145 100 C 145 110, 130 90, 110 90 C 90 90, 75 110, 75 100 Z" fill="none"/>
+    
+    <!-- Face Frontal -->
+    <circle cx="98" cy="98" r="2.5" fill="#000000" stroke="none"/>
+    <circle cx="122" cy="98" r="2.5" fill="#000000" stroke="none"/>
+    <path d="M 110 105 L 106 110 L 110 110" fill="none" stroke-width="2"/>
+    <path d="M 105 120 Q 110 125, 115 120" fill="none" stroke-width="2"/>
+
+    <!-- Floating Badge (Arrow like the "a" logo background) -->
+    <circle cx="210" cy="70" r="32" fill="#FFFFFF"/>
+    <line x1="195" y1="70" x2="225" y2="70"/>
+    <polyline points="215,60 225,70 215,80" fill="none"/>
+  </g>
+</svg>

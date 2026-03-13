@@ -1,0 +1,87 @@
+// ============================================
+// HabitFlow Mixins
+// ============================================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin text-ellipsis($lines: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @if $lines ==1 {
+    white-space: nowrap;
+  }
+
+  @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    white-space: normal;
+    word-break: break-all;
+  }
+}
+
+@mixin safe-area-bottom($extra: 0rpx) {
+  padding-bottom: calc(env(safe-area-inset-bottom) + #{$extra});
+}
+
+@mixin card-base {
+  background: $neutral-100;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-sm;
+  padding: $space-4;
+}
+
+// --- Touch Feedback (3-level system) ---
+
+// L1 — Light tap: lists, links, tags, icon buttons
+@mixin tap-light {
+  &:active {
+    opacity: 0.7;
+    transition: opacity $duration-fast ease-out;
+  }
+}
+
+// L2 — Press: buttons, pressable cards, FAB, check-in
+@mixin tap-active {
+  &:active {
+    transform: scale(0.97);
+    box-shadow: $shadow-sm;
+    transition: transform $duration-fast ease-out, box-shadow $duration-fast ease-out;
+  }
+}
+
+// L3 — Long-press: habit context menu, note long-press
+@mixin tap-heavy {
+  &:active {
+    transform: scale(0.95);
+    filter: brightness(0.97);
+    transition: transform 200ms ease-out, filter 200ms ease-out;
+  }
+}
+
+@mixin divider {
+  height: 1rpx;
+  background: $neutral-300;
+  margin: $space-3 0;
+}
+
+@mixin full-overlay {
+  position: fixed;
+  inset: 0;
+}

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Letter Celebration Illustration: A star burst with confetti -->
+  <!-- Central Star -->
+  <path d="M 100 30 L 112 70 L 155 70 L 120 95 L 132 138 L 100 112 L 68 138 L 80 95 L 45 70 L 88 70 Z" fill="#F5C563" opacity="0.95" />
+  <path d="M 105 35 L 117 75 L 160 75 L 125 100 L 137 143 L 105 117 L 73 143 L 85 100 L 50 75 L 93 75 Z" fill="#D4CEC8" opacity="0.2" />
+  <!-- Star outline -->
+  <path d="M 98 28 L 110 68 L 153 68 L 118 93 L 130 136 L 98 110 L 66 136 L 78 93 L 43 68 L 86 68 Z" stroke="#2D2A26" stroke-width="2" fill="none" stroke-linejoin="round" />
+  <!-- Confetti / floating shapes -->
+  <circle cx="45" cy="45" r="6" fill="#E8725C" opacity="0.8" />
+  <circle cx="48" cy="48" r="6" fill="#D4CEC8" opacity="0.2" />
+  <rect x="148" y="40" width="12" height="12" rx="2" fill="#7EB8C9" opacity="0.8" transform="rotate(15 154 46)" />
+  <rect x="152" y="44" width="12" height="12" rx="2" fill="#D4CEC8" opacity="0.2" transform="rotate(15 158 50)" />
+  <circle cx="55" cy="150" r="5" fill="#8BA888" opacity="0.7" />
+  <rect x="135" y="145" width="10" height="10" rx="1" fill="#B8A9C9" opacity="0.7" transform="rotate(-10 140 150)" />
+  <!-- Burst rays -->
+  <g stroke="#F5C563" stroke-width="3" stroke-linecap="round">
+    <line x1="100" y1="10" x2="100" y2="0" />
+    <line x1="60" y1="25" x2="50" y2="15" />
+    <line x1="140" y1="25" x2="150" y2="15" />
+  </g>
+  <!-- Small sparkle crosses -->
+  <path d="M 30 100 L 30 90 M 25 95 L 35 95" stroke="#E8725C" stroke-width="2" fill="none" stroke-linecap="round" />
+  <path d="M 170 95 L 170 85 M 165 90 L 175 90" stroke="#8BA888" stroke-width="2" fill="none" stroke-linecap="round" />
+  <!-- Ribbon curl -->
+  <path d="M 80 155 Q 95 140, 110 155 Q 125 170, 140 155" stroke="#E8725C" stroke-width="3" fill="none" stroke-linecap="round" />
+  <circle cx="160" cy="120" r="2" fill="#F5C563" opacity="0.6" />
+  <circle cx="35" cy="120" r="3" fill="#B8A9C9" opacity="0.4" />
+</svg>

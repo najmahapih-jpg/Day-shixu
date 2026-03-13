@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 320" width="100%" height="100%">
+  <g stroke="#000000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Frame -->
+    <rect x="20" y="50" width="220" height="230" rx="16" fill="#FFFFFF"/>
+    
+    <!-- Torso Frontal: Girl in Red Shirt -->
+    <path d="M 60 280 L 60 180 C 60 140, 160 140, 160 180 L 160 280 Z" fill="#E54D51"/>
+    
+    <!-- Collar & Tie (Perfected) -->
+    <path d="M 90 155 L 110 180 L 130 155 Z" fill="#FFFFFF"/>
+    <path d="M 105 180 L 115 180 L 112 230 L 110 235 L 108 230 Z" fill="#000000"/>
+    <line x1="110" y1="235" x2="110" y2="280"/>
+    
+    <!-- Shirt Seams/Hatching -->
+    <line x1="80" y1="185" x2="80" y2="210" stroke-width="2"/>
+    <line x1="140" y1="185" x2="140" y2="210" stroke-width="2"/>
+
+    <!-- Head & Neck -->
+    <path d="M 100 155 L 100 120 L 120 120 L 120 155 Z" fill="#FFFFFF"/>
+    <circle cx="110" cy="100" r="32" fill="#FFFFFF"/>
+
+    <!-- Hair Back -->
+    <path d="M 80 110 L 70 190 L 95 190 Z M 140 110 L 150 190 L 125 190 Z" fill="#000000" stroke="none"/>
+    <path d="M 80 110 L 70 190 L 95 190 M 140 110 L 150 190 L 125 190" fill="none"/>
+
+    <!-- Hair Front/Bangs -->
+    <path d="M 75 105 C 75 50, 145 50, 145 105 C 145 115, 130 100, 110 100 C 90 100, 75 115, 75 105 Z" fill="#000000" stroke="none"/>
+    <path d="M 75 105 C 75 50, 145 50, 145 105 C 145 115, 130 100, 110 100 C 90 100, 75 115, 75 105 Z" fill="none"/>
+
+    <!-- Face (Frontal, balanced) -->
+    <circle cx="100" cy="108" r="2.5" fill="#000000" stroke="none"/>
+    <circle cx="120" cy="108" r="2.5" fill="#000000" stroke="none"/>
+    <path d="M 110 115 L 106 120 L 110 120" fill="none" stroke-width="2"/>
+    <path d="M 105 130 Q 110 135, 115 130" fill="none" stroke-width="2"/>
+
+    <!-- Left Arm Wrapping around Apple (Proper shoulder curve) -->
+    <path d="M 60 170 C 70 240, 95 240, 100 220" fill="none" stroke-width="14"/>
+    <circle cx="100" cy="220" r="7" fill="#FFFFFF"/>
+    
+    <!-- Right Arm Holding Apple Base -->
+    <path d="M 160 170 C 150 240, 125 240, 120 220" fill="none" stroke-width="14"/>
+    <circle cx="120" cy="220" r="7" fill="#FFFFFF"/>
+
+    <!-- Apple (Resting logically on hands) -->
+    <circle cx="110" cy="210" r="14" fill="#94C3D7"/>
+    <path d="M 110 196 Q 115 190, 118 195" fill="none" stroke-width="2"/>
+
+    <!-- Floating Badge (Heart) -->
+    <circle cx="210" cy="50" r="32" fill="#FFFFFF"/>
+    <path d="M 197 45 C 197 32, 210 32, 210 42 C 210 32, 223 32, 223 45 C 223 58, 210 68, 210 68 C 210 68, 197 58, 197 45 Z" fill="#E54D51"/>
+  </g>
+</svg>

@@ -1,0 +1,165 @@
+// ============================================
+// HabitFlow Design Tokens
+// ============================================
+
+// --- Brand Colors ---
+$brand-primary: #1E1E2E;
+$brand-primary-light: #4A4A5C;
+$brand-primary-dark: #141414;
+$brand-secondary: #F5C563;
+$brand-tertiary: #8BA888;
+$brand-quaternary: #7EB8C9;
+
+// --- Neutral Colors ---
+$neutral-900: #2D2A26;
+$neutral-800: #45403B;
+$neutral-700: #5C5650;
+$neutral-600: #766F68;
+$neutral-500: #908880;
+$neutral-400: #B2ABA4;
+$neutral-300: #D4CEC8;
+$neutral-200: #E4DED8;
+$neutral-100: #F5F2ED;
+$neutral-50: #FAF8F5;
+
+// --- Functional Colors ---
+$color-success: #8BA888;
+$color-warning: #F5C563;
+$color-error: #1E1E2E;
+$color-danger: $color-error;
+$color-info: #7EB8C9;
+
+// --- Habit Category Colors ---
+$habit-morning: #F5C563;
+$habit-exercise: #1E1E2E;
+$habit-mindful: #7EB8C9;
+$habit-health: #8BA888;
+$habit-learning: #C4856A;
+$habit-social: #D4A574;
+$habit-creative: #B8A9C9;
+$habit-sleep: #6B8CA3;
+
+$habit-colors: (
+  morning: $habit-morning,
+  exercise: $habit-exercise,
+  mindful: $habit-mindful,
+  health: $habit-health,
+  learning: $habit-learning,
+  social: $habit-social,
+  creative: $habit-creative,
+  sleep: $habit-sleep,
+);
+
+// --- Dark Mode ---
+$dark-bg: #1A1816;
+$dark-card: #252220;
+$dark-text-primary: #FAF8F5;
+$dark-text-secondary: #D4CEC8;
+$dark-text-tertiary: #B2ABA4;
+$dark-border: #3D3835;
+
+// --- Typography ---
+$font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+$text-xs: 20rpx;
+$text-sm: 24rpx;
+$text-base: 28rpx;
+$text-md: 32rpx;
+$text-lg: 36rpx;
+$text-xl: 44rpx;
+$text-2xl: 56rpx;
+$text-3xl: 72rpx;
+
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+
+$line-height-tight: 1.2;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// --- Spacing (8rpx grid) ---
+$space-1: 8rpx;
+$space-2: 16rpx;
+$space-3: 24rpx;
+$space-4: 32rpx;
+$space-5: 40rpx;
+$space-6: 48rpx;
+$space-7: 56rpx;
+$space-8: 64rpx;
+$space-9: 72rpx;
+$space-10: 80rpx;
+$space-11: 88rpx;
+$space-12: 96rpx;
+
+// --- Border Radius ---
+$radius-sm: 8rpx;
+$radius-md: 12rpx;
+$radius-lg: 16rpx;
+$radius-xl: 24rpx;
+$radius-2xl: 32rpx;
+$radius-full: 9999rpx;
+
+// --- Shadows (warm tone) ---
+$shadow-sm: 0 2rpx 8rpx rgba(45, 42, 38, 0.06);
+$shadow-md: 0 4rpx 16rpx rgba(45, 42, 38, 0.08);
+$shadow-lg: 0 8rpx 32rpx rgba(45, 42, 38, 0.12);
+$shadow-xl: 0 16rpx 48rpx rgba(45, 42, 38, 0.16);
+
+// --- Animation ---
+$ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+$ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+$ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+
+$duration-fast: 150ms;
+$duration-normal: 250ms;
+$duration-slow: 350ms;
+$duration-slower: 500ms;
+
+// --- Common Colors (for JS/canvas usage) ---
+// Keep in sync with brand/neutral values above
+$color-white: #fff;
+
+// --- Layout Sizes ---
+$tabbar-height: 100rpx;
+$navbar-height: 88rpx;
+$page-padding: $space-4;
+
+$icon-xs: 28rpx;
+$icon-sm: 36rpx;
+$icon-md: 44rpx;
+$icon-lg: 56rpx;
+$icon-xl: 72rpx;
+
+// --- Overlay Colors ---
+$overlay-light: rgba(255, 255, 255, 0.8);
+$overlay-dark: rgba(0, 0, 0, 0.35);
+$overlay-darker: rgba(0, 0, 0, 0.5);
+$overlay-darkest: rgba(0, 0, 0, 0.6);
+
+// --- Semantic: Letter / Parchment ---
+$letter-bg-start: #F5E6D0;
+$letter-bg-mid: #E8D5BC;
+$letter-bg-end: #DCC8AC;
+$letter-paper: #FFFDE7;
+
+// --- Board Note Tints ---
+$note-tint-yellow: rgba(#FFF9C4, 0.3);
+$note-tint-blue: rgba(#E3F2FD, 0.3);
+$note-tint-green: rgba(#E8F5E9, 0.3);
+$note-red-start: #E74C3C;
+$note-red-end: #C0392B;
+
+// --- Z-Index Scale ---
+$z-content: 1;
+$z-sticky: 10;
+$z-tabbar: 50;
+$z-fab: 60;
+$z-toast: 80;
+$z-overlay: 100;
+$z-modal: 110;
+$z-sheet: 115;
+$z-actionsheet: 120;
+$z-milestone: 130;
+$z-top: 200;

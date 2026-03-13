@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- 4. EVENING: Unwinding / Music & Vest -->
+  <rect width="180" height="180" fill="transparent" />
+
+  <!-- === BACKGROUND VIBE (Urban Evening Relax) === -->
+  <circle cx="90" cy="110" r="60" fill="#EA3E55" opacity="0.6" stroke="#1A1A1A" stroke-width="2" stroke-dasharray="10 6" />
+  <path d="M 20 130 L 30 115 L 25 150 Z" fill="#FFCF36" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+  <circle cx="150" cy="50" r="8" fill="none" stroke="#1A1A1A" stroke-width="2" />
+  <path d="M 140 30 L 160 30 M 150 20 L 150 40" stroke="#1A1A1A" stroke-width="2" opacity="0.5" stroke-linecap="round" />
+
+  <!-- === CLOTHING: Dress Shirt & Dark Suit Vest/Waistcoat === -->
+  <path d="M 70 140 L 90 170 L 105 160 L 120 170 L 140 140 Z" fill="#FFFFFF" />
+  
+  <path d="M 85 145 L 100 165 L 105 155" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" />
+  <path d="M 125 145 L 110 165 L 105 155" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" />
+  <path d="M 105 165 L 105 180" fill="none" stroke="#1A1A1A" stroke-width="2" />
+
+  <path d="M 45 180 L 50 145 L 70 140 C 75 160, 85 170, 90 180" fill="#FFFFFF" />
+  <path d="M 45 180 L 50 145 L 70 140" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+  <path d="M 165 180 L 160 145 L 140 140 C 135 160, 125 170, 120 180" fill="#FFFFFF" />
+  <path d="M 165 180 L 160 145 L 140 140" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+
+  <!-- The Dark Vest (Charcoal / Navy) -->
+  <path d="M 70 140 C 80 160, 85 170, 95 180 L 115 180 C 125 170, 130 160, 140 140 L 130 140 L 115 165 L 105 150 L 95 165 L 80 140 Z" fill="#1C2D42" />
+  <path d="M 70 140 C 80 160, 85 170, 95 180" fill="none" stroke="#1A1A1A" stroke-width="2.5" />
+  <path d="M 140 140 C 130 160, 125 170, 115 180" fill="none" stroke="#1A1A1A" stroke-width="2.5" />
+  <path d="M 80 140 L 95 165 L 105 150 L 115 165 L 130 140" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+
+  <!-- === HEAD & SKIN === -->
+  <path d="M 95 110 L 95 145 L 120 145 L 120 110 Z" fill="#FFE5D9" />
+  <path d="M 95 120 L 95 145 M 120 120 L 120 145" fill="none" stroke="#1A1A1A" stroke-width="2.5" />
+  <path d="M 102 135 C 108 140, 112 140, 115 135" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Smooth relaxed jawline leaning back slightly -->
+  <path d="M 75 70 C 75 105, 85 125, 100 135 L 110 138 L 120 135 C 135 125, 145 105, 145 70 C 145 50, 125 40, 110 40 C 95 40, 75 50, 75 70 Z" fill="#FFE5D9" />
+  <path d="M 75 70 C 75 105, 85 125, 100 135 L 110 138 L 120 135 C 135 125, 145 105, 145 70" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <path d="M 145 85 C 150 85, 150 75, 145 78" fill="#FFE5D9" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- === YOUTHFUL FULL HAIR (Slicked back modern style, thick and smooth) === -->
+  <!-- Base structure over the head, generous padding -->
+  <path d="M 65 70 C 60 50, 75 35, 100 30 C 135 25, 160 40, 155 70 C 150 100, 140 100, 135 90 C 130 80, 145 65, 145 55 C 145 45, 125 45, 110 45 C 90 45, 75 55, 75 80 C 75 90, 68 85, 65 70 Z" fill="#1A1A1A" />
+  <path d="M 65 70 C 60 50, 75 35, 100 30 C 135 25, 160 40, 155 70" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+  
+  <path d="M 80 50 C 90 70, 95 85, 105 65 C 115 50, 130 60, 140 85 C 150 75, 150 60, 140 45 Z" fill="#1A1A1A" />
+  <path d="M 80 50 C 90 70, 95 85, 105 65 C 115 50, 130 60, 140 85 C 150 75, 150 60, 140 45" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round" />
+
+  <path d="M 90 35 C 80 25, 85 20, 90 15 M 130 35 C 140 25, 135 20, 130 15 M 105 50 L 115 65" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" />
+  <path d="M 145 80 C 155 90, 145 105, 135 105" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- === YOUTHFUL FACIAL FEATURES === -->
+  <path d="M 90 85 L 105 82 M 130 82 L 115 85" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Eyes closed (Relaxing to music) -->
+  <path d="M 95 90 C 98 93, 102 93, 105 90" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M 125 90 C 128 93, 132 93, 135 90" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" />
+  
+  <path d="M 115 100 L 115 110 L 112 110" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="miter" stroke-linecap="round" />
+
+  <!-- Subtle relaxed smile -->
+  <path d="M 108 120 C 112 123, 118 123, 122 120" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" />
+  <path d="M 112 125 C 115 126, 118 126, 120 125" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Minimalist earbuds -->
+  <circle cx="140" cy="85" r="5" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2" />
+  
+  <!-- Music note floating -->
+  <path d="M 155 70 L 155 55 L 165 60 L 165 65 L 158 60 L 158 72 M 153 72 C 150 72, 148 70, 148 68 C 148 65, 150 63, 153 63 C 156 63, 158 65, 158 68 C 158 70, 156 72, 153 72 Z" fill="#1A1A1A" />
+
+</svg>

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Red/Center: #E8725C
+    Yellow/Petals: #F5C563
+    Green/Stem/Leaf: #8BA888
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Stem & Leaf Fills (Offset low opacity) -->
+  <path d="M 84 38 Q 78 50 86 64" fill="none" stroke="#8BA888" stroke-width="4" opacity="0.3" stroke-linecap="round" />
+  <path d="M 82 52 Q 72 45 74 55 Z" fill="#8BA888" opacity="0.6" />
+
+  <!-- The 5 Petal Fills (Yellow, slightly offset and rotated for hand-drawn look) -->
+  <g fill="#F5C563" opacity="0.9" transform="rotate(10 84 28)">
+    <circle cx="84" cy="18" r="6" /> <!-- Top -->
+    <circle cx="94" cy="25" r="6" /> <!-- Right -->
+    <circle cx="90" cy="35" r="6" /> <!-- Bottom Right -->
+    <circle cx="78" cy="35" r="6" /> <!-- Bottom Left -->
+    <circle cx="74" cy="25" r="6" /> <!-- Left -->
+  </g>
+
+  <!-- Red Center Fill -->
+  <circle cx="84" cy="28" r="4.5" fill="#E8725C" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Arching Stem -->
+    <path d="M 84 37 Q 80 50 85 62" />
+
+    <!-- A single leaf -->
+    <path d="M 82 50 Q 70 42 75 52 Q 78 55 83 50" />
+    <path d="M 82 50 L 78 51" stroke-width="1.5" /> <!-- Tiny vein -->
+
+    <!-- Flower Petal Outlines (Slightly irregular overlapping circles) -->
+    <circle cx="84" cy="19" r="6" />
+    <circle cx="93" cy="26" r="6" />
+    <circle cx="89" cy="35" r="6" />
+    <circle cx="79" cy="35" r="6" />
+    <circle cx="75" cy="26" r="6" />
+
+    <!-- Flower Center Structure -->
+    <circle cx="84" cy="28" r="4" stroke-width="1.5" />
+    <circle cx="82" cy="26" r="0.5" fill="#2D2A26" stroke="none" /> <!-- Minute detail dot -->
+  </g>
+
+  <!-- Aesthetic tiny dot floaters -->
+  <circle cx="60" cy="25" r="1.5" fill="#8BA888" opacity="0.5" />
+  <circle cx="106" cy="45" r="1.5" fill="#F5C563" opacity="0.5" />
+
+</svg>

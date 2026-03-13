@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Letter Welcome Illustration: A gentle wave/hand gesture -->
+  <circle cx="100" cy="85" r="28" fill="#F5DCC8" opacity="0.95" />
+  <circle cx="105" cy="90" r="28" fill="#D4CEC8" opacity="0.25" />
+  <path d="M 70 120 C 80 105, 120 105, 130 120 L 135 170 C 135 175, 65 175, 65 170 Z" fill="#7EB8C9" opacity="0.85" />
+  <path d="M 75 125 C 85 110, 125 110, 135 125 L 140 175 C 140 180, 70 180, 70 175 Z" fill="#D4CEC8" opacity="0.2" />
+  <!-- Face -->
+  <circle cx="92" cy="80" r="3" fill="#2D2A26" />
+  <circle cx="108" cy="80" r="3" fill="#2D2A26" />
+  <path d="M 94 92 Q 100 98, 106 92" stroke="#2D2A26" stroke-width="2" fill="none" stroke-linecap="round" />
+  <!-- Waving hand -->
+  <path d="M 135 110 C 145 95, 160 85, 155 75" stroke="#F5DCC8" stroke-width="8" fill="none" stroke-linecap="round" />
+  <path d="M 132 108 C 142 93, 157 83, 152 73" stroke="#2D2A26" stroke-width="2" fill="none" stroke-linecap="round" />
+  <!-- Sparkles -->
+  <path d="M 160 60 L 160 50 M 155 55 L 165 55" stroke="#F5C563" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <circle cx="50" cy="60" r="4" fill="#F5C563" opacity="0.5" />
+  <circle cx="145" cy="130" r="3" fill="#E8725C" opacity="0.4" />
+  <!-- Head outline -->
+  <circle cx="100" cy="85" r="28" stroke="#2D2A26" stroke-width="2" fill="none" />
+  <g stroke="#2D2A26" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M 70 120 C 80 105, 120 105, 130 120 L 135 170 C 135 175, 65 175, 65 170 Z" />
+  </g>
+</svg>

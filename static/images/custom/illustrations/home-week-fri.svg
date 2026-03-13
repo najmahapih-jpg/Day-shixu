@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 72">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (Sticker Mode)
+    - ViewBox 168x72
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, minimalist sticker composition
+    - Centered with safe margins
+    
+    Palette:
+    Red/Flag: #E8725C
+    Grey/Pole/Shadow: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+    White/Star: #FAF8F5
+  -->
+
+  <!-- Offset Color Fills -->
+  <!-- Flag Fill (Offset slightly right) -->
+  <path d="M 68 18 Q 100 8 115 28 Q 85 38 68 45 Z" fill="#E8725C" opacity="0.9" />
+
+  <!-- Shadow below pole -->
+  <ellipse cx="65" cy="62" rx="10" ry="2" fill="#D4CEC8" opacity="0.4" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Flagpole -->
+    <path d="M 65 60 L 65 15" stroke="#D4CEC8" stroke-width="2.5" />
+    <!-- Flagpole finial (top knob) -->
+    <circle cx="65" cy="15" r="2" stroke="none" fill="#D4CEC8" />
+
+    <!-- Flag Fabric (Wavy pennant) -->
+    <path d="M 65 18 Q 95 10 110 30 Q 82 40 65 48" />
+
+    <!-- Tiny White Star on the flag -->
+    <path d="M 78 26 L 81 26 L 82 23 L 83 26 L 86 26 L 84 28 L 85 31 L 82 29 L 79 31 L 80 28 Z" fill="#FAF8F5" stroke="none" />
+  </g>
+
+  <!-- Sparkles/Wind lines -->
+  <path d="M 120 28 C 125 25, 130 25, 135 28" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.8" />
+  <circle cx="50" cy="20" r="1.5" fill="#F5C563" opacity="0.6" />
+
+</svg>

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 256">
+  <!-- 
+    Claude-inspired Editorial Illustration Style
+    - ViewBox 600x256 (Wide, medium height infographic style)
+    - Delicate outline (#2D2A26)
+    - Deliberately offset, painterly color blocks
+    - Abstract, magical but friendly composition
+    - Playful staggered 3-step workflow (Red/Blue/Yellow)
+    
+    Palette (Strict):
+    Red/Step 1: #E8725C
+    Blue/Step 2: #7EB8C9
+    Yellow/Step 3: #F5C563
+    White/Icons/Labels: #FAF8F5
+    Grey/Arrows/Grid: #D4CEC8
+    Dark Brown/Lines: #2D2A26
+  -->
+
+  <!-- Background Abstract Watercolor-like Splashes -->
+  <!-- Faint Dot Grid Background (5% Opacity as requested) -->
+  <pattern id="dotGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+    <circle cx="15" cy="15" r="2" fill="#D4CEC8" opacity="0.3" /> <!-- Net opacity is 0.3 * 0.16 = ~5% appearance -->
+  </pattern>
+  <rect width="600" height="256" fill="url(#dotGrid)" opacity="0.16" />
+
+  <!-- The Connecting Arced Dashed Arrows (Grey) -->
+  <g stroke="#D4CEC8" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="6 10">
+    <!-- Arrow 1 -> 2 (Upwards arc) -->
+    <path d="M 170 110 Q 250 80, 310 90" />
+    <path d="M 300 80 L 315 90 L 305 100" stroke-dasharray="none" stroke-linejoin="round" />
+    
+    <!-- Arrow 2 -> 3 (Downwards arc) -->
+    <path d="M 370 120 Q 430 150, 480 130" />
+    <path d="M 465 125 L 485 130 L 475 145" stroke-dasharray="none" stroke-linejoin="round" />
+  </g>
+
+  <!-- Offset Color Fills for the Main Nodes -->
+  
+  <!-- Step 1 (Left - Red/Document) -->
+  <circle cx="120" cy="115" r="38" fill="#E8725C" opacity="0.95" />
+  <!-- Shadow offset -->
+  <circle cx="125" cy="120" r="38" fill="#D4CEC8" opacity="0.3" />
+
+  <!-- Step 2 (Center - Blue/Gear, staggered up) -->
+  <circle cx="340" cy="100" r="38" fill="#7EB8C9" opacity="0.95" />
+  <circle cx="345" cy="105" r="38" fill="#D4CEC8" opacity="0.3" />
+
+  <!-- Step 3 (Right - Yellow/Lightbulb, staggered down) -->
+  <circle cx="520" cy="130" r="38" fill="#F5C563" opacity="0.95" />
+  <circle cx="525" cy="135" r="38" fill="#D4CEC8" opacity="0.3" />
+
+  <!-- White Outline/Fill Labels underneath the nodes -->
+  <!-- Label 1 -->
+  <rect x="80" y="170" width="80" height="24" rx="4" fill="#FAF8F5" opacity="0.9" />
+  <!-- Label 2 -->
+  <rect x="300" y="155" width="80" height="24" rx="4" fill="#FAF8F5" opacity="0.9" />
+  <!-- Label 3 -->
+  <rect x="480" y="185" width="80" height="24" rx="4" fill="#FAF8F5" opacity="0.9" />
+
+  <!-- Line Art (The delicate hand-drawn structure) -->
+  <g stroke="#2D2A26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    
+    <!-- Step 1 (Document/Data Collection) -->
+    <circle cx="120" cy="115" r="38" />
+    <!-- Mini internal white document icon -->
+    <g stroke="#FAF8F5" stroke-width="2.5">
+      <path d="M 110 95 L 130 95 L 135 105 L 135 130 C 135 132, 133 135, 130 135 L 110 135 C 107 135, 105 132, 105 130 L 105 100 C 105 97, 107 95, 110 95 Z" />
+      <path d="M 125 95 L 125 105 L 135 105" /> <!-- Folded corner hint -->
+      <line x1="112" y1="115" x2="128" y2="115" />
+      <line x1="112" y1="125" x2="122" y2="125" />
+    </g>
+
+    <!-- Step 2 (Gear/Analysis) -->
+    <circle cx="340" cy="100" r="38" />
+    <!-- Mini internal white gear icon -->
+    <g stroke="#FAF8F5" stroke-width="2.5" fill="none">
+      <circle cx="340" cy="100" r="10" />
+      <!-- Gear teeth -->
+      <line x1="340" y1="82" x2="340" y2="88" />
+      <line x1="340" y1="112" x2="340" y2="118" />
+      <line x1="322" y1="100" x2="328" y2="100" />
+      <line x1="352" y1="100" x2="358" y2="100" />
+      <line x1="327" y1="87" x2="331" y2="91" />
+      <line x1="353" y1="113" x2="349" y2="109" />
+      <line x1="327" y1="113" x2="331" y2="109" />
+      <line x1="353" y1="87" x2="349" y2="91" />
+    </g>
+
+    <!-- Step 3 (Lightbulb/Insight) -->
+    <circle cx="520" cy="130" r="38" />
+    <!-- Mini internal white lightbulb icon -->
+    <g stroke="#FAF8F5" stroke-width="2.5">
+      <path d="M 510 120 C 510 110, 530 110, 530 120 C 530 128, 524 135, 524 142 L 516 142 C 516 135, 510 128, 510 120 Z" />
+      <line x1="516" y1="148" x2="524" y2="148" />
+      <!-- Abstract Rays -->
+      <line x1="520" y1="105" x2="520" y2="100" stroke-width="2" />
+      <line x1="505" y1="115" x2="500" y2="110" stroke-width="2" />
+      <line x1="535" y1="115" x2="540" y2="110" stroke-width="2" />
+      <line x1="535" y1="130" x2="540" y2="135" stroke-width="2" /> <!-- Lower ray -->
+      <line x1="505" y1="130" x2="500" y2="135" stroke-width="2" /> <!-- Lower ray -->
+    </g>
+
+    <!-- Overlapping Outlines for Labels (giving the sticker feel) -->
+    <rect x="78" y="168" width="80" height="24" rx="4" />
+    <rect x="298" y="153" width="80" height="24" rx="4" />
+    <rect x="478" y="183" width="80" height="24" rx="4" />
+    
+    <!-- Fake text lines inside the labels -->
+    <line x1="95" y1="180" x2="145" y2="180" stroke-width="1.5" />
+    <line x1="320" y1="165" x2="360" y2="165" stroke-width="1.5" />
+    <line x1="495" y1="195" x2="545" y2="195" stroke-width="1.5" />
+  </g>
+
+  <!-- Abstract Aesthetic Sparkles/Dots indicating flow & magic -->
+  <circle cx="160" cy="160" r="2.5" fill="#F5C563" opacity="0.6" />
+  <circle cx="280" cy="50" r="3" fill="#E8725C" opacity="0.5" />
+  <circle cx="440" cy="180" r="2" fill="#7EB8C9" opacity="0.7" />
+  
+  <path d="M 460 70 L 464 78 L 474 78 L 466 84 L 469 94 L 460 88 L 451 94 L 454 84 L 446 78 L 456 78 Z" fill="#F5C563" opacity="0.8" />
+  <circle cx="220" cy="120" r="1.5" fill="#B8A9C9" opacity="0.6" />
+
+</svg>

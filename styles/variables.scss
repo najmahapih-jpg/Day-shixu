@@ -1,0 +1,228 @@
+// ============================================
+// 星划pro Design Tokens v2.0
+// Inspired by: Daybase, Wellio, Flowy, Behance
+// ============================================
+
+// --- Brand Colors ---
+$brand-primary: #111111;
+$brand-primary-light: #2A2A2A;
+$brand-primary-dark: #000000;
+$brand-secondary: #0085FF;
+$brand-tertiary: #FF9900;
+$brand-quaternary: #E6E6E6;
+// v2.0 accent colors
+$brand-accent: #8A2BE2; // Lavender — for highlights, tags, celebrations
+$brand-fresh: #00D084; // Mint — for success states, streaks
+$brand-peach: #FF6B6B; // Peach — for warm tints, gradients
+
+// --- Gradient Presets ---
+$gradient-primary: linear-gradient(135deg, $brand-primary, #F2A191);
+$gradient-warm: linear-gradient(135deg, #FBBF84, #F2A191, #E8725C);
+$gradient-cool: linear-gradient(135deg, #7EB8C9, #A78BFA);
+$gradient-fresh: linear-gradient(135deg, #6EE7B7, #8BA888);
+$gradient-sunset: linear-gradient(135deg, #E8725C, #F5C563);
+$gradient-header: linear-gradient(180deg, rgba($brand-primary, 0.08) 0%, transparent 100%);
+$gradient-card-glow: linear-gradient(135deg, rgba($brand-primary, 0.06), rgba($brand-accent, 0.04));
+
+// --- Neutral Colors ---
+$neutral-900: #1E1E2E; // Deepened for modern contrast
+$neutral-800: #2D2D3F;
+$neutral-700: #4A4A5C;
+$neutral-600: #6B6B7D;
+$neutral-500: #8E8E9E;
+$neutral-400: #B0B0BE;
+$neutral-300: #D1D1DB;
+$neutral-200: #E5E5EC;
+$neutral-100: #F3F3F8; // Slightly cooler for modern feel
+$neutral-50: #F9F9FC; // Near-white cool
+
+// --- Functional Colors ---
+$color-success: #1E1E2E;
+$color-success-bg: rgba($color-success, 0.10);
+$color-warning: #8E8E9E;
+$color-warning-bg: rgba($color-warning, 0.10);
+$color-error: #1E1E2E;
+$color-error-bg: rgba($color-error, 0.10);
+$color-danger: $color-error;
+$color-info: #6B6B7D;
+$color-info-bg: rgba($color-info, 0.10);
+
+// --- Habit Category Colors ---
+$habit-morning: #2D323E;
+$habit-exercise: #DCDCDC;
+$habit-mindful: #878C96;
+$habit-health: #F0F0F0;
+$habit-learning: #141414;
+$habit-social: #5B6069;
+$habit-creative: #E6E6E6;
+$habit-sleep: #A3A8B1;
+
+$habit-colors: (
+    morning: $habit-morning,
+    exercise: $habit-exercise,
+    mindful: $habit-mindful,
+    health: $habit-health,
+    learning: $habit-learning,
+    social: $habit-social,
+    creative: $habit-creative,
+    sleep: $habit-sleep,
+);
+
+// --- Dark Mode ---
+$dark-bg: #0F0F1A;
+$dark-surface: #1A1A2E;
+$dark-card: #222236;
+$dark-card-elevated: #2A2A40;
+$dark-text-primary: #F3F3F8;
+$dark-text-secondary: #B0B0BE;
+$dark-text-tertiary: #8E8E9E;
+$dark-border: #2D2D44;
+$dark-gradient-header: linear-gradient(180deg, rgba($brand-primary, 0.12) 0%, transparent 100%);
+
+// --- Typography ---
+$font-family: 'SF Pro Text', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', 'Microsoft YaHei', sans-serif;
+$font-display: 'SF Pro Display', 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
+
+$text-2xs: 18rpx;
+$text-xs: 20rpx;
+$text-sm: 24rpx;
+$text-base: 28rpx;
+$text-md: 32rpx;
+$text-lg: 36rpx;
+$text-xl: 44rpx;
+$text-2xl: 56rpx;
+$text-3xl: 72rpx;
+$text-4xl: 88rpx;
+$text-5xl: 112rpx;
+
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+$font-extrabold: 800;
+
+$line-height-tight: 1.2;
+$line-height-snug: 1.35;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+$letter-spacing-tight: -0.03em;
+$letter-spacing-normal: 0em;
+$letter-spacing-wide: 0.02em;
+$letter-spacing-wider: 0.06em;
+$letter-spacing-widest: 0.08em;
+
+// --- Legacy Typography Compatibility ---
+$font-black: 900;
+$mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+$serif-stack: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+$font-mono: $mono-stack;
+$sans-stack: $font-family;
+
+// --- Spacing (8rpx grid) ---
+$space-0: 0rpx;
+$space-1: 8rpx;
+$space-2: 16rpx;
+$space-3: 24rpx;
+$space-4: 32rpx;
+$space-5: 40rpx;
+$space-6: 48rpx;
+$space-7: 56rpx;
+$space-8: 64rpx;
+$space-9: 72rpx;
+$space-10: 80rpx;
+$space-11: 88rpx;
+$space-12: 96rpx;
+
+// --- Border Radius (v2: larger, more organic) ---
+$radius-xs: 6rpx;
+$radius-sm: 10rpx;
+$radius-md: 14rpx;
+$radius-lg: 20rpx;
+$radius-xl: 28rpx;
+$radius-2xl: 36rpx;
+$radius-3xl: 48rpx; // Large card radius
+$radius-4xl: 60rpx; // Hero section radius
+$radius-full: 9999rpx;
+
+// --- Shadows (v2: softer, more layered) ---
+$shadow-xs: 0 1rpx 4rpx rgba(0, 0, 0, 0.03);
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+$shadow-xl: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
+$shadow-card: 0 4rpx 24rpx rgba(0, 0, 0, 0.05);
+$shadow-elevated: 0 12rpx 40rpx rgba(0, 0, 0, 0.10);
+$shadow-glow-primary: 0 4rpx 20rpx rgba($brand-primary, 0.20);
+$shadow-glow-accent: 0 4rpx 20rpx rgba($brand-accent, 0.15);
+
+// --- Animation ---
+$ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+$ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+$ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+$ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+$ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+$duration-fast: 150ms;
+$duration-normal: 250ms;
+$duration-slow: 350ms;
+$duration-slower: 500ms;
+$duration-slowest: 700ms;
+$ease: $ease-in-out;
+
+// --- Common Colors ---
+$color-white: #fff;
+$color-black: #000;
+$color-border: $neutral-300;
+
+// --- Legacy Manga Palette Compatibility ---
+$ink-black: #0C0D0F;
+$ink-light: #3A3D42;
+$crimson: #7A0016;
+$crimson-glow: rgba($crimson, 0.25);
+
+// --- Layout Sizes ---
+$tabbar-height: 110rpx; // Slightly taller for v2
+$navbar-height: 96rpx;
+$page-padding: $space-4;
+$page-padding-lg: $space-5;
+
+$icon-xs: 28rpx;
+$icon-sm: 36rpx;
+$icon-md: 44rpx;
+$icon-lg: 56rpx;
+$icon-xl: 72rpx;
+$icon-2xl: 96rpx;
+
+// --- Overlay Colors ---
+$overlay-light: rgba(255, 255, 255, 0.8);
+$overlay-dark: rgba(0, 0, 0, 0.35);
+$overlay-darker: rgba(0, 0, 0, 0.5);
+$overlay-darkest: rgba(0, 0, 0, 0.6);
+$overlay-blur: rgba($neutral-50, 0.85); // For frosted glass
+
+// --- Semantic: Letter / Parchment ---
+$letter-bg-start: #F5E6D0;
+$letter-bg-mid: #E8D5BC;
+$letter-bg-end: #DCC8AC;
+$letter-paper: #FFFDE7;
+
+// --- Board Note Tints ---
+$note-tint-yellow: rgba(#FFF9C4, 0.3);
+$note-tint-blue: rgba(#E3F2FD, 0.3);
+$note-tint-green: rgba(#E8F5E9, 0.3);
+$note-red-start: #E74C3C;
+$note-red-end: #C0392B;
+
+// --- Z-Index Scale ---
+$z-content: 1;
+$z-sticky: 10;
+$z-tabbar: 50;
+$z-fab: 60;
+$z-toast: 80;
+$z-overlay: 100;
+$z-modal: 110;
+$z-sheet: 115;
+$z-actionsheet: 120;
+$z-milestone: 130;
+$z-top: 200;

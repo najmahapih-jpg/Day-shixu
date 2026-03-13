@@ -1,0 +1,30 @@
+{
+    "envId":  "cloud-dev-01-2gvgeewv8b7147fb",
+    "functionRoot":  "cloudfunctions",
+    "functions":  [
+                      {
+                          "name":  "ai"
+                      },
+                      {
+                          "name":  "habit"
+                      },
+                      {
+                          "name":  "journey"
+                      },
+                      {
+                          "name":  "letter"
+                      },
+                      {
+                          "name":  "notify"
+                      },
+                      {
+                          "name":  "ritual"
+                      },
+                      {
+                          "name":  "stats"
+                      },
+                      {
+                          "name":  "user"
+                      }
+                  ]
+}

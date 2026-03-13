@@ -1,0 +1,20 @@
+@import './variables.scss';
+
+page {
+  min-height: 100%;
+  background-color: $neutral-50;
+  color: $neutral-900;
+  font-family: $font-family;
+}
+
+view,
+text,
+image,
+scroll-view,
+swiper,
+button,
+input,
+textarea {
+  box-sizing: border-box;
+  font-family: $font-family;
+}

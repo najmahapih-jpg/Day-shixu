@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+unpackage/
+dist/
+
+# Local caches and temp
+.npm-cache/
+_mp_devtools/
+_mp_devtools_fresh_*/
+.claude/
+backups/
+nul
+
+# Logs
+*.log

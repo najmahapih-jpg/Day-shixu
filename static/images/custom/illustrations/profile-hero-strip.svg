@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 260">
+  <!-- 
+    Claude-inspired Editorial Illustration Style (FREE CREATIVE MODE - HORIZON/JOURNEY THEME)
+    - ViewBox 750x260 (Profile Hero Banner)
+    - Concept: "An unfolding landscape of personal growth". Since this is a habit app profile, 
+      the background should subtly imply a journey over rolling hills/horizons towards a bright sky.
+    - Low contrast maintained for text readability.
+    - Uses sweeping, overlapping curves to create depth without dark lines.
+    
+    Palette (Strict, Ghostly Opacity):
+    Green/Foreground Hills: #8BA888 (10-15%)
+    Blue/Distant Mountains: #7EB8C9 (8-12%)
+    Yellow/Sun & Glow: #F5C563 (5-15%)
+    Red/Accents: #E8725C (5-10%)
+    Grey/Wind/Path: #D4CEC8 (15%)
+  -->
+
+  <!-- The "Sky" Glow (Vast, empty space for text reading) -->
+  <radialGradient id="sunGlow" cx="70%" cy="20%" r="80%" fx="70%" fy="20%">
+    <stop offset="0%" stop-color="#F5C563" stop-opacity="0.12"/>
+    <stop offset="100%" stop-color="#F5C563" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="750" height="260" fill="url(#sunGlow)" />
+
+  <!-- The Faint Sun (Right aligned, out of the way of typical left-aligned avatars/text) -->
+  <circle cx="680" cy="70" r="45" fill="#F5C563" opacity="0.15" />
+  <!-- Hand-drawn sun halo -->
+  <circle cx="680" cy="70" r="60" stroke="#F5C563" stroke-width="1.5" fill="none" opacity="0.2" stroke-dasharray="8 12" />
+
+  <!-- Distant Blue Mountains (Soft, sweeping curves) -->
+  <path d="M -50 180 C 150 120, 300 130, 450 180 C 580 220, 680 180, 800 140 L 800 260 L -50 260 Z" fill="#7EB8C9" opacity="0.08" />
+  
+  <!-- Offset mountain ridges (Hand-drawn feel) -->
+  <path d="M -20 170 C 180 110, 320 140, 430 190 C 550 240, 660 190, 780 150" stroke="#7EB8C9" stroke-width="2" fill="none" opacity="0.15" stroke-linecap="round" />
+
+  <!-- Middle Ground Green Hills (Warmer, closer) -->
+  <path d="M -50 260 C 100 200, 350 280, 550 220 C 650 190, 720 220, 800 210 L 800 260 L -50 260 Z" fill="#8BA888" opacity="0.1" />
+
+  <!-- The Winding Path Concept (A journey through the hills) -->
+  <path d="M 120 260 C 200 240, 250 220, 280 230 C 350 250, 450 200, 520 215" stroke="#D4CEC8" stroke-width="3" fill="none" opacity="0.15" stroke-dasharray="10 15" stroke-linecap="round" />
+  <!-- Delicate path edge -->
+  <path d="M 140 260 C 200 245, 240 230, 270 235 C 330 250, 430 210, 490 220" stroke="#D4CEC8" stroke-width="1" fill="none" opacity="0.2" />
+
+  <!-- Foreground Elements (Pushing depth) -->
+  <!-- Abstract Red Flora/Forest silhouette on the left hill -->
+  <path d="M 20 230 C 40 210, 60 215, 80 220 C 100 225, 120 235, 110 250 C 70 240, 40 250, 20 230 Z" fill="#E8725C" opacity="0.08" />
+  <!-- Hand-drawn flora loops -->
+  <path d="M 30 235 C 40 220, 50 220, 55 230 C 65 220, 75 225, 80 235" stroke="#E8725C" stroke-width="1.5" fill="none" opacity="0.15" stroke-linecap="round" />
+
+  <!-- Right side gentle ground swell -->
+  <path d="M 500 260 C 600 230, 700 240, 800 230 L 800 260 Z" fill="#8BA888" opacity="0.12" />
+
+  <!-- Ethereal Wind / Atmosphere in the sky -->
+  <!-- Left sky wind -->
+  <path d="M 80 80 Q 150 70, 220 90 T 360 80" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.15" stroke-linecap="round" />
+  <path d="M 120 100 Q 180 90, 240 105" stroke="#D4CEC8" stroke-width="1" fill="none" opacity="0.1" stroke-linecap="round" />
+  
+  <!-- Right sky wind near sun -->
+  <path d="M 450 120 Q 520 130, 580 110 T 720 130" stroke="#D4CEC8" stroke-width="1.5" fill="none" opacity="0.15" stroke-linecap="round" />
+
+  <!-- A few abstract scattered seeds/stars floating up (Hope/Habits taking root) -->
+  <circle cx="180" cy="150" r="2" fill="#F5C563" opacity="0.2" />
+  <circle cx="480" cy="160" r="2.5" fill="#E8725C" opacity="0.12" />
+  <circle cx="280" cy="180" r="1.5" fill="#8BA888" opacity="0.15" />
+  <circle cx="620" cy="100" r="1.5" fill="#7EB8C9" opacity="0.15" />
+
+  <!-- Tiny "sparkle" cluster on the distant path -->
+  <path d="M 510 205 L 512 210 L 517 210 L 513 214 L 515 219 L 510 216 L 505 219 L 507 214 L 503 210 L 508 210 Z" fill="#F5C563" opacity="0.25" />
+
+</svg>
