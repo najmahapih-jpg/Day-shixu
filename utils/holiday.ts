@@ -346,6 +346,70 @@ const ST_INFO = [
   353350, 375494, 397447, 419210, 440795, 462224, 483532, 504758
 ]
 
+export interface UpcomingHoliday {
+  dateStr: string
+  name: string
+  shortName: string
+  slogan: string
+  type: HolidayType
+  daysUntil: number
+}
+
+export function getUpcomingHolidays(year: number, month: number, todayStr: string, limit = 6): UpcomingHoliday[] {
+  const todayParsed = parseDate(todayStr)
+  if (!todayParsed) return []
+  const todayUtc = Date.UTC(todayParsed.year, todayParsed.month - 1, todayParsed.day)
+
+  const results: UpcomingHoliday[] = []
+  const seen = new Set<string>()
+
+  const scanMonth = (y: number, m: number) => {
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${y}-${pad(m)}-${pad(d)}`
+      const info = getHolidayInfo(dateStr)
+      if (!info) continue
+      if (seen.has(dateStr)) continue
+      seen.add(dateStr)
+
+      const dateUtc = Date.UTC(y, m - 1, d)
+      const daysUntil = Math.round((dateUtc - todayUtc) / 86400000)
+
+      results.push({
+        dateStr,
+        name: info.name,
+        shortName: info.shortName,
+        slogan: info.slogan,
+        type: info.type,
+        daysUntil,
+      })
+    }
+  }
+
+  // Scan current + next month first, then expand up to 6 months to guarantee at least 1 result
+  let scanY = year
+  let scanM = month
+  for (let i = 0; i < 6; i++) {
+    scanMonth(scanY, scanM)
+    if (i >= 1 && results.length >= 1) break // After current+next, stop once we have results
+    scanM += 1
+    if (scanM > 12) { scanM = 1; scanY += 1 }
+  }
+
+  // Split into past and upcoming
+  const past = results.filter(h => h.daysUntil < 0).sort((a, b) => b.daysUntil - a.daysUntil) // most recent past first
+  const upcoming = results.filter(h => h.daysUntil >= 0).sort((a, b) => a.daysUntil - b.daysUntil) // soonest first
+
+  // Keep max 1 past + max 2 upcoming
+  const selected = [
+    ...past.slice(0, 1),
+    ...upcoming.slice(0, 2),
+  ]
+
+  selected.sort((a, b) => a.dateStr.localeCompare(b.dateStr))
+  return selected
+}
+
 export function getSolarTerm(dateStr: string): string | null {
   const parsed = parseDate(dateStr)
   if (!parsed) return null

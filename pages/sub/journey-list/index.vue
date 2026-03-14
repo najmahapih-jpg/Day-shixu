@@ -3,8 +3,8 @@
     <!-- Navbar -->
     <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="navbar__inner">
-        <view class="navbar__back" @tap="goBack">
-          <HfIcon name="arrow-left-linear" size="sm" />
+        <view class="navbar__back" :style="backBtnStyle" @tap="goBack">
+          <HfIcon name="arrow-left-linear" size="sm" plain />
         </view>
         <text class="navbar__title">探索旅程</text>
         <view class="navbar__spacer" />
@@ -154,6 +154,18 @@ function getStatusBarHeight(): number {
 }
 
 const statusBarHeight = ref(getStatusBarHeight())
+const backBtnStyle = {
+  width: '72rpx',
+  height: '72rpx',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '50%',
+  background: 'rgba(243,243,248,0.9)',
+  border: '1rpx solid rgba(209,209,219,0.4)',
+  boxShadow: '0 2rpx 12rpx rgba(0,0,0,0.08)',
+  flexShrink: 0,
+}
 
 function goBack() {
   if (getCurrentPages().length > 1) {

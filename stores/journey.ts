@@ -90,6 +90,22 @@ export const useJourneyStore = defineStore('journey', () => {
   let presetErrorNotified = false
   let userJourneyErrorNotified = false
 
+  function getErrMessage(err: unknown): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const msg = String((err as { message?: unknown }).message || '')
+      if (msg.trim()) return msg
+    }
+    return ''
+  }
+
+  function toJourneyToastMessage(err: unknown, fallback: string): string {
+    const msg = getErrMessage(err).toLowerCase()
+    if (msg.includes('user_journeys')) return '缺少集合 user_journeys'
+    if (msg.includes('journeys')) return '缺少集合 journeys'
+    if (msg.includes('letters')) return '缺少集合 letters'
+    return fallback
+  }
+
   async function fetchPresets() {
     const version = ++presetFetchVersion
 
@@ -151,6 +167,10 @@ export const useJourneyStore = defineStore('journey', () => {
       }
       if (!userJourneyErrorNotified) {
         userJourneyErrorNotified = true
+        uni.showToast({
+          title: toJourneyToastMessage(err, '加载旅程失败'),
+          icon: 'none',
+        })
       }
     } finally {
       loadingCount.value -= 1
@@ -188,7 +208,10 @@ export const useJourneyStore = defineStore('journey', () => {
       } catch {
         // ignore re-fetch failure
       }
-      uni.showToast({ title: '开始旅程失败', icon: 'none' })
+      uni.showToast({
+        title: toJourneyToastMessage(err, '开始旅程失败'),
+        icon: 'none',
+      })
       throw err
     }
   }

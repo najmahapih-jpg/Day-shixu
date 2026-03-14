@@ -1,120 +1,132 @@
 <template>
-  <HfPageBg variant="neutral" class="page page-transition" :class="{ 'dark-mode': isDark, 'page-entered': pageEntered }">
+  <HfPageBg variant="cool" class="page page-transition" :class="{ 'page-entered': pageEntered, 'theme-neo': true }">
+    <view class="paper-texture" />
+
     <!-- Loading skeleton -->
     <StatsSkeleton v-if="loading" />
 
     <HfEmpty v-else-if="activeHabits.length === 0" type="stats" />
 
-    <view v-else class="page__content anim-fade-in">
-      <!-- ===== 1. Stat Cards ===== -->
-      <view class="stat-cards">
-        <HfStatCard
-          :value="animStreakDays"
-          label="连续天数"
-          icon="fire-bold"
-          iconColor="#1E1E2E"
-          :style="statStagger(0)"
-        />
-        <HfStatCard
-          :value="animTotalCheckIns"
-          label="总打卡"
-          icon="check-circle-bold"
-          iconColor="#8BA888"
-          :style="statStagger(1)"
-        />
-        <HfStatCard
-          :value="animOverallRate + '%'"
-          label="完成率"
-          icon="chart-2-bold"
-          iconColor="#7EB8C9"
-          :style="statStagger(2)"
-        />
+    <scroll-view v-else scroll-y class="page-scroll anim-fade-in">
+      <view class="page__content">
+
+        <!-- ===== ① Mega Typography Header ===== -->
+        <view class="mega-header anim-stagger-up" style="--stagger-idx: 0;">
+          <view class="mega-header__group">
+            <text class="mega-header__title">GLOBAL</text>
+            <text class="mega-header__title mega-header__title--stroke">STATISTICS</text>
+          </view>
+          <view class="mega-header__badge">{{ todayStr }} • 90 DAYS</view>
+        </view>
+
+        <!-- ===== ② Dossier Grid (Huge Elevate Cards) ===== -->
+        <view class="dossier-grid anim-stagger-up" style="--stagger-idx: 1;">
+          <view class="dossier-grid__hero surface-card brutal-purple">
+            <view class="hero-value-row">
+              <text class="hero-value">{{ animOverallRate }}</text>
+              <text class="hero-symbol">%</text>
+            </view>
+            <text class="hero-label">COMPLETION RATE</text>
+            <view
+              class="hero-delta nb-flat"
+              :class="{ 'nb-flat--mint': weekDelta >= 0, 'nb-flat--coral': weekDelta < 0 }"
+            >{{ weekDelta > 0 ? '+' : '' }}{{ Math.abs(weekDelta) }}% vs LAST WEEK</view>
+          </view>
+          <view class="dossier-grid__stack">
+            <view class="dossier-grid__cell surface-card brutal-coral">
+              <view class="cell-val-wrap">
+                <text class="cell-value">{{ animStreakDays }}</text>
+              </view>
+              <text class="cell-label">STREAK</text>
+            </view>
+            <view class="dossier-grid__cell surface-card brutal-sky">
+              <view class="cell-val-wrap">
+                <text class="cell-value">{{ animTotalCheckIns }}</text>
+              </view>
+              <text class="cell-label">TOTAL</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- ===== ③ Weekly Pulse ===== -->
+        <view class="pulse-section anim-stagger-up" style="--stagger-idx: 2;">
+          <view class="pulse-header">
+            <text class="pulse-header__title">7-DAY PULSE</text>
+            <text class="pulse-header__avg">AVG {{ weeklyAvgRate }}%</text>
+          </view>
+          <view class="pulse-container surface-card brutal-yellow">
+            <view class="pulse-bars">
+              <view
+                v-for="(day, i) in weeklyBars"
+                :key="i"
+                class="pulse-bar"
+              >
+                <view class="pulse-bar__track">
+                  <view
+                    class="pulse-bar__fill"
+                    :style="{ height: Math.max(8, Math.min(day.rate, 100)) + '%', background: getPulseColor(day.rate) }"
+                  />
+                </view>
+                <text class="pulse-bar__label" :class="{ 'is-today': day.isToday }">{{ day.label }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- ===== ④ Week Comparison Chart ===== -->
+        <view class="chart-section surface-card anim-stagger-up" style="--stagger-idx: 3;">
+          <view class="section-header">
+            <text class="section-header__title">WEEKLY TREND</text>
+          </view>
+          <view class="chart-wrap" :style="chartWrapStyle">
+            <canvas
+              type="2d"
+              id="weeklyChart"
+              canvas-id="weeklyChart"
+              class="chart-canvas"
+            />
+          </view>
+        </view>
+
+        <!-- ===== ⑤ Leaderboard (Ticket System) ===== -->
+        <view class="board-section anim-stagger-up" style="--stagger-idx: 4;">
+          <view class="pulse-header" style="margin-bottom: 32rpx;">
+            <text class="pulse-header__title">LEADERBOARD</text>
+          </view>
+          
+          <view v-if="habitRanking.length === 0" class="ranking-empty">
+            <view class="nb-flat nb-flat--black">NO DATA FOUND</view>
+          </view>
+
+          <view class="tickets-wrap">
+            <view
+              v-for="(item, idx) in habitRanking"
+              :key="item.habitId"
+              class="ticket-card surface-card"
+            >
+              <view class="ticket-stub" :class="getRankClass(idx)">
+                <text class="stub-number">#{{ idx + 1 }}</text>
+              </view>
+              <view class="ticket-divider"></view>
+              <view class="ticket-body">
+                <view class="ticket-header">
+                  <view class="ticket-icon-wrap" :style="{ backgroundColor: item.color + '1A', borderColor: item.color }">
+                    <HfIcon :name="item.icon" size="sm" :color="item.color" />
+                  </view>
+                  <text class="ticket-name">{{ item.name }}</text>
+                  <text class="ticket-rate">{{ item.rate }}%</text>
+                </view>
+                <view class="ticket-tunnel">
+                  <view class="tunnel-fill" :style="{ width: item.rate + '%', backgroundColor: item.color }" />
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="bottom-space" />
       </view>
-
-      <!-- ===== 2. Weekly Activity ===== -->
-      <HfCard padding="md" class="section anim-slide-up anim-delay-1">
-        <HfSectionHeader title="近 7 天活跃" />
-        <view class="week-bars">
-          <view
-            v-for="(day, i) in weeklyBars"
-            :key="i"
-            class="week-bar"
-            :class="{ 'week-bar--today': day.isToday }"
-          >
-            <text class="week-bar__label">{{ day.label }}</text>
-            <view class="week-bar__track">
-              <view
-                class="week-bar__fill"
-                :class="{ 'week-bar__fill--full': day.rate >= 100 }"
-                :style="{ width: Math.min(day.rate, 100) + '%' }"
-              />
-            </view>
-            <text class="week-bar__rate">{{ day.rate }}%</text>
-          </view>
-        </view>
-        <!-- Summary row -->
-        <view class="week-summary">
-          <view class="week-summary__item">
-            <text class="week-summary__value">{{ animStreakDays }}天</text>
-            <text class="week-summary__label">连续打卡</text>
-          </view>
-          <view class="week-summary__divider" />
-          <view class="week-summary__item">
-            <text class="week-summary__value">{{ animOverallRate }}%</text>
-            <text class="week-summary__label">总完成率</text>
-          </view>
-          <view class="week-summary__divider" />
-          <view class="week-summary__item">
-            <text
-              class="week-summary__value"
-              :class="{ 'week-summary__value--up': weekDelta > 0, 'week-summary__value--down': weekDelta < 0 }"
-            >{{ weekDelta > 0 ? '+' : '' }}{{ weekDelta }}%</text>
-            <text class="week-summary__label">vs 上周</text>
-          </view>
-        </view>
-      </HfCard>
-
-      <!-- ===== 3. Weekly Bar Chart ===== -->
-      <HfCard padding="md" class="section anim-slide-up anim-delay-2">
-        <HfSectionHeader title="周对比" />
-        <view class="chart-wrap" :style="chartWrapStyle">
-          <canvas
-            type="2d"
-            id="weeklyChart"
-            canvas-id="weeklyChart"
-            class="chart-canvas"
-          />
-        </view>
-      </HfCard>
-
-      <!-- ===== 4. Habit Ranking ===== -->
-      <HfCard padding="md" class="section anim-slide-up anim-delay-3">
-        <HfSectionHeader title="习惯排行" />
-
-        <view v-if="habitRanking.length === 0" class="ranking-empty">
-          <text class="ranking-empty__text">暂无数据</text>
-        </view>
-
-        <view
-          v-for="(item, idx) in habitRanking"
-          :key="item.habitId"
-          class="ranking-item"
-        >
-          <text class="ranking-item__rank">{{ idx + 1 }}</text>
-          <HfIcon :name="item.icon" size="sm" />
-          <text class="ranking-item__name">{{ item.name }}</text>
-          <view class="ranking-item__bar-wrap">
-            <view class="ranking-item__bar-track">
-              <view
-                class="ranking-item__bar-fill"
-                :style="{ width: item.rate + '%', backgroundColor: item.color }"
-              />
-            </view>
-          </view>
-          <text class="ranking-item__rate">{{ item.rate }}%</text>
-        </view>
-      </HfCard>
-    </view>
+    </scroll-view>
   </HfPageBg>
 </template>
 
@@ -131,15 +143,10 @@ import {
   formatDate as formatBeijingDate,
 } from '@/services/cloud'
 import { chartTheme, CHART_COLORS } from '@/utils/chart-theme'
-import HfCard from '@/components/base/HfCard.vue'
 import HfIcon from '@/components/base/HfIcon.vue'
-import HfProgress from '@/components/base/HfProgress.vue'
-import HfFlipNumber from '@/components/base/HfFlipNumber.vue'
 import StatsSkeleton from '@/components/stats/StatsSkeleton.vue'
 import HfEmpty from '@/components/base/HfEmpty.vue'
 import HfPageBg from '@/components/base/HfPageBg.vue'
-import HfSectionHeader from '@/components/base/HfSectionHeader.vue'
-import HfStatCard from '@/components/base/HfStatCard.vue'
 import { useStaggerAnimation } from '@/composables/useStaggerAnimation'
 import { useCountUp } from '@/composables/useCountUp'
 import { useLoading } from '@/composables/useLoading'
@@ -167,7 +174,7 @@ const CATEGORY_COLORS: Record<HabitCategory, string> = {
 
 const habitStore = useHabitStore()
 const appStore = useAppStore()
-const { isDark } = storeToRefs(appStore)
+const { isDark: _isDark } = storeToRefs(appStore)
 const { entered: pageEntered } = usePageTransition()
 
 // --- Micro-interactions ---
@@ -311,6 +318,8 @@ const weeklyBars = computed<WeekBarDay[]>(() => {
 })
 
 // --- Week-over-week delta ---
+const todayStr = computed(() => getToday())
+
 const weekDelta = computed(() => {
   const total = activeHabits.value.length || 1
   const today = getToday()
@@ -334,6 +343,29 @@ const weekDelta = computed(() => {
   const lastRate = Math.round((lastSum / (total * 7)) * 100)
   return thisRate - lastRate
 })
+
+// --- Neo-Brutalism Helpers ---
+
+const weeklyAvgRate = computed(() => {
+  const bars = weeklyBars.value
+  if (bars.length === 0) return 0
+  const sum = bars.reduce((s, b) => s + b.rate, 0)
+  return Math.round(sum / bars.length)
+})
+
+function getPulseColor(rate: number): string {
+  if (rate >= 100) return '#0B0B0C'
+  if (rate >= 50) return '#FFE566'
+  if (rate > 0) return '#FFB4A2'
+  return '#E5E5EA'
+}
+
+function getRankClass(idx: number): string {
+  if (idx === 0) return 'rank--gold'
+  if (idx === 1) return 'rank--silver'
+  if (idx === 2) return 'rank--bronze'
+  return 'rank--default'
+}
 
 // --- Computed: Habit Ranking ---
 
@@ -420,21 +452,30 @@ function getPixelRatio(): number {
 }
 
 function getActiveChartTheme() {
-  if (!isDark.value) return chartTheme
   return {
     ...chartTheme,
-    fontColor: '#D4CEC8',
+    fontColor: '#0B0B0C',
+    padding: [15, 15, 0, 5],
     xAxis: {
       ...chartTheme.xAxis,
-      axisLineColor: '#3D3835',
-      fontColor: '#D4CEC8',
-      gridColor: '#3D3835',
+      axisLineColor: '#0B0B0C',
+      fontColor: '#0B0B0C',
+      gridColor: '#D4CEC8',
+      gridType: 'solid',
     },
     yAxis: {
       ...chartTheme.yAxis,
-      axisLineColor: '#3D3835',
-      fontColor: '#D4CEC8',
-      gridColor: '#3D3835',
+      axisLineColor: '#D4CEC8',
+      fontColor: '#0B0B0C',
+      gridColor: '#D4CEC8',
+      gridType: 'solid',
+      dashLength: 0,
+    },
+    extra: {
+      column: {
+        width: 24,
+        barBorderRadius: [2, 2, 0, 0],
+      },
     },
   }
 }
@@ -466,7 +507,7 @@ function initChart() {
           {
             name: '打卡次数',
             data: weeklyData.value.map((w) => w.count),
-            color: CHART_COLORS[0],
+            color: '#0B0B0C',
           },
         ],
         animation: true,
@@ -543,353 +584,421 @@ onUnload(() => {
 @import '@/styles/mixins.scss';
 @import '@/styles/animation.scss';
 
+// =============================================
+// NEO-BRUTALISM DESIGN SYSTEM
+// =============================================
+$ink-black: #0B0B0C;
+$ink-light: #3A3A3A;
+$paper-white: #F5F3EE;
+$brutal-border: 3px solid $ink-black;
+$brutal-shadow: 6rpx 6rpx 0 $ink-black;
+$brutal-radius: 8rpx;
+
+$nb-yellow: #FFE566;
+$nb-mint: #A8F0D4;
+$nb-purple: #D4BBFF;
+$nb-coral: #FFB4A2;
+$nb-sky: #A0D2FF;
+$nb-grey: #E5E5EA;
+
+// Color utility classes
+.brutal-yellow { background-color: $nb-yellow !important; }
+.brutal-mint { background-color: $nb-mint !important; }
+.brutal-purple { background-color: $nb-purple !important; }
+.brutal-coral { background-color: $nb-coral !important; }
+.brutal-sky { background-color: $nb-sky !important; }
+.brutal-grey { background-color: $nb-grey !important; }
+
+// Global SVG Noise Grain
+.paper-texture {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.03;
+  background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+}
+
+.page-transition {
+  opacity: 0;
+  transform: translateY(10rpx);
+  transition: all 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  &.page-entered {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-stagger-up {
+  opacity: 0;
+  transform: translateY(30rpx);
+  animation: editorial-slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--stagger-idx) * 100ms);
+}
+
+@keyframes editorial-slide-up {
+  from { opacity: 0; transform: translateY(40rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .page {
   min-height: 100vh;
-  background: $neutral-50;
-  padding: $page-padding;
-
-  &.dark-mode {
-    background: $dark-bg;
-  }
+  background: $paper-white;
+  color: $ink-black;
+  position: relative;
 }
 
-.state-wrap {
-  @include flex-center;
-  min-height: 60vh;
-}
-
-.state-text {
-  font-size: $text-base;
-  color: $neutral-500;
-
-  .dark-mode & {
-    color: $dark-text-secondary;
-  }
+.page-scroll {
+  height: 100vh;
 }
 
 .page__content {
-  padding-bottom: $space-8;
+  padding: $page-padding $page-padding $space-8;
+  @include flex-col;
+  gap: $space-6;
 }
 
-// --- Section ---
-
-.section {
-  margin-bottom: $space-5;
-
-  &__title {
-    font-size: $text-md;
-    font-weight: $font-semibold;
-    color: $neutral-900;
-    margin-bottom: $space-3;
-    display: block;
-
-    .dark-mode & {
-      color: $dark-text-primary;
-    }
+// Surface Card
+.surface-card {
+  background: #FFFFFF;
+  border: $brutal-border;
+  border-radius: $brutal-radius;
+  box-shadow: $brutal-shadow;
+  padding: $space-4;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  &:active {
+    transform: translate(6rpx, 6rpx);
+    box-shadow: 0 0 0 $ink-black;
   }
 }
 
-// ===== 1. Stat Cards =====
-
-.stat-cards {
-  display: flex;
-  gap: $space-3;
-  margin-bottom: $space-4;
+.nb-flat {
+  display: inline-block;
+  border: none;
+  font-family: monospace;
+  font-size: 20rpx;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  padding: 4rpx 14rpx;
+  &--black { background: $ink-black; color: #FFFFFF; }
+  &--mint { background: $nb-mint; color: $ink-black; }
+  &--coral { background: $nb-coral; color: $ink-black; }
 }
 
-.stat-card {
+// Mega Header
+.mega-header {
+  margin-top: $space-2;
+  @include flex-col;
+  align-items: flex-start;
+
+  &__group {
+    @include flex-col;
+    line-height: 0.85;
+  }
+
+  &__title {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 100rpx;
+    font-weight: 900;
+    color: $ink-black;
+    letter-spacing: -2rpx;
+
+    &--stroke {
+      color: transparent;
+      -webkit-text-stroke: 3px $ink-black;
+    }
+  }
+
+  &__badge {
+    margin-top: $space-3;
+    font-family: monospace;
+    font-size: 22rpx;
+    font-weight: 900;
+    background: $ink-black;
+    color: #FFFFFF;
+    padding: 6rpx 16rpx;
+    text-transform: uppercase;
+    letter-spacing: 2rpx;
+  }
+}
+
+// Dossier Grid
+.dossier-grid {
+  display: flex;
+  gap: $space-3;
+  min-height: 260rpx;
+
+  &__hero {
+    flex: 1.8;
+    @include flex-col;
+    justify-content: center;
+  }
+  &__stack {
+    flex: 1.2;
+    @include flex-col;
+    gap: $space-3;
+  }
+  &__cell {
+    flex: 1;
+    @include flex-col;
+    justify-content: center;
+    align-items: center;
+    padding: $space-3;
+  }
+}
+
+.hero-value-row {
+  display: flex;
+  align-items: baseline;
+}
+.hero-value {
+  font-family: 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 96rpx;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -4rpx;
+  color: $ink-black;
+}
+.hero-symbol {
+  font-family: 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 40rpx;
+  font-weight: 900;
+  margin-left: 4rpx;
+  color: $ink-black;
+}
+.hero-label {
+  font-family: monospace;
+  font-size: 18rpx;
+  font-weight: 700;
+  color: $ink-black;
+  margin-top: $space-2;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+.hero-delta {
+  margin-top: $space-3;
+  align-self: flex-start;
+}
+
+.cell-val-wrap {
+  position: relative;
+}
+.cell-value {
+  font-family: 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 48rpx;
+  font-weight: 900;
+  line-height: 1;
+  color: $ink-black;
+}
+.cell-label {
+  font-family: monospace;
+  font-size: 16rpx;
+  font-weight: 700;
+  color: $ink-black;
+  margin-top: $space-2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+// pulse section
+.pulse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: $space-3;
+  border-bottom: 4px solid $ink-black;
+  margin-bottom: $space-4;
+
+  &__title {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 28rpx;
+    font-weight: 900;
+    color: $ink-black;
+    text-transform: uppercase;
+    letter-spacing: 2rpx;
+  }
+  &__avg {
+    font-family: monospace;
+    font-size: 20rpx;
+    font-weight: 900;
+    color: #FFFFFF;
+    background: $ink-black;
+    padding: 4rpx 12rpx;
+  }
+}
+
+.pulse-container {
+  padding: $space-4 $space-2;
+}
+
+.pulse-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 200rpx;
+}
+
+.pulse-bar {
   flex: 1;
   @include flex-col;
   align-items: center;
-  background: $neutral-100;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-sm;
-  padding: $space-3 $space-2;
-  gap: $space-1;
-
-  .dark-mode & {
-    background: $dark-card;
-  }
-
-  &__icon-wrap {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: $radius-full;
-    @include flex-center;
-
-    &--fire {
-      background: rgba($brand-primary, 0.12);
-    }
-
-    &--check {
-      background: rgba($color-success, 0.12);
-    }
-  }
-
-  &__value {
-    font-size: $text-2xl;
-    font-weight: $font-bold;
-    color: $neutral-900;
-    line-height: $line-height-tight;
-
-    .dark-mode & {
-      color: $dark-text-primary;
-    }
-  }
-
-  &__ring-text {
-    font-size: $text-xs;
-    font-weight: $font-semibold;
-    color: $neutral-900;
-
-    .dark-mode & {
-      color: $dark-text-primary;
-    }
-  }
-
-  &__label {
-    font-size: $text-xs;
-    color: $neutral-500;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
-}
-
-// ===== 2. Weekly Activity Bars =====
-
-.week-bars {
-  @include flex-col;
-  gap: $space-2;
-}
-
-.week-bar {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  height: 52rpx;
-
-  &--today {
-    .week-bar__label {
-      color: $brand-primary;
-      font-weight: $font-bold;
-    }
-    .week-bar__rate {
-      color: $brand-primary;
-      font-weight: $font-bold;
-    }
-    .week-bar__fill {
-      background: $brand-primary;
-    }
-  }
-
-  &__label {
-    width: 40rpx;
-    font-size: $text-sm;
-    font-weight: $font-medium;
-    color: $neutral-700;
-    text-align: center;
-    flex-shrink: 0;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
+  justify-content: flex-end;
+  height: 100%;
+  gap: 12rpx;
 
   &__track {
-    flex: 1;
-    height: 20rpx;
-    background: $neutral-200;
-    border-radius: $radius-full;
-    overflow: hidden;
-
-    .dark-mode & {
-      background: $dark-border;
-    }
-  }
-
-  &__fill {
-    height: 100%;
-    background: rgba($brand-primary, 0.65);
-    border-radius: $radius-full;
-    transition: width $duration-normal $ease-out-soft;
-    min-width: 0;
-
-    &--full {
-      background: $brand-tertiary;
-    }
-  }
-
-  &__rate {
-    width: 72rpx;
-    font-size: $text-sm;
-    font-weight: $font-medium;
-    color: $neutral-700;
-    text-align: right;
-    flex-shrink: 0;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
-}
-
-.week-summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: $space-4;
-  padding-top: $space-3;
-  border-top: 1rpx solid $neutral-200;
-  gap: $space-4;
-
-  .dark-mode & {
-    border-top-color: $dark-border;
-  }
-
-  &__item {
+    width: 100%;
+    height: 160rpx;
     @include flex-col;
+    justify-content: flex-end;
     align-items: center;
-    gap: $space-1;
   }
-
-  &__value {
-    font-size: $text-lg;
-    font-weight: $font-bold;
-    color: $neutral-900;
-
-    .dark-mode & {
-      color: $dark-text-primary;
-    }
-
-    &--up { color: $brand-tertiary; }
-    &--down { color: $brand-primary; }
+  &__fill {
+    width: 44rpx;
+    border: 3px solid $ink-black;
+    border-radius: 4rpx;
+    transition: height 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.3s ease;
   }
-
   &__label {
-    font-size: $text-xs;
-    color: $neutral-500;
+    font-family: monospace;
+    font-size: 18rpx;
+    font-weight: 700;
+    color: $ink-black;
 
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
-
-  &__divider {
-    width: 1rpx;
-    height: 48rpx;
-    background: $neutral-300;
-
-    .dark-mode & {
-      background: $dark-border;
+    &.is-today {
+      font-weight: 900;
+      color: #FFFFFF;
+      background: $ink-black;
+      padding: 2rpx 8rpx;
     }
   }
 }
 
-// ===== 3. Chart =====
+// Chart
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: $space-3;
+  border-bottom: 4px solid $ink-black;
+  margin-bottom: $space-4;
 
+  &__title {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 28rpx;
+    font-weight: 900;
+    color: $ink-black;
+    text-transform: uppercase;
+    letter-spacing: 2rpx;
+  }
+}
 .chart-wrap {
   width: 100%;
   height: 360rpx;
 }
-
 .chart-canvas {
   width: 100%;
   height: 100%;
 }
 
-// ===== 4. Ranking =====
+// Tickets Leaderboard
+.tickets-wrap {
+  @include flex-col;
+  gap: $space-4;
+}
+
+.ticket-card {
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  height: 160rpx;
+}
+
+.ticket-stub {
+  width: 100rpx;
+  @include flex-center;
+  flex-shrink: 0;
+  border-right: 3px dashed $ink-black;
+  background: transparent;
+
+  &.rank--gold { background: $nb-yellow; border-right: 3px solid $ink-black; }
+  &.rank--silver { background: $nb-grey; border-right: 3px solid $ink-black; }
+  &.rank--bronze { background: $nb-coral; border-right: 3px solid $ink-black; }
+
+  .stub-number {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 40rpx;
+    font-weight: 900;
+    color: $ink-black;
+    transform: rotate(-90deg);
+  }
+}
+
+.ticket-divider {
+  width: 1px;
+}
+
+.ticket-body {
+  flex: 1;
+  padding: $space-3 $space-4;
+  @include flex-col;
+  justify-content: space-around;
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+}
+
+.ticket-icon-wrap {
+  width: 48rpx;
+  height: 48rpx;
+  border: 2px solid $ink-black;
+  border-radius: 4rpx;
+  @include flex-center;
+}
+
+.ticket-name {
+  flex: 1;
+  font-family: 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: $ink-black;
+  @include text-ellipsis(1);
+}
+
+.ticket-rate {
+  font-family: monospace;
+  font-size: 24rpx;
+  font-weight: 900;
+  color: $ink-black;
+}
+
+.ticket-tunnel {
+  width: 100%;
+  height: 24rpx;
+  border: 3px solid $ink-black;
+  border-radius: 4rpx;
+  background: #FFFFFF;
+  overflow: hidden;
+}
+
+.tunnel-fill {
+  height: 100%;
+  border-right: 3px solid $ink-black;
+  transition: width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
 
 .ranking-empty {
   @include flex-center;
   padding: $space-6 0;
-
-  &__text {
-    font-size: $text-sm;
-    color: $neutral-500;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
 }
 
-.ranking-item {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-2 0;
-  border-bottom: 1rpx solid $neutral-300;
-
-  .dark-mode & {
-    border-bottom-color: $dark-border;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &__rank {
-    width: 36rpx;
-    font-size: $text-sm;
-    font-weight: $font-semibold;
-    color: $neutral-500;
-    text-align: center;
-    flex-shrink: 0;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
-
-  &__name {
-    font-size: $text-sm;
-    font-weight: $font-medium;
-    color: $neutral-900;
-    width: 120rpx;
-    @include text-ellipsis(1);
-    flex-shrink: 0;
-
-    .dark-mode & {
-      color: $dark-text-primary;
-    }
-  }
-
-  &__bar-wrap {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__bar-track {
-    width: 100%;
-    height: 12rpx;
-    background: $neutral-300;
-    border-radius: $radius-full;
-    overflow: hidden;
-
-    .dark-mode & {
-      background: $dark-border;
-    }
-  }
-
-  &__bar-fill {
-    height: 100%;
-    border-radius: $radius-full;
-    transition: width $duration-normal $ease-out-soft;
-  }
-
-  &__rate {
-    width: 64rpx;
-    font-size: $text-xs;
-    font-weight: $font-medium;
-    color: $neutral-700;
-    text-align: right;
-    flex-shrink: 0;
-
-    .dark-mode & {
-      color: $dark-text-secondary;
-    }
-  }
+.bottom-space {
+  height: 60rpx;
 }
 </style>

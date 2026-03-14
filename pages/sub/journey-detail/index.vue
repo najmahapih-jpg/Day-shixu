@@ -1,9 +1,18 @@
 <template>
   <HfPageBg variant="cool" class="page page-transition" :class="{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }">
     <!-- Custom navbar -->
-    <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+    <view class="navbar" :class="{ 'navbar--solid': navbarSolid }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="navbar__inner">
+        <view
+          class="navbar__back"
+          :class="{ 'navbar__back--disabled': backLocked || completing }"
+          :style="backBtnStyle"
+          @tap.stop="goBack"
+        >
+          <HfIcon name="arrow-left-linear" size="sm" plain />
+        </view>
         <text class="navbar__title">{{ journey?.title || '旅程详情' }}</text>
+        <view class="navbar__spacer" />
       </view>
     </view>
 
@@ -29,25 +38,33 @@
       </view>
 
       <!-- Journey header info -->
-      <view class="journey-header">
+      <view class="journey-header anim-slide-up">
         <text class="journey-header__title">{{ journey?.title }}</text>
         <view class="journey-header__meta">
           <HfTag size="sm" :color="difficultyColor(journey?.difficulty || 1)">
             {{ difficultyLabel(journey?.difficulty || 1) }}
           </HfTag>
-          <text class="journey-header__days">{{ journey?.totalDays }} 天旅程</text>
+          <view class="journey-header__days">
+            <HfIcon name="calendar-bold" size="xs" color="#8E8E9E" plain />
+            <text>{{ journey?.totalDays }} 天旅程</text>
+          </view>
         </view>
         <text class="journey-header__desc">{{ journey?.description }}</text>
 
         <!-- Overall progress -->
         <view class="overall-progress" v-if="!userJourney.isCompleted">
+          <view class="overall-progress__header">
+            <text class="overall-progress__text">
+              已完成 {{ completedCount }}/{{ totalSteps }} 步
+            </text>
+            <text class="overall-progress__percent">{{ overallPercent }}%</text>
+          </view>
           <HfProgress type="bar" :percent="overallPercent" color="#8BA888" />
-          <text class="overall-progress__text">
-            已完成 {{ completedCount }}/{{ totalSteps }} 步
-          </text>
         </view>
-        <view v-else class="completed-badge">
-          <HfIcon name="check-circle-bold" size="sm" color="#8BA888" />
+        <view v-else class="completed-badge anim-scale-in">
+          <view class="completed-badge__icon anim-check-pop">
+            <HfIcon name="check-circle-bold" size="sm" color="#8BA888" />
+          </view>
           <text class="completed-badge__text">旅程已完成</text>
         </view>
       </view>
@@ -57,7 +74,8 @@
         <view
           v-for="(step, i) in steps"
           :key="step.id"
-          class="step-node"
+          class="step-node anim-slide-up"
+          :class="['anim-delay-' + Math.min(i + 2, 12)]"
         >
           <!-- Connecting line -->
           <view v-if="i > 0" class="step-line" :class="stepLineClass(i)" />
@@ -92,12 +110,13 @@
 
               <!-- Recommended habits -->
               <view v-if="step.unlockHabits?.length" class="step-habits">
-                <text class="step-habits__label">推荐养成的习惯:</text>
+                <text class="step-habits__label">推荐养成的习惯</text>
                 <view
                   v-for="(h, j) in step.unlockHabits"
                   :key="j"
                   class="habit-suggest"
                 >
+                  <view class="habit-suggest__indicator" />
                   <HfIcon name="add-circle-linear" size="xs" color="#8BA888" />
                   <text class="habit-suggest__text">{{ h }}</text>
                 </view>
@@ -119,20 +138,32 @@
               </view>
 
               <!-- Complete button -->
-              <HfButton
-                v-if="canCompleteStep"
-                type="primary"
-                block
-                @tap="handleCompleteStep(i)"
-                :loading="completing"
-              >
-                完成这一步
-              </HfButton>
-              <text v-else class="step-detail__wait">
-                还需要 {{ remainDays }} 天
-              </text>
+              <view v-if="canCompleteStep" class="step-detail__action step-detail__action--glow">
+                <HfButton
+                  type="primary"
+                  block
+                  @tap="handleCompleteStep(i)"
+                  :loading="completing"
+                >
+                  完成这一步
+                </HfButton>
+              </view>
+              <view v-else class="step-detail__wait-row">
+                <HfIcon name="calendar-date-bold" size="xs" color="#B0B0BE" />
+                <text class="step-detail__wait">
+                  还需要 {{ remainDays }} 天
+                </text>
+              </view>
             </view>
           </view>
+        </view>
+      </view>
+
+      <!-- Bottom actions -->
+      <view class="bottom-actions">
+        <view class="bottom-actions__btn" @tap="goToJourneyList">
+          <HfIcon name="arrow-left-linear" size="xs" color="#8E8E9E" />
+          <text class="bottom-actions__text">返回旅程列表</text>
         </view>
       </view>
 
@@ -158,7 +189,9 @@ import HfTag from '@/components/base/HfTag.vue'
 import HfButton from '@/components/base/HfButton.vue'
 import HfProgress from '@/components/base/HfProgress.vue'
 import HfIllustration from '@/components/base/HfIllustration.vue'
+import { useNavigation } from '@/composables/useNavigation'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useActionLock } from '@/composables/useActionLock'
 import { getBeijingDateParts } from '@/services/cloud'
 import type { JourneyStep } from '@/types'
 
@@ -182,6 +215,8 @@ function getStatusBarHeight(): number {
 }
 
 const statusBarHeight = ref(getStatusBarHeight())
+const nav = useNavigation()
+const { locked: backLocked, withLock: withBackLock } = useActionLock(300)
 
 // --- Route params ---
 
@@ -315,6 +350,21 @@ const coverParallaxStyle = computed(() => ({
   transform: `translateY(${Math.max(0, scrollOffset.value * 0.3)}rpx)`,
 }))
 
+const navbarSolid = computed(() => scrollOffset.value > 40)
+
+const backBtnStyle = {
+  width: '72rpx',
+  height: '72rpx',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '50%',
+  background: 'rgba(243,243,248,0.9)',
+  border: '1rpx solid rgba(209,209,219,0.4)',
+  boxShadow: '0 2rpx 12rpx rgba(0,0,0,0.08)',
+  flexShrink: 0,
+}
+
 // --- Difficulty helpers ---
 
 function difficultyLabel(level: number): string {
@@ -332,6 +382,17 @@ function difficultyColor(level: number): string {
 // --- Actions ---
 
 const completing = ref(false)
+
+async function goBack() {
+  if (completing.value) return
+  await withBackLock(async () => {
+    nav.navigateBack()
+  })
+}
+
+function goToJourneyList() {
+  uni.navigateBack({ delta: 1 })
+}
 
 async function handleCompleteStep(stepIndex: number) {
   if (!userJourney.value?._id || completing.value) return
@@ -402,34 +463,72 @@ onPullDownRefresh(async () => {
 .navbar {
   position: relative;
   z-index: 10;
+  transition: background-color $duration-normal $ease-smooth,
+              box-shadow $duration-normal $ease-smooth;
 
-  .dark-mode & { background: $dark-bg; }
+  .dark-mode & { background: transparent; }
+
+  &--solid {
+    background: rgba($color-white, 0.88);
+    box-shadow: $shadow-xs;
+
+    .dark-mode & {
+      background: rgba($dark-bg, 0.92);
+    }
+  }
 
   &__inner {
     height: $navbar-height;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 $space-6;
+    gap: $space-2;
+    padding: 0 $space-4;
   }
 
   &__back {
-    width: 64rpx;
-    height: 64rpx;
+    width: 72rpx;
+    height: 72rpx;
     @include flex-center;
-    @include tap-active;
     border-radius: $radius-full;
+    flex-shrink: 0;
+    background: rgba($neutral-100, 0.85);
+    border: 1rpx solid rgba($neutral-300, 0.4);
+    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+    transition: transform $duration-fast $ease-spring,
+                background $duration-fast ease-out;
+
+    &:active {
+      transform: scale(0.90);
+      background: rgba($neutral-200, 0.9);
+    }
+
+    &--disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .dark-mode & {
+      background: rgba($dark-card, 0.85);
+      border-color: rgba($dark-border, 0.5);
+    }
   }
 
   &__title {
     flex: 1;
-    font-size: $text-lg;
+    font-size: $text-base;
     font-weight: $font-semibold;
     color: $neutral-900;
     @include text-ellipsis;
+    text-align: center;
+
     .dark-mode & { color: $dark-text-primary; }
   }
 
+  &__spacer {
+    width: 72rpx;
+    height: 72rpx;
+    flex-shrink: 0;
+  }
 }
 
 .detail-scroll {
@@ -458,12 +557,15 @@ onPullDownRefresh(async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 120rpx;
-  background: linear-gradient(to top, $neutral-50, transparent);
+  height: 160rpx;
+  background:
+    linear-gradient(to top, $neutral-50 0%, rgba($neutral-50, 0.6) 50%, transparent 100%);
 
   .dark-mode & {
-    background: linear-gradient(to top, $dark-bg, transparent);
+    background:
+      linear-gradient(to top, $dark-bg 0%, rgba($dark-bg, 0.6) 50%, transparent 100%);
   }
+
 }
 
 // ===== Journey header =====
@@ -475,9 +577,7 @@ onPullDownRefresh(async () => {
   z-index: 2;
 
   &__title {
-    font-size: $text-xl;
-    font-weight: $font-bold;
-    color: $neutral-900;
+    @include heading-md;
     display: block;
     margin-bottom: $space-2;
     .dark-mode & { color: $dark-text-primary; }
@@ -491,6 +591,9 @@ onPullDownRefresh(async () => {
   }
 
   &__days {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
     font-size: $text-sm;
     color: $neutral-500;
     .dark-mode & { color: $dark-text-secondary; }
@@ -499,20 +602,31 @@ onPullDownRefresh(async () => {
   &__desc {
     font-size: $text-sm;
     color: $neutral-600;
-    line-height: 1.6;
+    line-height: $line-height-relaxed;
     display: block;
-    margin-bottom: $space-4;
+    margin-bottom: $space-5;
     .dark-mode & { color: $dark-text-secondary; }
   }
 }
 
 .overall-progress {
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $space-1;
+  }
+
   &__text {
-    display: block;
     font-size: $text-xs;
     color: $neutral-400;
-    margin-top: $space-1;
     .dark-mode & { color: $dark-text-secondary; }
+  }
+
+  &__percent {
+    font-size: $text-xs;
+    font-weight: $font-semibold;
+    color: #8BA888;
   }
 }
 
@@ -521,8 +635,12 @@ onPullDownRefresh(async () => {
   align-items: center;
   gap: $space-2;
   padding: $space-3 $space-4;
-  background: rgba(#8BA888, 0.1);
-  border-radius: $radius-lg;
+  background: rgba(139, 168, 136, 0.10);
+  border-radius: $radius-xl;
+
+  &__icon {
+    @include flex-center;
+  }
 
   &__text {
     font-size: $text-sm;
@@ -638,20 +756,23 @@ onPullDownRefresh(async () => {
   flex: 1;
   min-width: 0;
   padding: $space-4;
-  border-radius: $radius-lg;
-  background: $neutral-50;
-  box-shadow: $shadow-sm;
+  border-radius: $radius-xl;
+  background: $color-white;
+  box-shadow: $shadow-card;
   transition: all $duration-normal $ease-out-soft;
 
-  .dark-mode & { background: $dark-card; }
+  .dark-mode & { background: $dark-card; box-shadow: none; }
 
   &--current {
-    border: 2rpx solid $brand-primary;
-    box-shadow: $shadow-md;
+    border: 2rpx solid rgba($brand-primary, 0.15);
+    box-shadow: $shadow-md, 0 0 0 1rpx rgba($brand-primary, 0.06);
   }
 
   &--locked {
-    opacity: 0.5;
+    opacity: 0.45;
+    background: $neutral-50;
+
+    .dark-mode & { background: $dark-surface; }
   }
 
   &--completed {
@@ -670,7 +791,7 @@ onPullDownRefresh(async () => {
   &__content {
     font-size: $text-sm;
     color: $neutral-600;
-    line-height: 1.6;
+    line-height: $line-height-relaxed;
     display: block;
     .dark-mode & { color: $dark-text-secondary; }
   }
@@ -700,15 +821,34 @@ onPullDownRefresh(async () => {
     margin-bottom: $space-3;
   }
 
+  &__action {
+    margin-top: $space-1;
+
+    &--glow {
+      border-radius: $radius-2xl;
+      animation: btnGlow 2s $ease-in-out infinite;
+    }
+  }
+
+  &__wait-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $space-1;
+    padding: $space-3 0;
+  }
+
   &__wait {
-    display: block;
-    text-align: center;
     font-size: $text-sm;
     color: $neutral-400;
-    padding: $space-3 0;
 
     .dark-mode & { color: $dark-text-secondary; }
   }
+}
+
+@keyframes btnGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba($brand-primary, 0); }
+  50% { box-shadow: 0 4rpx 24rpx rgba($brand-primary, 0.18); }
 }
 
 .step-habits {
@@ -716,7 +856,9 @@ onPullDownRefresh(async () => {
 
   &__label {
     font-size: $text-xs;
+    font-weight: $font-medium;
     color: $neutral-500;
+    letter-spacing: $letter-spacing-wide;
     display: block;
     margin-bottom: $space-2;
     .dark-mode & { color: $dark-text-secondary; }
@@ -726,13 +868,29 @@ onPullDownRefresh(async () => {
 .habit-suggest {
   display: flex;
   align-items: center;
-  gap: $space-1;
-  padding: $space-1 0;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  margin-bottom: $space-1;
+  background: rgba(139, 168, 136, 0.06);
+  border-radius: $radius-md;
+  transition: background $duration-fast ease-out;
+
+  &__indicator {
+    width: 4rpx;
+    height: 24rpx;
+    border-radius: $radius-full;
+    background: #8BA888;
+    flex-shrink: 0;
+  }
 
   &__text {
     font-size: $text-sm;
     color: $neutral-700;
     .dark-mode & { color: $dark-text-primary; }
+  }
+
+  .dark-mode & {
+    background: rgba(139, 168, 136, 0.10);
   }
 }
 
@@ -768,6 +926,29 @@ onPullDownRefresh(async () => {
   &--done {
     background: #8BA888;
     transform: scale(1.1);
+  }
+}
+
+// ===== Bottom actions =====
+
+.bottom-actions {
+  @include flex-center;
+  padding: $space-4 $page-padding;
+  padding-top: $space-2;
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    padding: $space-2 $space-4;
+    border-radius: $radius-full;
+    @include tap-light;
+  }
+
+  &__text {
+    font-size: $text-sm;
+    color: $neutral-400;
+    .dark-mode & { color: $dark-text-secondary; }
   }
 }
 

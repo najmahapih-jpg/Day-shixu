@@ -1,4 +1,4 @@
-import { callCloud } from './cloud'
+import { callCloud, getBeijingIsoNow } from './cloud'
 import type { HabitInsight, HabitTrendDirection } from '@/types'
 
 const FN = 'ai'
@@ -93,7 +93,7 @@ function buildFallbackInsight(snapshot: HabitInsightSnapshot): HabitInsight {
   const summary = `当前共有 ${Math.max(0, Math.round(snapshot.activeHabits))} 个活跃习惯，今日完成 ${todayCompleted}/${todayTotal}，本周平均完成率 ${thisWeekRate}%。`
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: getBeijingIsoNow(),
     summary,
     recommendations: fallbackRecommendations(snapshot),
     slogans: fallbackSlogans(direction, todayRate),

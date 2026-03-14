@@ -1,5 +1,15 @@
 <template>
   <HfPageBg variant="cool" class="page page-transition" :class="{ 'dark-mode': isDark, 'page-entered': pageEntered }">
+    <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="navbar__inner">
+        <view class="navbar__back" :style="backBtnStyle" @tap="goBack">
+          <HfIcon name="arrow-left-linear" size="sm" plain />
+        </view>
+        <text class="navbar__title">旅程完成</text>
+        <view class="navbar__spacer" />
+      </view>
+    </view>
+
     <scroll-view scroll-y class="complete-scroll">
       <view class="journey-complete">
         <!-- Celebration illustration -->
@@ -132,9 +142,40 @@ onMounted(async () => {
 
 // --- Navigation ---
 
+function getStatusBarHeight(): number {
+  try {
+    if (typeof uni.getWindowInfo === 'function') {
+      return uni.getWindowInfo().statusBarHeight ?? 0
+    }
+  } catch { /* fallback */ }
+  return 0
+}
+
+const statusBarHeight = ref(getStatusBarHeight())
+const backBtnStyle = {
+  width: '72rpx',
+  height: '72rpx',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '50%',
+  background: 'rgba(243,243,248,0.9)',
+  border: '1rpx solid rgba(209,209,219,0.4)',
+  boxShadow: '0 2rpx 12rpx rgba(0,0,0,0.08)',
+  flexShrink: 0,
+}
+
 function goLetter() {
   if (!completionLetterId.value) return
   nav.openFullscreen(`/pages/sub/letter-view/index?id=${completionLetterId.value}`)
+}
+
+function goBack() {
+  if (getCurrentPages().length > 1) {
+    uni.navigateBack({ delta: 1 })
+  } else {
+    uni.redirectTo({ url: '/pages/sub/journey-list/index' })
+  }
 }
 
 function backToHome() {
@@ -164,15 +205,48 @@ function goJourneyList() {
   }
 }
 
+.navbar {
+  position: relative;
+  z-index: 10;
+
+  &__inner {
+    height: $navbar-height;
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    padding: 0 $space-4;
+  }
+
+  &__back {
+    flex-shrink: 0;
+  }
+
+  &__title {
+    flex: 1;
+    font-size: $text-base;
+    font-weight: $font-semibold;
+    color: $neutral-900;
+    text-align: center;
+
+    .dark-mode & { color: $dark-text-primary; }
+  }
+
+  &__spacer {
+    width: 72rpx;
+    height: 72rpx;
+    flex-shrink: 0;
+  }
+}
+
 .complete-scroll {
-  height: 100vh;
+  height: calc(100vh - #{$navbar-height});
 }
 
 .journey-complete {
   @include flex-col;
   align-items: center;
   padding: $space-6 $page-padding;
-  padding-top: 120rpx;
+  padding-top: $space-4;
 }
 
 .celebrate-area {
@@ -245,7 +319,7 @@ function goJourneyList() {
   gap: $space-2;
   width: 100%;
   padding: $space-4;
-  background: rgba(#F5C563, 0.08);
+  background: rgba(245, 197, 99, 0.08);
   border-radius: $radius-lg;
   margin-bottom: $space-5;
   @include tap-active;

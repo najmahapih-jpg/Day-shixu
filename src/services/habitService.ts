@@ -1,37 +1,52 @@
 import { callCloud, getToday } from './cloud'
-import type { Habit, CheckIn } from '@/types'
+import type { Habit, CheckIn, FreezeStatus } from '@/types'
 
 const FN = 'habit'
 
 export async function getHabits(): Promise<Habit[]> {
-  return callCloud<Habit[]>(FN, 'getHabits')
+  return callCloud<Habit[]>(FN, 'list')
 }
 
 export async function getHabitById(id: string): Promise<Habit> {
-  return callCloud<Habit>(FN, 'getHabitById', { id })
+  return callCloud<Habit>(FN, 'get', { id })
 }
 
 export async function createHabit(
   data: Omit<Habit, '_id' | '_openid' | 'createdAt' | 'updatedAt' | 'streakCurrent' | 'streakLongest' | 'totalCompletions'>,
 ): Promise<Habit> {
-  return callCloud<Habit>(FN, 'createHabit', { habit: data })
+  return callCloud<Habit>(FN, 'create', data as Record<string, unknown>)
 }
 
 export async function updateHabit(
   id: string,
   data: Partial<Omit<Habit, '_id' | '_openid' | 'createdAt' | 'updatedAt'>>,
 ): Promise<Habit> {
-  return callCloud<Habit>(FN, 'updateHabit', { id, habit: data })
+  return callCloud<Habit>(FN, 'update', {
+    id,
+    ...(data as Record<string, unknown>),
+  })
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-  return callCloud<void>(FN, 'deleteHabit', { id })
+  return callCloud<void>(FN, 'delete', { id })
+}
+
+export async function getArchivedHabits(): Promise<Habit[]> {
+  return callCloud<Habit[]>(FN, 'listArchived')
+}
+
+export async function restoreHabit(id: string): Promise<void> {
+  return callCloud<void>(FN, 'restore', { id })
 }
 
 export async function reorderHabits(
   orders: Array<{ id: string; order: number }>,
 ): Promise<void> {
-  return callCloud<void>(FN, 'reorderHabits', { orders })
+  const orderedIds = [...orders]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => item.id)
+
+  return callCloud<void>(FN, 'reorder', { orderedIds })
 }
 
 export async function doCheckIn(
@@ -39,14 +54,14 @@ export async function doCheckIn(
   value: number = 1,
   date: string = getToday(),
 ): Promise<CheckIn> {
-  return callCloud<CheckIn>(FN, 'doCheckIn', { habitId, value, date })
+  return callCloud<CheckIn>(FN, 'checkIn', { habitId, value, date })
 }
 
 export async function undoCheckIn(
   habitId: string,
   date: string = getToday(),
 ): Promise<void> {
-  return callCloud<void>(FN, 'undoCheckIn', { habitId, date })
+  return callCloud<void>(FN, 'uncheckIn', { habitId, date })
 }
 
 export async function getCheckIns(
@@ -56,13 +71,32 @@ export async function getCheckIns(
   return callCloud<CheckIn[]>(FN, 'getCheckIns', { habitId, date })
 }
 
+export async function freezeToday(): Promise<{ remaining: number }> {
+  return callCloud<{ remaining: number }>(FN, 'freeze', { date: getToday() })
+}
+
+export async function getFreezeStatus(): Promise<FreezeStatus> {
+  return callCloud<FreezeStatus>(FN, 'getFreezeStatus')
+}
+
 export async function getCheckInRange(
   habitId: string,
   startDate: string,
   endDate: string,
 ): Promise<CheckIn[]> {
-  return callCloud<CheckIn[]>(FN, 'getCheckInRange', {
+  return callCloud<CheckIn[]>(FN, 'getCheckIns', {
     habitId,
+    startDate,
+    endDate,
+  })
+}
+
+export async function getFreezeRecords(
+  startDate: string,
+  endDate: string,
+): Promise<CheckIn[]> {
+  return callCloud<CheckIn[]>(FN, 'getCheckIns', {
+    habitId: '__freeze__',
     startDate,
     endDate,
   })

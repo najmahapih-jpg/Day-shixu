@@ -1,5 +1,3 @@
-import { useAppStore } from '@/stores/app'
-
 /**
  * 触感反馈 composable
  * 所有振动均检查 reduceMotion，为 true 时跳过
@@ -12,34 +10,10 @@ import { useAppStore } from '@/stores/app'
  *   haptic.success()  // 双击振动 — 打卡成功、目标达成
  */
 export function useHaptic() {
-  const appStore = useAppStore()
-
-  function light() {
-    if (appStore.reduceMotion) return
-    // #ifdef MP-WEIXIN
-    wx.vibrateShort({ type: 'light' })
-    // #endif
-  }
-
-  function medium() {
-    if (appStore.reduceMotion) return
-    // #ifdef MP-WEIXIN
-    wx.vibrateShort({ type: 'medium' })
-    // #endif
-  }
-
-  function heavy() {
-    if (appStore.reduceMotion) return
-    // #ifdef MP-WEIXIN
-    wx.vibrateShort({ type: 'heavy' })
-    // #endif
-  }
-
-  /** 双击振动表示成功 */
-  function success() {
-    light()
-    setTimeout(() => light(), 100)
-  }
+  function light() { /* no-op: pure CSS feedback only */ }
+  function medium() { /* no-op: pure CSS feedback only */ }
+  function heavy() { /* no-op: pure CSS feedback only */ }
+  function success() { /* no-op: pure CSS feedback only */ }
 
   return { light, medium, heavy, success }
 }

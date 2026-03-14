@@ -36,6 +36,74 @@ function isValidStepIndex(val) {
   return typeof val === 'number' && Number.isInteger(val) && val >= 0
 }
 
+const ensuredCollections = new Set()
+
+function getErrorMessage(err) {
+  if (!err) return ''
+  return String(err.errMsg || err.message || '')
+}
+
+function isCollectionMissingError(err, collectionName = '') {
+  const msg = getErrorMessage(err).toLowerCase()
+  if (
+    !msg.includes('database collection not exists') &&
+    !msg.includes('db or table not exist')
+  ) {
+    return false
+  }
+  if (!collectionName) return true
+  return msg.includes(collectionName.toLowerCase())
+}
+
+async function ensureCollectionReady(collectionName) {
+  if (ensuredCollections.has(collectionName)) return
+
+  const collection = db.collection(collectionName)
+  try {
+    await collection.limit(1).get()
+    ensuredCollections.add(collectionName)
+    return
+  } catch (err) {
+    if (!isCollectionMissingError(err, collectionName)) {
+      throw err
+    }
+  }
+
+  if (typeof db.createCollection !== 'function') {
+    throw new Error(`database collection not exists: ${collectionName}`)
+  }
+
+  try {
+    await db.createCollection(collectionName)
+    console.log('[journey/bootstrap] created collection:', collectionName)
+  } catch (createErr) {
+    const lower = getErrorMessage(createErr).toLowerCase()
+    if (
+      !isCollectionMissingError(createErr, collectionName) &&
+      !lower.includes('already exists')
+    ) {
+      throw createErr
+    }
+  }
+
+  ensuredCollections.add(collectionName)
+}
+
+function toReadableErrorMessage(err) {
+  const raw = getErrorMessage(err)
+  const msg = raw.toLowerCase()
+  if (msg.includes('user_journeys')) {
+    return '云数据库缺少集合 user_journeys，请先在云开发控制台创建'
+  }
+  if (msg.includes('letters')) {
+    return '云数据库缺少集合 letters，请先在云开发控制台创建'
+  }
+  if (msg.includes('journeys')) {
+    return '云数据库缺少集合 journeys，请先在云开发控制台创建'
+  }
+  return raw || '服务器错误'
+}
+
 // ── actions ──────────────────────────────────────────────
 
 /**
@@ -65,6 +133,8 @@ async function listPreset() {
  * getUserJourneys — 获取当前用户参与的所有旅程（含旅程模板详情）
  */
 async function getUserJourneys(openid) {
+  await ensureCollectionReady('user_journeys')
+
   const { data: userJourneyList } = await userJourneysCol
     .where({ _openid: openid })
     .orderBy('startedAt', 'desc')
@@ -96,6 +166,8 @@ async function getUserJourneys(openid) {
  * 校验：旅程存在、用户未在进行中的同一旅程
  */
 async function startJourney(openid, event) {
+  await ensureCollectionReady('user_journeys')
+
   const { journeyId } = event
   if (!journeyId) return fail('缺少 journeyId')
 
@@ -142,6 +214,8 @@ async function startJourney(openid, event) {
  */
 async function completeStep(openid, event) {
   const { userJourneyId, stepIndex } = event
+  await ensureCollectionReady('user_journeys')
+  await ensureCollectionReady('letters')
   if (!userJourneyId) return fail('缺少 userJourneyId')
   if (!isValidStepIndex(stepIndex)) return fail('stepIndex 无效')
 
@@ -251,6 +325,7 @@ async function completeStep(openid, event) {
  */
 async function getStepDetail(openid, event) {
   const { userJourneyId, stepIndex } = event
+  await ensureCollectionReady('user_journeys')
   if (!userJourneyId) return fail('缺少 userJourneyId')
   if (!isValidStepIndex(stepIndex)) return fail('stepIndex 无效')
 
@@ -309,6 +384,6 @@ exports.main = async (event, context) => {
     }
   } catch (err) {
     console.error('[' + action + ']', err)
-    return fail('服务器错误')
+    return fail(toReadableErrorMessage(err))
   }
 }

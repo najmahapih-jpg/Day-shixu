@@ -18,6 +18,15 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function fetchProfile() {
+    if (!userInfo.value) return
+    try {
+      userInfo.value = await userService.getProfile()
+    } catch {
+      // silent — keep existing userInfo
+    }
+  }
+
   async function updateSettings(settings: Partial<UserSettings>) {
     if (!userInfo.value) return
 
@@ -52,6 +61,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     isLoggedIn,
     login,
+    fetchProfile,
     updateSettings,
     logout,
   }

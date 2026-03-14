@@ -207,12 +207,22 @@ $letter-bg-mid: #E8D5BC;
 $letter-bg-end: #DCC8AC;
 $letter-paper: #FFFDE7;
 
-// --- Board Note Tints ---
-$note-tint-yellow: rgba(#FFF9C4, 0.3);
-$note-tint-blue: rgba(#E3F2FD, 0.3);
-$note-tint-green: rgba(#E8F5E9, 0.3);
-$note-red-start: #E74C3C;
-$note-red-end: #C0392B;
+// --- Board Note 6-Color Palette ---
+$note-yellow: #F5C563;
+$note-pink:   #E8889A;
+$note-blue:   #7EB8C9;
+$note-green:  #8BA888;
+$note-purple: #B8A9C9;
+$note-cream:  #D4A574;
+
+$note-colors: (
+  yellow: $note-yellow,
+  pink:   $note-pink,
+  blue:   $note-blue,
+  green:  $note-green,
+  purple: $note-purple,
+  cream:  $note-cream,
+);
 
 // --- Z-Index Scale ---
 $z-content: 1;

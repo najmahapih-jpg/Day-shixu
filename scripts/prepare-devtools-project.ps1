@@ -15,6 +15,37 @@ $targetDir = Join-Path $repoRoot '_mp_devtools'
 $targetConfig = Join-Path $targetDir 'project.config.json'
 $targetAppJson = Join-Path $targetDir 'app.json'
 
+function Disable-RuntimeSocketChannel {
+  param(
+    [Parameter(Mandatory = $true)][string]$VendorPath
+  )
+
+  if (-not (Test-Path $VendorPath)) {
+    return
+  }
+
+  $vendorContent = Get-Content -Raw -Encoding UTF8 $VendorPath
+  $callPattern = '(?m)^(?<indent>\s*)initRuntimeSocketService\(\);\s*$'
+  if (-not [regex]::IsMatch($vendorContent, $callPattern)) {
+    return
+  }
+
+  $replacement = '$1// Runtime socket channel disabled to avoid noisy 127.0.0.1:8090 errors in WeChat DevTools.' +
+    "`r`n" +
+    '$1// initRuntimeSocketService();'
+  $patched = [regex]::Replace(
+    $vendorContent,
+    $callPattern,
+    $replacement,
+    1
+  )
+
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $vendorFullPath = (Get-Item -LiteralPath $VendorPath).FullName
+  [System.IO.File]::WriteAllText($vendorFullPath, $patched, $utf8NoBom)
+  Write-Host "Patched: disabled runtime socket channel in $VendorPath"
+}
+
 if (-not (Test-Path $sourceDir)) {
   throw "Source not found: $sourceDir. Please build mp-weixin first."
 }
@@ -52,21 +83,10 @@ if (-not (Test-Path $targetAppJson)) {
   throw "Target app.json missing: $targetAppJson"
 }
 
-$vendorPath = Join-Path $targetDir 'common\vendor.js'
-if (Test-Path $vendorPath) {
-  $vendorContent = Get-Content -Raw -Encoding UTF8 $vendorPath
-  $needle = 'initRuntimeSocketService();'
-  if ($vendorContent.Contains($needle)) {
-    $patched = $vendorContent.Replace(
-      $needle,
-      "// Runtime socket channel disabled to avoid noisy 127.0.0.1:8090 errors in WeChat DevTools.`r`n// initRuntimeSocketService();"
-    )
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    $vendorFullPath = (Get-Item -LiteralPath $vendorPath).FullName
-    [System.IO.File]::WriteAllText($vendorFullPath, $patched, $utf8NoBom)
-    Write-Host "Patched: disabled runtime socket channel in $vendorPath"
-  }
-}
+# Patch both dist and DevTools copies because some workflows import root project
+# (miniprogramRoot -> unpackage/dist/dev/mp-weixin), while others import _mp_devtools.
+Disable-RuntimeSocketChannel -VendorPath (Join-Path $sourceDir 'common\vendor.js')
+Disable-RuntimeSocketChannel -VendorPath (Join-Path $targetDir 'common\vendor.js')
 
 Write-Host "Prepared DevTools project at: $targetDir"
 if (-not $didFullRebuild) {

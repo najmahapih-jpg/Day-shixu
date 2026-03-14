@@ -8,11 +8,6 @@ import type {
   CheckItem,
   NoteColor,
   NoteType,
-  NoteTextAlign,
-  NoteTextVertical,
-  NoteFontFamily,
-  NotePositionMode,
-  NoteShape,
 } from '@/types'
 
 const STORAGE_KEY = 'habitflow_board_notes'
@@ -21,20 +16,12 @@ let localModeNotified = false
 type NotePayload = {
   content: string
   color?: NoteColor
-  size?: number
-  x?: number
-  y?: number
-  rotation?: number
-  fontSize?: 'sm' | 'md' | 'lg'
-  textAlign?: NoteTextAlign
-  textVertical?: NoteTextVertical
-  fontFamily?: NoteFontFamily
-  positionMode?: NotePositionMode
-  noteShape?: NoteShape
   noteType?: NoteType
   checkItems?: CheckItem[]
   linkedHabitId?: string
   groupId?: string
+  isPinned?: boolean
+  tags?: string[]
 }
 
 type BoardSortMode = 'default' | 'updated' | 'color'
@@ -54,18 +41,10 @@ function normalizeNote(note: BoardNote): BoardNote {
     ...note,
     content,
     color: note.color || 'yellow',
-    size: note.size || 2,
-    fontSize: note.fontSize || 'md',
-    textAlign: note.textAlign || 'left',
-    textVertical: note.textVertical || 'top',
-    fontFamily: note.fontFamily || 'hand',
-    positionMode: note.positionMode || 'auto',
-    noteShape: note.noteShape || 'rect',
     noteType: note.noteType || 'text',
     checkItems: cleanItems,
-    x: note.x ?? 0,
-    y: note.y ?? 0,
-    rotation: note.rotation ?? 0,
+    isPinned: !!note.isPinned,
+    tags: Array.isArray(note.tags) ? note.tags : [],
     createdAt: note.createdAt || nowIso(),
     updatedAt: note.updatedAt || nowIso(),
   }
@@ -91,8 +70,8 @@ function normalizePayload(data: NotePayload): NotePayload {
   if (noteType === 'checklist' && checkItems.length === 0) {
     throw new Error('清单至少需要 1 项')
   }
-  if (noteType === 'checklist' && checkItems.length > 20) {
-    throw new Error('清单最多 20 项')
+  if (noteType === 'checklist' && checkItems.length > 50) {
+    throw new Error('清单最多 50 项')
   }
   if (content.length === 0 && fallbackContent.length === 0) {
     throw new Error('便签内容不能为空')
@@ -104,15 +83,7 @@ function normalizePayload(data: NotePayload): NotePayload {
     noteType,
     checkItems: noteType === 'checklist' ? checkItems : undefined,
     color: data.color || 'yellow',
-    size: data.size || 2,
-    fontSize: data.fontSize || 'md',
-    textAlign: data.textAlign || 'left',
-    textVertical: data.textVertical || 'top',
-    fontFamily: data.fontFamily || 'hand',
-    positionMode: data.positionMode || 'auto',
-    noteShape: data.noteShape || 'rect',
-    x: data.positionMode === 'manual' ? data.x ?? 0 : 0,
-    y: data.positionMode === 'manual' ? data.y ?? 0 : 0,
+    isPinned: !!data.isPinned,
   }
 }
 
@@ -148,8 +119,11 @@ function saveLocalNotes(list: BoardNote[]) {
   }
 }
 
-function sortByCreatedDesc(list: BoardNote[]): BoardNote[] {
+function sortNotesDesc(list: BoardNote[]): BoardNote[] {
   return [...list].sort((a, b) => {
+    if (a.isPinned !== b.isPinned) {
+      return a.isPinned ? -1 : 1
+    }
     const ta = new Date(a.createdAt || '').getTime()
     const tb = new Date(b.createdAt || '').getTime()
     return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta)
@@ -201,9 +175,6 @@ export const useBoardStore = defineStore('board', () => {
     const optimistic: BoardNote = normalizeNote({
       _id: tempId,
       ...payload,
-      x: payload.positionMode === 'manual' ? payload.x ?? 0 : 0,
-      y: payload.positionMode === 'manual' ? payload.y ?? 0 : 0,
-      rotation: payload.rotation ?? 0,
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -214,9 +185,6 @@ export const useBoardStore = defineStore('board', () => {
     try {
       const created = await boardService.createNote({
         ...payload,
-        x: payload.positionMode === 'manual' ? payload.x ?? 0 : 0,
-        y: payload.positionMode === 'manual' ? payload.y ?? 0 : 0,
-        rotation: payload.rotation ?? 0,
       })
       const normalized = normalizeNote(created)
       notes.value = notes.value.map((n) => (n._id === tempId ? normalized : n))
@@ -246,26 +214,10 @@ export const useBoardStore = defineStore('board', () => {
     const rawPatch = {
       ...data,
       color: data.color,
-      size: typeof data.size === 'number' ? data.size : undefined,
-      fontSize: data.fontSize,
-      textAlign: data.textAlign,
-      textVertical: data.textVertical,
-      fontFamily: data.fontFamily,
-      positionMode: data.positionMode,
-      noteShape: data.noteShape,
       noteType: data.noteType,
+      isPinned: data.isPinned,
       checkItems: nextCheckItems,
       content: data.content?.trim() ?? data.content,
-      x: data.positionMode === 'manual'
-        ? (typeof data.x === 'number' ? data.x : 0)
-        : data.positionMode === 'auto'
-          ? 0
-          : data.x,
-      y: data.positionMode === 'manual'
-        ? (typeof data.y === 'number' ? data.y : 0)
-        : data.positionMode === 'auto'
-          ? 0
-          : data.y,
     }
     const patch = compactPatch(rawPatch)
 
@@ -308,12 +260,13 @@ export const useBoardStore = defineStore('board', () => {
     if (!target) return
 
     const now = nowIso()
-    notes.value = sortByCreatedDesc(
+    const newIsPinned = !target.isPinned
+    notes.value = sortNotesDesc(
       notes.value.map((n) =>
         n._id === id
           ? normalizeNote({
             ...n,
-            createdAt: now,
+            isPinned: newIsPinned,
             updatedAt: now,
           })
           : n,
@@ -322,7 +275,7 @@ export const useBoardStore = defineStore('board', () => {
     saveLocalNotes(notes.value)
 
     try {
-      await boardService.updateNote(id, { createdAt: now, updatedAt: now } as any)
+      await boardService.updateNote(id, { isPinned: newIsPinned, updatedAt: now } as any)
     } catch {
       notifyLocalMode()
     }
@@ -380,6 +333,18 @@ export const useBoardStore = defineStore('board', () => {
     sortMode.value = order[(idx + 1) % order.length]
   }
 
+  function getAllTags(): { key: string; count: number }[] {
+    const tagMap = new Map<string, number>()
+    for (const note of notes.value) {
+      for (const tag of note.tags || []) {
+        tagMap.set(tag, (tagMap.get(tag) || 0) + 1)
+      }
+    }
+    return Array.from(tagMap.entries())
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
   function getNotesByHabitId(habitId: string): BoardNote[] {
     if (!habitId) return []
     return notes.value
@@ -411,6 +376,7 @@ export const useBoardStore = defineStore('board', () => {
     batchDelete,
     batchChangeColor,
     cycleSortMode,
+    getAllTags,
     getNotesByHabitId,
     $reset,
   }

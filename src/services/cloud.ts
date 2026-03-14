@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@/types'
 import { useNetwork } from '@/composables/useNetwork'
+import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 // --- CloudError ---
 
@@ -12,16 +13,70 @@ export class CloudError extends Error {
   }
 }
 
+type DateInput = Date | number | string
+const BEIJING_OFFSET_MS = 8 * 60 * 60 * 1000
+
+function toDate(input: DateInput = Date.now()): Date {
+  if (input instanceof Date) return new Date(input.getTime())
+  const parsed = new Date(input)
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date(Date.now())
+  }
+  return parsed
+}
+
+/**
+ * Convert any date input to Beijing calendar parts (UTC+8).
+ */
+export function getBeijingDateParts(input: DateInput = Date.now()) {
+  const base = toDate(input)
+  // Convert absolute timestamp to UTC+8, independent of device timezone.
+  const shifted = new Date(base.getTime() + BEIJING_OFFSET_MS)
+
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+    second: shifted.getUTCSeconds(),
+    weekday: shifted.getUTCDay(), // 0=Sun ... 6=Sat
+  }
+}
+
+export function getWeekdayFromDateStr(dateStr: string): number {
+  const [y, m, d] = (dateStr || '').split('-').map(Number)
+  if (!y || !m || !d) return 0
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+}
+
+export function getWeekday1to7FromDateStr(dateStr: string): number {
+  const weekday = getWeekdayFromDateStr(dateStr)
+  return weekday === 0 ? 7 : weekday
+}
+
 /**
  * Returns today's date as YYYY-MM-DD in UTC+8 (matches server-side toDateStr)
  */
 export function getToday(): string {
-  const d = new Date()
-  const utc8 = new Date(d.getTime() + 8 * 3600 * 1000)
-  const year = utc8.getUTCFullYear()
-  const month = String(utc8.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(utc8.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  const { year, month, day } = getBeijingDateParts()
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/**
+ * Returns the current time as an ISO-8601 string in UTC+8 (Beijing time).
+ * Format: YYYY-MM-DDTHH:mm:ss+08:00
+ * Use this instead of `new Date().toISOString()` for all timestamps.
+ */
+export function getBeijingIsoNow(): string {
+  const p = getBeijingDateParts()
+  const Y = p.year
+  const M = String(p.month).padStart(2, '0')
+  const D = String(p.day).padStart(2, '0')
+  const h = String(p.hour).padStart(2, '0')
+  const m = String(p.minute).padStart(2, '0')
+  const s = String(p.second).padStart(2, '0')
+  return `${Y}-${M}-${D}T${h}:${m}:${s}+08:00`
 }
 
 /**
@@ -32,14 +87,15 @@ export function formatDate(
   date: Date | number | string,
   format: string = 'YYYY-MM-DD',
 ): string {
-  const d = date instanceof Date ? date : new Date(date)
+  if (typeof date === 'string' && !date.trim()) return ''
+  const parts = getBeijingDateParts(date)
   const tokens: Record<string, string> = {
-    YYYY: String(d.getFullYear()),
-    MM: String(d.getMonth() + 1).padStart(2, '0'),
-    DD: String(d.getDate()).padStart(2, '0'),
-    HH: String(d.getHours()).padStart(2, '0'),
-    mm: String(d.getMinutes()).padStart(2, '0'),
-    ss: String(d.getSeconds()).padStart(2, '0'),
+    YYYY: String(parts.year),
+    MM: String(parts.month).padStart(2, '0'),
+    DD: String(parts.day).padStart(2, '0'),
+    HH: String(parts.hour).padStart(2, '0'),
+    mm: String(parts.minute).padStart(2, '0'),
+    ss: String(parts.second).padStart(2, '0'),
   }
 
   return Object.entries(tokens).reduce(
@@ -95,15 +151,54 @@ export async function callCloud<T>(
     if (err instanceof CloudError) throw err
 
     const errMsg: string = err.errMsg || err.message || ''
+    const errCode = String(err?.errCode || err?.code || '')
+    const currentEnv = (() => {
+      try {
+        return wx?.cloud?.DYNAMIC_CURRENT_ENV || CLOUD_ENV_ID || ''
+      } catch {
+        return CLOUD_ENV_ID || ''
+      }
+    })()
+
+    console.error('[云函数调用失败]', {
+      functionName: name,
+      action,
+      errMsg,
+      errCode,
+      raw: err,
+    })
 
     if (errMsg.includes('timeout') || errMsg.includes('ETIMEOUT')) {
       throw new CloudError(-2, '请求超时，请稍后重试')
     }
-    if (errMsg.includes('-404016') || errMsg.includes('not found')) {
+    if (errMsg.toLowerCase().includes('env status is isolated') || errMsg.toLowerCase().includes('is isolated')) {
+      const envHint = currentEnv ? `（${currentEnv}）` : ''
+      throw new CloudError(-3, `云环境处于隔离状态${envHint}，请在微信开发者工具切换可用云环境后重试`)
+    }
+    if (
+      errMsg.includes('-404016') ||
+      errMsg.includes('not found') ||
+      errMsg.includes('not exist') ||
+      errMsg.includes('不存在') ||
+      errCode.includes('-404016')
+    ) {
       throw new CloudError(-3, '服务暂时不可用')
+    }
+    if (
+      (errMsg.toLowerCase().includes('env') && errMsg.toLowerCase().includes('invalid')) ||
+      (errMsg.toLowerCase().includes('env') && errMsg.toLowerCase().includes('not exist')) ||
+      errMsg.includes('环境') ||
+      errMsg.includes('cloud init') ||
+      errCode.includes('-501000')
+    ) {
+      throw new CloudError(-3, '云环境配置错误，请检查开发者工具中的云环境')
     }
     if (errMsg.includes('-502001') || errMsg.includes('permission')) {
       throw new CloudError(-4, '权限不足，请重新登录')
+    }
+    if (errMsg.includes('-504002') || errMsg.toLowerCase().includes('functions execute fail')) {
+      const detail = (errMsg || '').replace(/\s+/g, ' ').trim()
+      throw new CloudError(-1, `云函数执行失败：${detail}`)
     }
     if (errMsg.includes('network') || errMsg.includes('ERR_CONNECTION')) {
       throw new CloudError(-5, '网络不太给力，请检查连接')

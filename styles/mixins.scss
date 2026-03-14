@@ -223,3 +223,29 @@
     border-color: $dark-border;
   }
 }
+
+// --- Board Note Color Variants ---
+// Generates &.yellow { ... } &.pink { ... } etc. from $note-colors map.
+// Usage: @include note-color-prop(background, 1); → solid color
+//        @include note-color-prop(background, 0.1); → with alpha
+//        @include note-color-prop(box-shadow, 0.3, "0 0 8rpx"); → prefixed shadow
+
+@mixin note-color-prop($prop, $alpha: 1, $prefix: null) {
+  @each $name, $color in $note-colors {
+    &.#{$name} {
+      @if $alpha >= 1 {
+        @if $prefix {
+          #{$prop}: #{$prefix} $color;
+        } @else {
+          #{$prop}: $color;
+        }
+      } @else {
+        @if $prefix {
+          #{$prop}: #{$prefix} rgba($color, $alpha);
+        } @else {
+          #{$prop}: rgba($color, $alpha);
+        }
+      }
+    }
+  }
+}

@@ -24,6 +24,7 @@ if (-not (Test-Path $cfgPath)) {
 
 $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
 $envId = $cfg.envId
+$functionRoot = if ($cfg.functionRoot) { [string]$cfg.functionRoot } else { 'cloudfunctions' }
 
 if ([string]::IsNullOrWhiteSpace($envId)) {
   throw 'envId is empty in cloudbaserc.json'
@@ -97,8 +98,50 @@ function Get-ChangedFunctionNames([string]$BaseRef) {
 }
 
 function Deploy-One([string]$Name, [string]$EnvId) {
-  Write-Output ("Deploying function: " + $Name)
-  Invoke-Tcb -TcbArgs @('fn', 'deploy', $Name, '--force', '-e', $EnvId)
+  $fnDir = Join-Path $projectRoot (Join-Path $functionRoot $Name)
+  if (-not (Test-Path -LiteralPath $fnDir)) {
+    throw ("Function directory not found: " + $fnDir)
+  }
+
+  Write-Output ("Updating function code: " + $Name)
+  # Use code update to upload local node_modules, avoiding runtime missing-module errors.
+  Invoke-Tcb -TcbArgs @('fn', 'code', 'update', $Name, '--dir', $fnDir, '-e', $EnvId)
+  if ($LASTEXITCODE -eq 0) {
+    return
+  }
+
+  Write-Warning ("Code update failed for " + $Name + ", fallback to deploy...")
+  Invoke-Tcb -TcbArgs @('fn', 'deploy', $Name, '--force', '--dir', $fnDir, '-e', $EnvId)
+  if ($LASTEXITCODE -ne 0) {
+    throw ("Failed to deploy function: " + $Name)
+  }
+}
+
+function Get-ConfiguredFunctionNames {
+  $names = @()
+
+  if ($cfg.functions) {
+    foreach ($item in $cfg.functions) {
+      if ($item.name -and -not [string]::IsNullOrWhiteSpace([string]$item.name)) {
+        $names += [string]$item.name
+      }
+    }
+  }
+
+  if ($names.Count -gt 0) {
+    return @($names | Sort-Object -Unique)
+  }
+
+  $root = Join-Path $projectRoot $functionRoot
+  if (-not (Test-Path -LiteralPath $root)) {
+    throw ("Function root not found: " + $root)
+  }
+
+  return @(
+    Get-ChildItem -Path $root -Directory |
+      Select-Object -ExpandProperty Name |
+      Sort-Object -Unique
+  )
 }
 
 function Invoke-Tcb([string[]]$TcbArgs) {
@@ -121,7 +164,26 @@ try {
       Invoke-Tcb -TcbArgs @('fn', 'list', '-e', $envId)
     }
     'deployAll' {
-      Invoke-Tcb -TcbArgs @('fn', 'deploy', '--all', '--force', '-e', $envId)
+      $allNames = Get-ConfiguredFunctionNames
+      if ($allNames.Count -eq 0) {
+        Write-Output 'No cloud functions found. Nothing to deploy.'
+        break
+      }
+
+      Write-Output ('Will deploy all cloud functions (' + $allNames.Count + '): ' + ($allNames -join ', '))
+      $failed = @()
+      foreach ($fn in $allNames) {
+        try {
+          Deploy-One -Name $fn -EnvId $envId
+        } catch {
+          $failed += $fn
+          Write-Output ("Failed: " + $fn + ' -> ' + $_.Exception.Message)
+        }
+      }
+
+      if ($failed.Count -gt 0) {
+        throw ('Deploy failed for: ' + ($failed -join ', '))
+      }
     }
     'deploy' {
       Deploy-One -Name $FunctionName -EnvId $envId

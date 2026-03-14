@@ -132,11 +132,6 @@ export interface UserJourney extends BaseDocument {
 
 export type NoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'cream'
 export type NoteType = 'text' | 'checklist'
-export type NoteTextAlign = 'left' | 'center' | 'right'
-export type NoteTextVertical = 'top' | 'center' | 'bottom'
-export type NoteFontFamily = 'serif' | 'sans' | 'hand' | 'rounded' | 'mono'
-export type NotePositionMode = 'auto' | 'manual'
-export type NoteShape = 'rect' | 'heart' | 'star'
 
 export interface CheckItem {
   id: string
@@ -144,24 +139,21 @@ export interface CheckItem {
   checked: boolean
 }
 
+export interface NoteTag {
+  key: string
+  label: string
+  color: string
+}
+
 export interface BoardNote extends BaseDocument {
   content: string
   color: NoteColor
-  size: number
-  x: number
-  y: number
-  rotation: number
-  fontSize?: 'sm' | 'md' | 'lg'
-  textAlign?: NoteTextAlign
-  textVertical?: NoteTextVertical
-  fontFamily?: NoteFontFamily
-  positionMode?: NotePositionMode
-  noteShape?: NoteShape
-  imageUrl?: string
   noteType?: NoteType
   checkItems?: CheckItem[]
   groupId?: string
   linkedHabitId?: string
+  isPinned?: boolean
+  tags?: string[]
 }
 
 // --- Letter ---

@@ -550,9 +550,6 @@ function triggerGlitch() {
   isScoreGlitching.value = true
   isPlayingEasterEgg.value = true // Lock navigation
   
-  // Vibrate for physical tactile feedback
-  uni.vibrateShort({ type: 'medium' })
-  
   let ticks = 0
   const chars = '0123456789ABCDEF@#$%'
   const interval = setInterval(() => {
@@ -564,8 +561,6 @@ function triggerGlitch() {
     if (ticks > 15) {
       clearInterval(interval)
       isScoreGlitching.value = false
-      uni.vibrateShort({ type: 'heavy' }) // Final loud click
-      
       // Keep lock for another 500ms so clumsy fingers don't navigate away accidentally
       setTimeout(() => {
         isPlayingEasterEgg.value = false
