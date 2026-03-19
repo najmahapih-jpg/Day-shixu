@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import * as habitService from '@/services/habitService'
-import * as letterService from '@/services/letterService'
 import { getToday } from '@/services/cloud'
 import { getCache, setCache } from '@/utils/cache'
 import { withRetry } from '@/utils/retry'
@@ -163,8 +162,6 @@ export const useHabitStore = defineStore('habit', () => {
         habit.streakLongest = Math.max(habit.streakLongest, real.streakCurrent)
       }
 
-      // Fire-and-forget: trigger letter milestone check
-      letterService.triggerCheck().catch(() => {})
     } catch (err) {
       todayCheckIns.value = prevMap
       habits.value = prevHabits

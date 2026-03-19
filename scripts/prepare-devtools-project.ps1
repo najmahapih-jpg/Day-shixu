@@ -14,6 +14,43 @@ $sourceDir = Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin'
 $targetDir = Join-Path $repoRoot '_mp_devtools'
 $targetConfig = Join-Path $targetDir 'project.config.json'
 $targetAppJson = Join-Path $targetDir 'app.json'
+$memoSource = Join-Path $repoRoot 'components\board\MemoEditor.vue'
+$memoDistJs = Join-Path $sourceDir 'components\board\MemoEditor.js'
+$memoDistWxml = Join-Path $sourceDir 'components\board\MemoEditor.wxml'
+
+function Warn-IfSourceNewerThanDist {
+  param(
+    [Parameter(Mandatory = $true)][string]$SourcePath,
+    [Parameter(Mandatory = $true)][string[]]$DistPaths
+  )
+
+  if (-not (Test-Path $SourcePath)) {
+    return
+  }
+
+  $sourceTime = (Get-Item -LiteralPath $SourcePath).LastWriteTimeUtc
+  $staleTargets = @()
+  foreach ($distPath in $DistPaths) {
+    if (-not (Test-Path $distPath)) {
+      $staleTargets += $distPath
+      continue
+    }
+
+    $distTime = (Get-Item -LiteralPath $distPath).LastWriteTimeUtc
+    if ($sourceTime -gt $distTime) {
+      $staleTargets += $distPath
+    }
+  }
+
+  if ($staleTargets.Count -gt 0) {
+    Write-Warning 'Detected possible stale mp-weixin build output.'
+    Write-Warning ("Source newer than dist: {0}" -f $SourcePath)
+    foreach ($stale in $staleTargets) {
+      Write-Warning ("Stale target: {0}" -f $stale)
+    }
+    Write-Warning 'Please rebuild mp-weixin in HBuilderX before running prepare:devtools to avoid stale interaction logic.'
+  }
+}
 
 function Disable-RuntimeSocketChannel {
   param(
@@ -46,6 +83,44 @@ function Disable-RuntimeSocketChannel {
   Write-Host "Patched: disabled runtime socket channel in $VendorPath"
 }
 
+function Patch-RenderPropsNullFallback {
+  param(
+    [Parameter(Mandatory = $true)][string]$VendorPath
+  )
+
+  if (-not (Test-Path $VendorPath)) {
+    return
+  }
+
+  $vendorContent = Get-Content -Raw -Encoding UTF8 $VendorPath
+  $patchedSignature = "const instance = getCurrentInstance();`r`n  const uid2 = instance ? instance.uid : 0;"
+  if ($vendorContent.Contains($patchedSignature)) {
+    return
+  }
+
+  $pattern = 'function renderProps\(props\)\s*\{\s*const \{ uid: uid2, __counter \} = getCurrentInstance\(\);\s*const propsId = \(propsCaches\[uid2\] \|\| \(propsCaches\[uid2\] = \[\]\)\)\.push\(guardReactiveProps\(props\)\) - 1;\s*return uid2 \+ "," \+ propsId \+ "," \+ __counter;\s*\}'
+  $replacement = @"
+function renderProps(props) {
+  const instance = getCurrentInstance();
+  const uid2 = instance ? instance.uid : 0;
+  const __counter = instance ? instance.__counter : 0;
+  const propsId = (propsCaches[uid2] || (propsCaches[uid2] = [])).push(guardReactiveProps(props)) - 1;
+  return uid2 + "," + propsId + "," + __counter;
+}
+"@
+
+  if (-not [regex]::IsMatch($vendorContent, $pattern)) {
+    Write-Warning "Skipped: renderProps patch pattern not found in $VendorPath"
+    return
+  }
+
+  $patched = [regex]::Replace($vendorContent, $pattern, $replacement, 1)
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $vendorFullPath = (Get-Item -LiteralPath $VendorPath).FullName
+  [System.IO.File]::WriteAllText($vendorFullPath, $patched, $utf8NoBom)
+  Write-Host "Patched: renderProps null-instance fallback in $VendorPath"
+}
+
 if (-not (Test-Path $sourceDir)) {
   throw "Source not found: $sourceDir. Please build mp-weixin first."
 }
@@ -53,6 +128,8 @@ if (-not (Test-Path $sourceDir)) {
 if (-not (Test-Path (Join-Path $sourceDir 'app.json'))) {
   throw "Source app.json missing: $sourceDir\\app.json. Please build mp-weixin first."
 }
+
+Warn-IfSourceNewerThanDist -SourcePath $memoSource -DistPaths @($memoDistJs, $memoDistWxml)
 
 $didFullRebuild = $true
 if (Test-Path $targetDir) {
@@ -87,6 +164,8 @@ if (-not (Test-Path $targetAppJson)) {
 # (miniprogramRoot -> unpackage/dist/dev/mp-weixin), while others import _mp_devtools.
 Disable-RuntimeSocketChannel -VendorPath (Join-Path $sourceDir 'common\vendor.js')
 Disable-RuntimeSocketChannel -VendorPath (Join-Path $targetDir 'common\vendor.js')
+Patch-RenderPropsNullFallback -VendorPath (Join-Path $sourceDir 'common\vendor.js')
+Patch-RenderPropsNullFallback -VendorPath (Join-Path $targetDir 'common\vendor.js')
 
 Write-Host "Prepared DevTools project at: $targetDir"
 if (-not $didFullRebuild) {

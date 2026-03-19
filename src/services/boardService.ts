@@ -35,6 +35,8 @@ export async function createNote(
     checkItems?: CheckItem[]
     linkedHabitId?: string
     groupId?: string
+    isPinned?: boolean
+    tags?: string[]
   },
 ): Promise<BoardNote> {
   return callCloud<BoardNote>(FN, 'boardCreate', data)

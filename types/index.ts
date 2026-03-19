@@ -156,18 +156,6 @@ export interface BoardNote extends BaseDocument {
   tags?: string[]
 }
 
-// --- Letter ---
-
-export interface Letter extends BaseDocument {
-  type: 'journey' | 'milestone' | 'custom'
-  title: string
-  content: string
-  illustration: string
-  triggerCondition: string
-  isRead: boolean
-  receivedAt: string
-}
-
 // --- Freeze ---
 
 export interface FreezeRecord {

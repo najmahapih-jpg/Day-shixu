@@ -43,6 +43,21 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function updateAvatar(avatarUrl: string) {
+    if (!userInfo.value) return
+
+    const prev = userInfo.value
+    userInfo.value = { ...prev, avatarUrl }
+
+    try {
+      const updated = await userService.updateAvatar(avatarUrl)
+      userInfo.value = { ...userInfo.value!, avatarUrl: updated }
+    } catch (err) {
+      userInfo.value = prev
+      throw err
+    }
+  }
+
   function logout() {
     userInfo.value = null
     clearCache()
@@ -63,6 +78,7 @@ export const useUserStore = defineStore('user', () => {
     login,
     fetchProfile,
     updateSettings,
+    updateAvatar,
     logout,
   }
 })

@@ -68,6 +68,7 @@
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useBoardStore } from '@/stores/board'
+import { useHabitStore } from '@/stores/habit'
 import type { BoardNote, NoteColor } from '@/types'
 
 import BoardHeader from '@/components/board/BoardHeader.vue'
@@ -79,6 +80,7 @@ import BoardDock from '@/components/board/BoardDock.vue'
 import HfTabBar from '@/components/base/HfTabBar.vue'
 
 const boardStore = useBoardStore()
+const habitStore = useHabitStore()
 
 // State
 const loading = computed(() => boardStore.loading)
@@ -89,6 +91,7 @@ const filterOptions = ref({
   type: null as string | null,
   query: '',
   tag: null as string | null,
+  habitId: null as string | null,
 })
 
 const handleFilter = (options: any) => {
@@ -110,6 +113,10 @@ const filteredNotes = computed(() => {
   if (filterOptions.value.tag) {
     const tag = filterOptions.value.tag
     result = result.filter(n => (n.tags || []).includes(tag))
+  }
+  if (filterOptions.value.habitId) {
+    const hid = filterOptions.value.habitId
+    result = result.filter(n => n.linkedHabitId === hid)
   }
   return result
 })
@@ -192,9 +199,18 @@ const confirmDelete = (note: BoardNote) => {
 
 // Lifecycle
 onShow(() => {
-  // Reset filter state on page re-enter
-  filterOptions.value = { color: null, type: null, query: '', tag: null }
+  // Check for pending habit filter from habit-detail navigation
+  const pendingHabit = boardStore.pendingHabitFilter
+  if (pendingHabit) {
+    filterOptions.value = { color: null, type: null, query: '', tag: null, habitId: pendingHabit }
+    boardStore.pendingHabitFilter = ''
+  } else {
+    filterOptions.value = { color: null, type: null, query: '', tag: null, habitId: null }
+  }
   boardStore.fetchNotes()
+  habitStore.fetchHabits().catch(() => {
+    // MemoEditor will retry loading habits on demand.
+  })
 })
 </script>
 

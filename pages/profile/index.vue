@@ -14,11 +14,17 @@
               <text class="hero-zone__t2">PROFILE</text>
             </view>
             <view class="hero-zone__avatar" @tap="handleAvatarTap">
-              <image v-if="avatarUrl" class="avatar-img" :src="avatarUrl" mode="aspectFill" />
+              <image
+                v-if="displayAvatarUrl"
+                class="avatar-img"
+                :src="displayAvatarUrl"
+                mode="aspectFill"
+                @error="handleAvatarLoadError"
+              />
               <view v-else class="avatar-img avatar-img--default">
                 <HfIllustration name="custom/illustrations/profile-character" width="200rpx" height="220rpx" />
               </view>
-              <view class="avatar-action" @tap.stop="pickAvatarBgImage">
+              <view class="avatar-action" :class="{ 'is-uploading': avatarUploading }" @tap.stop="pickAvatarBgImage">
                 <HfIcon name="camera-bold" size="xs" color="#0B0B0C" plain />
               </view>
               <view v-if="userStore.isLoggedIn" class="hero-stamp">AUTHORIZED</view>
@@ -105,11 +111,10 @@
             <text class="nav-block__title">JOURNEY</text>
             <text class="nav-block__sub">我的旅程之旅</text>
           </view>
-          <view class="nav-block brutal-card brutal-mint-bg" @tap="handleMenuTap('letter')">
-            <view v-if="unreadCount > 0" class="nav-block__badge">{{ unreadCount }}</view>
-            <view class="nav-block__icon"><HfIcon name="letter-bold" size="sm" color="#0B0B0C" plain /></view>
-            <text class="nav-block__title">LETTERS</text>
-            <text class="nav-block__sub">时空激励信件</text>
+          <view class="nav-block brutal-card brutal-mint-bg" @tap="handleMenuTap('stellarArchive')">
+            <view class="nav-block__icon"><HfIcon name="star-bold" size="sm" color="#0B0B0C" plain /></view>
+            <text class="nav-block__title">ARCHIVE</text>
+            <text class="nav-block__sub">星辰档案</text>
           </view>
         </view>
 
@@ -151,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
@@ -197,10 +202,54 @@ function getNavBarBottom(): number {
 }
 
 const navBarBottom = ref(getNavBarBottom())
-const PROFILE_AVATAR_BG_KEY = 'hf_profile_avatar_bg_v1'
-const avatarBgUrl = ref('')
+const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024
+const MIN_AVATAR_EDGE_PX = 120
+const COMPRESS_TRIGGER_SIZE = 2 * 1024 * 1024
+const COMPRESS_TRIGGER_EDGE = 1800
 
-const avatarUrl = computed(() => userStore.userInfo?.avatarUrl || '')
+const avatarUploading = ref(false)
+const avatarLoadFailed = ref(false)
+const avatarResolvedUrl = ref('')
+let avatarResolveVersion = 0
+const rawAvatarUrl = computed(() => (userStore.userInfo?.avatarUrl || '').trim())
+const displayAvatarUrl = computed(() => (avatarLoadFailed.value ? '' : avatarResolvedUrl.value))
+
+watch(
+  rawAvatarUrl,
+  async (nextRaw) => {
+    const target = (nextRaw || '').trim()
+    const currentVersion = ++avatarResolveVersion
+    avatarLoadFailed.value = false
+
+    if (!target) {
+      avatarResolvedUrl.value = ''
+      return
+    }
+
+    if (!isCloudFileId(target)) {
+      avatarResolvedUrl.value = target
+      return
+    }
+
+    // #ifdef MP-WEIXIN
+    try {
+      const tempUrl = await getTempFileUrl(target)
+      if (currentVersion !== avatarResolveVersion) return
+      avatarResolvedUrl.value = tempUrl
+      if (!tempUrl) avatarLoadFailed.value = true
+    } catch {
+      if (currentVersion !== avatarResolveVersion) return
+      avatarResolvedUrl.value = ''
+      avatarLoadFailed.value = true
+    }
+    // #endif
+
+    // #ifndef MP-WEIXIN
+    avatarResolvedUrl.value = target
+    // #endif
+  },
+  { immediate: true },
+)
 const nickName = computed(() => (userStore.isLoggedIn ? userStore.userInfo!.nickName : 'Mortal Explorer'))
 
 const joinedDays = computed(() => userStore.userInfo?.stats?.joinedDays ?? 0)
@@ -341,15 +390,28 @@ const achievements = computed<Achievement[]>(() => {
 
 const unlockedCount = computed(() => achievements.value.filter((a) => a.unlocked).length)
 
-const unreadCount = ref(0)
-async function fetchUnreadCount() {
-  try {
-    const { getLetters } = await import('@/services/letterService')
-    const letters = await getLetters()
-    unreadCount.value = letters.filter((l) => !l.isRead).length
-  } catch {
-    unreadCount.value = 0
-  }
+function isCloudFileId(url: string): boolean {
+  return typeof url === 'string' && url.startsWith('cloud://')
+}
+
+function getTempFileUrl(fileId: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // #ifdef MP-WEIXIN
+    wx.cloud.getTempFileURL({
+      fileList: [fileId],
+      success: (res) => {
+        const item = (res.fileList as any[])?.[0]
+        const tempUrl = typeof item?.tempFileURL === 'string' ? item.tempFileURL.trim() : ''
+        resolve(tempUrl)
+      },
+      fail: reject,
+    })
+    // #endif
+
+    // #ifndef MP-WEIXIN
+    resolve(fileId)
+    // #endif
+  })
 }
 
 function handleAvatarTap() {
@@ -357,31 +419,153 @@ function handleAvatarTap() {
   userStore.login().catch(() => {})
 }
 
-function loadAvatarBgImage() {
+function handleAvatarLoadError() {
+  if (isCloudFileId(rawAvatarUrl.value)) {
+    const currentVersion = ++avatarResolveVersion
+    getTempFileUrl(rawAvatarUrl.value)
+      .then((tempUrl) => {
+        if (currentVersion !== avatarResolveVersion) return
+        if (tempUrl) {
+          avatarResolvedUrl.value = tempUrl
+          avatarLoadFailed.value = false
+          return
+        }
+        avatarResolvedUrl.value = ''
+        avatarLoadFailed.value = true
+      })
+      .catch(() => {
+        if (currentVersion !== avatarResolveVersion) return
+        avatarResolvedUrl.value = ''
+        avatarLoadFailed.value = true
+      })
+    return
+  }
+  avatarLoadFailed.value = true
+}
+
+function isUserCancelError(err: unknown): boolean {
+  const msg = String((err as any)?.errMsg || (err as any)?.message || '').toLowerCase()
+  return msg.includes('cancel')
+}
+
+function chooseAvatarImage(): Promise<{ path: string; size: number }> {
+  return new Promise((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const path = res.tempFilePaths?.[0]
+        const size = Number((res.tempFiles as any)?.[0]?.size || 0)
+        if (!path) {
+          reject(new Error('未获取到图片文件'))
+          return
+        }
+        resolve({ path, size })
+      },
+      fail: reject,
+    })
+  })
+}
+
+function getImageInfo(path: string): Promise<UniApp.GetImageInfoSuccessData> {
+  return new Promise((resolve, reject) => {
+    uni.getImageInfo({
+      src: path,
+      success: resolve,
+      fail: reject,
+    })
+  })
+}
+
+function compressLocalImage(path: string, quality = 78): Promise<string> {
+  return new Promise((resolve, reject) => {
+    uni.compressImage({
+      src: path,
+      quality,
+      success: (res) => resolve(res.tempFilePath),
+      fail: reject,
+    })
+  })
+}
+
+function getFileExtFromPath(path: string): string {
+  const matched = path.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)
+  const ext = matched?.[1]?.toLowerCase() || 'jpg'
+  if (ext === 'jpeg') return 'jpg'
+  return ext
+}
+
+async function normalizeAvatarTempFile(path: string, size: number): Promise<string> {
+  if (size > MAX_AVATAR_FILE_SIZE) throw new Error('图片需小于 5MB')
+
+  const info = await getImageInfo(path)
+  const minEdge = Math.min(info.width || 0, info.height || 0)
+  const maxEdge = Math.max(info.width || 0, info.height || 0)
+  if (minEdge < MIN_AVATAR_EDGE_PX) {
+    throw new Error('图片分辨率太低，请换一张清晰图片')
+  }
+
+  const shouldCompress =
+    size >= COMPRESS_TRIGGER_SIZE || maxEdge >= COMPRESS_TRIGGER_EDGE
+  if (!shouldCompress || typeof uni.compressImage !== 'function') {
+    return path
+  }
+
   try {
-    const raw = uni.getStorageSync(PROFILE_AVATAR_BG_KEY)
-    avatarBgUrl.value = typeof raw === 'string' ? raw : ''
+    return await compressLocalImage(path)
   } catch {
-    avatarBgUrl.value = ''
+    return path
   }
 }
 
-function pickAvatarBgImage() {
-  if (!userStore.isLoggedIn) {
-     uni.showToast({ title: '请先登录', icon: 'none' })
-     return
-  }
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      const path = res.tempFilePaths?.[0]
-      if (!path) return
-      avatarBgUrl.value = path
-      try { uni.setStorageSync(PROFILE_AVATAR_BG_KEY, path) } catch {}
-    }
+async function uploadAvatarToCloud(filePath: string): Promise<string> {
+  // #ifdef MP-WEIXIN
+  const userId = userStore.userInfo?._id || 'anonymous'
+  const random = Math.random().toString(36).slice(2, 8)
+  const ext = getFileExtFromPath(filePath)
+  const cloudPath = `avatars/${userId}/${Date.now()}_${random}.${ext}`
+  const res = await wx.cloud.uploadFile({
+    cloudPath,
+    filePath,
   })
+  if (!res?.fileID) throw new Error('头像上传失败，请重试')
+  return res.fileID
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  throw new Error('当前平台暂不支持头像上传')
+  // #endif
+}
+
+async function pickAvatarBgImage() {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: '请先登录', icon: 'none' })
+    return
+  }
+  if (avatarUploading.value) return
+
+  let loadingShown = false
+  try {
+    const chosen = await chooseAvatarImage()
+    const normalizedPath = await normalizeAvatarTempFile(chosen.path, chosen.size)
+
+    avatarUploading.value = true
+    uni.showLoading({ title: '头像上传中', mask: true })
+    loadingShown = true
+
+    const avatarUrl = await uploadAvatarToCloud(normalizedPath)
+    await userStore.updateAvatar(avatarUrl)
+    avatarLoadFailed.value = false
+    uni.showToast({ title: '头像已更新', icon: 'success' })
+  } catch (err: any) {
+    if (!isUserCancelError(err)) {
+      uni.showToast({ title: err?.message || '头像上传失败', icon: 'none' })
+    }
+  } finally {
+    avatarUploading.value = false
+    if (loadingShown) uni.hideLoading()
+  }
 }
 
 // Navigational Throttle
@@ -397,7 +581,7 @@ async function handleMenuTap(key: string) {
     }
 
     const routes: Record<string, string> = {
-      letter: '/pages/sub/letter-list/index',
+      stellarArchive: '/pages/sub/archive/index',
       journey: '/pages/sub/journey-list/index',
       aiInsight: '/pages/sub/ai-insight/index',
       stats: '/pages/sub/stats-detail/index',
@@ -416,8 +600,7 @@ async function handleMenuTap(key: string) {
 onShow(() => {
   appStore.switchTab('profile')
   habitStore.refreshDateIfNeeded()
-  loadAvatarBgImage()
-  const tasks: Array<Promise<unknown>> = [fetchUnreadCount(), userStore.fetchProfile()]
+  const tasks: Array<Promise<unknown>> = [userStore.fetchProfile()]
   if (habitStore.habits.length === 0) tasks.push(habitStore.fetchHabits())
   if (boardStore.notes.length === 0) tasks.push(boardStore.fetchNotes())
   Promise.allSettled(tasks).finally(() => loadWeekTrend())
@@ -428,7 +611,6 @@ onPullDownRefresh(async () => {
     await Promise.all([
       habitStore.fetchHabits(),
       boardStore.fetchNotes(),
-      fetchUnreadCount(),
       userStore.fetchProfile(),
     ])
     await loadWeekTrend()
@@ -614,6 +796,8 @@ $nb-red: #FF4444;
       border-radius: 4rpx;
       background: $ink-black;
       box-shadow: 8rpx 8rpx 0 rgba(0,0,0,0.15);
+      overflow: hidden;
+      display: block;
 
       &--default {
         background: #F0F0F0;
@@ -631,6 +815,11 @@ $nb-red: #FF4444;
       @include flex-center;
       box-shadow: 4rpx 4rpx 0 $ink-black;
       z-index: 3;
+
+      &.is-uploading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
     }
 
     .hero-stamp {

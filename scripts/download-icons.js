@@ -31,7 +31,6 @@ const ICONS = [
   'solar:clock-circle-bold','solar:clock-circle-linear',
   'solar:star-bold','solar:star-linear','solar:cup-bold',
   'solar:flag-bold','solar:fire-bold','solar:gift-bold',
-  'solar:letter-bold','solar:letter-linear',
   'solar:restart-bold','solar:play-bold','solar:pause-bold','solar:stop-bold',
   'solar:confetti-bold','solar:crown-bold','solar:export-bold',
   'solar:moon-stars-bold','solar:sun-2-bold',

@@ -198,14 +198,25 @@ interface JourneyCard {
   progressPercent: number
 }
 
+function normalizeTitle(title: string): string {
+  return (title || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '')
+    .replace(/[.,，。!！?？:：'`"~·、()（）\[\]{}]/g, '')
+}
+
 const allCards = computed<JourneyCard[]>(() => {
   const cards: JourneyCard[] = []
+  const seenTitles = new Set<string>()
 
   // User journeys first (active then completed)
   for (const raw of journeyStore.userJourneys || []) {
     const uj = raw && typeof raw === 'object' ? raw : null
     if (!uj || !uj.journey) continue
     const journey = uj.journey
+    const titleKey = normalizeTitle(journey.title || '')
+    if (titleKey) seenTitles.add(titleKey)
     const totalSteps = Array.isArray(journey.steps) && journey.steps.length > 0
       ? journey.steps.length
       : 1
@@ -223,9 +234,12 @@ const allCards = computed<JourneyCard[]>(() => {
     })
   }
 
-  // Available presets (not started)
+  // Available presets (not started) — skip if same title already shown via user journeys
   for (const j of journeyStore.availablePresets) {
     if (!j) continue
+    const titleKey = normalizeTitle(j.title || '')
+    if (titleKey && seenTitles.has(titleKey)) continue
+    if (titleKey) seenTitles.add(titleKey)
     cards.push({
       id: j._id || j.title,
       journey: {

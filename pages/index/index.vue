@@ -300,7 +300,7 @@
               <!-- 核心数据：防拥挤，极大字号对齐网格 -->
               <view class="starmap-stats-grid">
                 <!-- Added .stop to prevent the tap/longpress from bubbling up to the card's jump event -->
-                <view class="stat-row" @longpress.stop="triggerGlitch" @tap.stop>
+                <view class="stat-row" @longpress.stop="triggerGlitch" @tap.stop="stopEvent">
                   <text class="stat-key">SCORE</text>
                   <view class="stat-dots"></view>
                   <text class="stat-val stat-val--highlight magnetic-pulse" :class="{ 'glitching-text': isScoreGlitching }">
@@ -346,7 +346,7 @@
     </scroll-view>
 
     <view v-if="showFirstUseTip" class="first-tip-mask" @tap="dismissFirstUseTip">
-      <view class="first-tip" @tap.stop>
+      <view class="first-tip" @tap.stop="stopEvent">
         <text class="first-tip__title">首次使用提示</text>
         <text class="first-tip__desc">首页支持插画占位、习惯卡片和仪式入口。你可以先完成框架，后续再替换成自己的插画素材。</text>
         <HfButton type="primary" size="sm" round block @tap="dismissFirstUseTip">知道了</HfButton>
@@ -481,9 +481,11 @@ const todaySlogan = computed(() => {
 const HOME_IMAGE_KEY = 'hf_home_custom_image'
 const FIRST_USE_TIP_KEY = 'hf_first_use_tip_v2'
 const AI_CACHE_KEY = 'hf_ai_insight_cache_v1'
+const HAS_ONBOARDED_KEY = 'hasOnboarded'
 const customHomeImage = ref('')
 const showFirstUseTip = ref(false)
 const aiInsight = ref<HabitInsight | null>(null)
+const launchRedirectPending = ref(false)
 
 const completed = computed(() => habitStore.completedHabits.length)
 const total = computed(() => habitStore.todayHabits.length)
@@ -512,11 +514,14 @@ const weekCompareReady = ref(false)
 const isDecoding = ref(false)
 const decodingText = ref('')
 const isScoreGlitching = ref(false)
+const glitchScoreText = ref('0x0000')
 const isIrisDilating = ref(false)
 const isShattering = ref(false)
 const eyeScrollOffset = ref(0)
 const isPlayingEasterEgg = ref(false) // Lock navigation
 provide('isPlayingEasterEgg', isPlayingEasterEgg) // Share with child components
+
+function stopEvent() {}
 
 const terminalPrompt = computed(() => {
   const hour = getBeijingDateParts().hour
@@ -957,6 +962,35 @@ function readAiCache(): HabitInsight | null {
   }
 }
 
+function hasCompletedOnboarding() {
+  try {
+    const stored = uni.getStorageSync(HAS_ONBOARDED_KEY)
+    return stored === true || stored === 'true' || stored === '1'
+  } catch {
+    return true
+  }
+}
+
+function redirectToOnboardingIfNeeded() {
+  if (launchRedirectPending.value) return true
+  if (hasCompletedOnboarding()) return false
+
+  launchRedirectPending.value = true
+  uni.reLaunch({
+    url: '/pages/sub/onboarding/index',
+    fail: () => {
+      launchRedirectPending.value = false
+      uni.showToast({ title: '引导页打开失败', icon: 'none' })
+    },
+    complete: () => {
+      setTimeout(() => {
+        launchRedirectPending.value = false
+      }, 800)
+    },
+  })
+  return true
+}
+
 function navigateToAiInsight() {
   if (isPlayingEasterEgg.value) return
   uni.navigateTo({ url: '/pages/sub/ai-insight/index' })
@@ -1143,6 +1177,7 @@ function clearHeroIllustration() {
 
 onShow(() => {
   appStore.switchTab('index')
+  if (redirectToOnboardingIfNeeded()) return
   habitStore.refreshDateIfNeeded()
   maybeShowFirstUseTip()
   loadHomeImage()

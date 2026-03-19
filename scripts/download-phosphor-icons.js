@@ -40,7 +40,6 @@ const LINEAR_SUPPLEMENTS = [
     ['bookmark-simple', 'bookmark-linear', 'regular'],
     ['calendar-blank', 'calendar-linear', 'regular'],
     ['clock', 'clock-circle-linear', 'regular'],
-    ['envelope-simple', 'letter-linear', 'regular'],
     ['pencil-simple', 'pen-2-linear', 'regular'],
     ['gear-six', 'settings-linear', 'regular'],
     ['star', 'star-linear', 'regular'],

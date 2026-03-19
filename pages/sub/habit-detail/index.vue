@@ -71,6 +71,9 @@
               <HfIcon name="check-circle-bold" size="sm" :color="categoryColor" plain />
               <text class="checked-text" :style="{ color: categoryColor }">今日已完成</text>
             </view>
+            <view v-if="showNotePrompt" class="note-prompt" @click="onNotePromptTap">
+              <text class="note-prompt-text">✏️ 写点感想？</text>
+            </view>
           </view>
         </view>
 
@@ -128,9 +131,47 @@
         </view>
       </view>
 
+      <!-- 6. Linked Board Notes -->
+      <view class="notes-section anim-slide-up anim-delay-3">
+        <view class="section-title">
+          <text class="title-text">灵感笔记</text>
+          <text v-if="linkedNotes.length > 0" class="title-sub">{{ linkedNotes.length }} 条关联</text>
+        </view>
+        <view v-if="linkedNotes.length > 0" class="notes-list">
+          <view
+            v-for="n in displayNotes"
+            :key="n._id"
+            class="note-mini-card"
+            @click="goBoard"
+          >
+            <view class="note-mini-accent" :style="{ background: noteColorMap[n.color] || '#F5C563' }"></view>
+            <view class="note-mini-body">
+              <text class="note-mini-content">{{ notePreview(n) }}</text>
+              <view class="note-mini-footer">
+                <text class="note-mini-type" v-if="n.noteType === 'checklist'">{{ checkedCount(n) }}/{{ totalCheckItems(n) }} 项</text>
+                <text class="note-mini-time">{{ formatNoteTime(n.createdAt) }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view v-else class="notes-empty">
+          <text class="notes-empty-text">记录与这个习惯有关的灵感和想法</text>
+        </view>
+        <view v-if="linkedNotes.length > 3" class="notes-more" @click="goBoard">
+          <text class="notes-more-text">查看全部 {{ linkedNotes.length }} 条 ›</text>
+        </view>
+        <view class="notes-add" @click="openNoteEditor">
+          <text class="notes-add-icon">+</text>
+          <text class="notes-add-text">添加灵感</text>
+        </view>
+      </view>
+
       <!-- Bottom safe area -->
       <view class="bottom-safe" />
     </scroll-view>
+
+    <!-- In-place Memo Editor -->
+    <MemoEditor ref="noteEditorRef" />
   </HfPageBg>
 </template>
 
@@ -138,6 +179,7 @@
 import { ref, computed, nextTick, getCurrentInstance, onUnmounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useHabitStore } from '@/stores/habit'
+import { useBoardStore } from '@/stores/board'
 import * as habitService from '@/services/habitService'
 import {
   getToday,
@@ -150,6 +192,7 @@ import HfIcon from '@/components/base/HfIcon.vue'
 import HfButton from '@/components/base/HfButton.vue'
 import HfPageBg from '@/components/base/HfPageBg.vue'
 import HfIllustration from '@/components/base/HfIllustration.vue'
+import MemoEditor from '@/components/board/MemoEditor.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useCountUp } from '@/composables/useCountUp'
 import { usePageTransition } from '@/composables/usePageTransition'
@@ -190,6 +233,7 @@ const HEATMAP_WEEKS = 16
 // --- Stores ---
 
 const habitStore = useHabitStore()
+const boardStore = useBoardStore()
 const nav = useNavigation()
 const { entered: pageEntered } = usePageTransition()
 
@@ -533,14 +577,26 @@ function goEdit() {
   nav.openModal(`/pages/sub/habit-create/index?id=${habitId.value}`)
 }
 
+const showNotePrompt = ref(false)
+let notePromptTimer: any = null
+
 async function handleCheckIn() {
   if (!habitId.value || todayCheckedIn.value) return
   try {
     await habitStore.checkIn(habitId.value)
     uni.showToast({ title: '打卡成功！', icon: 'success' })
+    showNotePrompt.value = true
+    if (notePromptTimer) clearTimeout(notePromptTimer)
+    notePromptTimer = setTimeout(() => { showNotePrompt.value = false }, 4000)
   } catch {
     // store handles toast
   }
+}
+
+function onNotePromptTap() {
+  showNotePrompt.value = false
+  if (notePromptTimer) clearTimeout(notePromptTimer)
+  openNoteEditor()
 }
 
 // --- Data loading ---
@@ -586,6 +642,9 @@ onLoad(async (options) => {
   habitId.value = id
   await loadData(id)
 
+  // Load board notes for linked notes section
+  boardStore.fetchNotes()
+
   await nextTick()
   initChart()
 })
@@ -602,6 +661,56 @@ onUnmounted(() => {
     chartInstance = null
   }
 })
+
+// --- Board Notes ---
+
+const noteColorMap: Record<string, string> = {
+  yellow: '#F5C563', pink: '#F9A8D4', blue: '#93C5FD',
+  green: '#86EFAC', purple: '#C4B5FD', cream: '#E8D5B7',
+}
+
+const linkedNotes = computed(() => {
+  if (!habitId.value) return []
+  return boardStore.getNotesByHabitId(habitId.value)
+})
+
+const displayNotes = computed(() => linkedNotes.value.slice(0, 3))
+
+function formatNoteTime(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function notePreview(n: any): string {
+  if (n.noteType === 'checklist' && Array.isArray(n.checkItems) && n.checkItems.length > 0) {
+    const first = n.checkItems[0]?.text || ''
+    return first.length > 30 ? first.slice(0, 30) + '…' : first
+  }
+  const c = (n.content || '').trim()
+  return c.length > 40 ? c.slice(0, 40) + '…' : c
+}
+
+function checkedCount(n: any): number {
+  return Array.isArray(n.checkItems) ? n.checkItems.filter((i: any) => i.checked).length : 0
+}
+
+function totalCheckItems(n: any): number {
+  return Array.isArray(n.checkItems) ? n.checkItems.length : 0
+}
+
+const noteEditorRef = ref()
+
+function openNoteEditor() {
+  if (noteEditorRef.value && habitId.value) {
+    noteEditorRef.value.open(undefined, { preLinkedHabitId: habitId.value })
+  }
+}
+
+function goBoard() {
+  boardStore.pendingHabitFilter = habitId.value
+  uni.switchTab({ url: '/pages/board/index' })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -799,6 +908,31 @@ onUnmounted(() => {
   font-weight: $font-medium;
 }
 
+.note-prompt {
+  margin-top: 16rpx;
+  padding: 10rpx 24rpx;
+  border-radius: $radius-full;
+  background: rgba(126, 184, 201, 0.1);
+  border: 1px solid rgba(126, 184, 201, 0.2);
+  display: inline-flex;
+  align-items: center;
+  animation: notePromptIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: opacity 0.3s;
+
+  &:active { background: rgba(126, 184, 201, 0.2); }
+}
+
+.note-prompt-text {
+  font-size: 24rpx;
+  color: $neutral-600;
+  font-weight: $font-medium;
+}
+
+@keyframes notePromptIn {
+  from { opacity: 0; transform: translateY(8rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 // --- Right: illustration ---
 
 .hero-right {
@@ -959,6 +1093,87 @@ onUnmounted(() => {
 .chart-canvas {
   width: 100%;
   height: 100%;
+}
+
+// ===== 6. Linked Notes =====
+
+.notes-section {
+  margin: 48rpx 32rpx 0;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.notes-list {
+  display: flex; flex-direction: column; gap: 16rpx;
+}
+
+.note-mini-card {
+  display: flex; align-items: stretch; gap: 16rpx;
+  padding: 20rpx; background: $neutral-50;
+  border-radius: $radius-lg; transition: background 0.2s;
+  &:active { background: $neutral-100; }
+}
+
+.note-mini-accent {
+  width: 6rpx; border-radius: 3rpx; flex-shrink: 0;
+}
+
+.note-mini-body {
+  flex: 1; min-width: 0;
+}
+
+.note-mini-content {
+  display: block; font-size: $text-base; color: $neutral-800;
+  line-height: 1.5; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+.note-mini-footer {
+  display: flex; align-items: center; gap: 12rpx; margin-top: 8rpx;
+}
+
+.note-mini-type {
+  font-size: $text-xs; color: #8BA888; font-weight: $font-medium;
+}
+
+.note-mini-time {
+  font-size: $text-xs; color: $neutral-400;
+  font-family: $mono-stack;
+}
+
+.notes-more {
+  text-align: center; padding: 20rpx 0 8rpx;
+}
+
+.notes-more-text {
+  font-size: $text-sm; color: $neutral-500; font-weight: $font-medium;
+}
+
+.notes-empty {
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.notes-empty-text {
+  font-size: $text-sm;
+  color: $neutral-400;
+  line-height: 1.6;
+}
+
+.notes-add {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8rpx; padding: 20rpx 0 0;
+  margin-top: 16rpx; border-top: 1px solid $neutral-100;
+}
+
+.notes-add-icon {
+  font-size: 32rpx; color: $neutral-500; font-weight: 300;
+}
+
+.notes-add-text {
+  font-size: $text-sm; color: $neutral-600; font-weight: $font-medium;
 }
 
 // ===== Bottom =====

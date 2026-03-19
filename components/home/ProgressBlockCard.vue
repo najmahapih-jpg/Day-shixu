@@ -1,5 +1,5 @@
 <template>
-  <view class="matrix-widget" v-if="totalCount > 0" @tap.stop>
+  <view class="matrix-widget" v-if="totalCount > 0" @tap.stop="stopEvent">
     <!-- 装饰性点阵背景 (Canvas Feel) -->
     <view class="matrix-bg-pattern"></view>
     
@@ -77,6 +77,8 @@ const totalCount = computed(() => todayHabits.value.filter((h: any) => h._id).le
 const completedCount = computed(() => {
   return todayHabits.value.filter((h: any) => h._id && todayCheckIns.value.has(h._id)).length
 })
+
+function stopEvent() {}
 
 // Ensure completion rate is always an integer between 0-100
 const completionRate = computed(() => {

@@ -2,31 +2,30 @@ const ROUTE_METHODS = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab', 'nav
 const LOCK_DURATION_MS = 420
 const THROTTLE_GAP_MS = 120
 
-let routeLocked = false
+let lockUntil = 0
 let lastInvokeAt = 0
 let releaseTimer: ReturnType<typeof setTimeout> | null = null
 let initialized = false
 
 function releaseRouteLock() {
-  routeLocked = false
   if (releaseTimer !== null) {
     clearTimeout(releaseTimer)
     releaseTimer = null
   }
+  lockUntil = 0
 }
 
 function lockRoute() {
-  routeLocked = true
+  lockUntil = Date.now() + LOCK_DURATION_MS
   if (releaseTimer !== null) clearTimeout(releaseTimer)
   releaseTimer = setTimeout(() => {
-    routeLocked = false
-    releaseTimer = null
+    releaseRouteLock()
   }, LOCK_DURATION_MS)
 }
 
 function shouldBlockRoute(): boolean {
   const now = Date.now()
-  if (routeLocked) return true
+  if (now < lockUntil) return true
   if (now - lastInvokeAt < THROTTLE_GAP_MS) return true
   lastInvokeAt = now
   lockRoute()
@@ -46,17 +45,16 @@ export function initNavigationGuard() {
         return args
       },
       success() {
-        releaseRouteLock()
+        // Keep the lock briefly after route callbacks to avoid overlapping webview setup.
       },
       fail() {
-        releaseRouteLock()
+        // Let the timeout release the lock instead of unlocking immediately.
       },
       complete() {
-        releaseRouteLock()
+        // mp-weixin can fire route callbacks before the page webview is fully stable.
       },
     })
   })
 
   initialized = true
 }
-

@@ -952,7 +952,7 @@ const heroThemeClass = computed(() => {
 const heroIllustration = computed(() => {
   if (canvasHoliday.value) {
     const name = canvasHoliday.value.name
-    if (name.includes('新年') || name.includes('春节') || name.includes('元旦')) return 'custom/illustrations/letter-celebration'
+    if (name.includes('新年') || name.includes('春节') || name.includes('元旦')) return 'custom/illustrations/holiday-celebration'
     return 'custom/illustrations/home-hero-main'
   }
   const hour = getBeijingDateParts().hour

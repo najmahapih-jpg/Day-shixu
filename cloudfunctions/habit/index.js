@@ -439,6 +439,73 @@ async function getCheckIns(openid, data) {
 
 // ── board actions ────────────────────────────────────────
 
+const BOARD_NOTE_TYPES = new Set(['text', 'checklist'])
+const BOARD_COLORS = new Set(['yellow', 'pink', 'blue', 'green', 'purple', 'cream'])
+const BOARD_MAX_CHECK_ITEMS = 50
+const BOARD_MAX_TAGS = 3
+
+function toSafeNumber(value, fallback) {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : fallback
+}
+
+function normalizeBoardContent(value) {
+  if (typeof value !== 'string') return ''
+  return value.trim().slice(0, 1000)
+}
+
+function normalizeBoardCheckItems(items) {
+  if (!Array.isArray(items)) return []
+  const normalized = items
+    .map((item, index) => ({
+      id: item && item.id ? String(item.id) : String(index + 1),
+      text: item && item.text ? String(item.text).trim() : '',
+      checked: !!(item && item.checked),
+    }))
+    .filter((item) => item.text.length > 0)
+
+  if (normalized.length > BOARD_MAX_CHECK_ITEMS) {
+    return normalized.slice(0, BOARD_MAX_CHECK_ITEMS)
+  }
+  return normalized
+}
+
+function normalizeBoardTags(tags) {
+  if (!Array.isArray(tags)) return []
+  const seen = new Set()
+  const normalized = []
+  for (const raw of tags) {
+    const tag = typeof raw === 'string' ? raw.trim() : ''
+    if (!tag || seen.has(tag)) continue
+    seen.add(tag)
+    normalized.push(tag.slice(0, 20))
+    if (normalized.length >= BOARD_MAX_TAGS) break
+  }
+  return normalized
+}
+
+function normalizeLinkedHabitId(linkedHabitId) {
+  if (typeof linkedHabitId !== 'string') return ''
+  return linkedHabitId.trim()
+}
+
+async function verifyLinkedHabit(openid, linkedHabitId) {
+  const normalized = normalizeLinkedHabitId(linkedHabitId)
+  if (!normalized) {
+    return { ok: true, linkedHabitId: '' }
+  }
+
+  try {
+    const { data: habit } = await habitsCol.doc(normalized).get()
+    if (!habit || habit._openid !== openid || habit.isArchived) {
+      return { ok: false, message: '关联习惯不存在或已归档' }
+    }
+    return { ok: true, linkedHabitId: normalized }
+  } catch (err) {
+    return { ok: false, message: '关联习惯不存在或无权限' }
+  }
+}
+
 async function boardList(openid) {
   const { data } = await boardCol
     .where({ _openid: openid })
@@ -452,23 +519,43 @@ async function boardCreate(openid, data) {
   if (!data) return fail('缺少便签数据')
   const now = toIsoStr()
   const positionMode = data.positionMode === 'manual' ? 'manual' : 'auto'
-  const pick = (value, fallback) => (value === undefined || value === null ? fallback : value)
+  if (Array.isArray(data.checkItems) && data.checkItems.length > BOARD_MAX_CHECK_ITEMS) {
+    return fail('清单最多 50 项')
+  }
+  const noteType = BOARD_NOTE_TYPES.has(data.noteType) ? data.noteType : 'text'
+  const checkItems = normalizeBoardCheckItems(data.checkItems)
+  const tags = normalizeBoardTags(data.tags)
+  const content = normalizeBoardContent(data.content)
+  const fallbackContent = checkItems.map((item) => item.text).join('\n')
+  const finalContent = content || fallbackContent
+  const linkedHabitCheck = await verifyLinkedHabit(openid, data.linkedHabitId)
+  if (!linkedHabitCheck.ok) return fail(linkedHabitCheck.message)
+  if (noteType === 'checklist' && checkItems.length === 0) {
+    return fail('清单至少需要 1 项')
+  }
+  if (!finalContent) return fail('便签内容不能为空')
+
   const noteData = {
-    content: data.content || '',
-    color: data.color || 'yellow',
-    size: pick(data.size, 2),
+    content: finalContent,
+    color: BOARD_COLORS.has(data.color) ? data.color : 'yellow',
+    size: Math.min(4, Math.max(1, toSafeNumber(data.size, 2))),
     fontSize: data.fontSize || 'md',
     textAlign: data.textAlign || 'left',
     textVertical: data.textVertical || 'top',
     fontFamily: data.fontFamily || 'serif',
     positionMode,
     noteShape: data.noteShape || 'rect',
-    noteType: data.noteType || 'text',
-    checkItems: data.checkItems || [],
-    linkedHabitId: data.linkedHabitId || '',
-    x: positionMode === 'manual' ? pick(data.x, 0) : 0,
-    y: positionMode === 'manual' ? pick(data.y, 0) : 0,
-    rotation: pick(data.rotation, Math.round((Math.random() * 6 - 3) * 10) / 10),
+    noteType,
+    checkItems: noteType === 'checklist' ? checkItems : [],
+    linkedHabitId: linkedHabitCheck.linkedHabitId,
+    isPinned: !!data.isPinned,
+    tags,
+    x: positionMode === 'manual' ? toSafeNumber(data.x, 0) : 0,
+    y: positionMode === 'manual' ? toSafeNumber(data.y, 0) : 0,
+    rotation: toSafeNumber(
+      data.rotation,
+      Math.round((Math.random() * 6 - 3) * 10) / 10,
+    ),
     _openid: openid,
     createdAt: now,
     updatedAt: now,
@@ -481,7 +568,97 @@ async function boardUpdate(openid, data) {
   if (!data || !data.id) return fail('缺少便签 ID')
   const { data: note } = await boardCol.doc(data.id).get()
   if (note._openid !== openid) return fail('无权操作')
-  const updates = { ...(data.updates || {}), updatedAt: toIsoStr() }
+
+  const incoming = data.updates && typeof data.updates === 'object'
+    ? data.updates
+    : {}
+  const has = (key) => Object.prototype.hasOwnProperty.call(incoming, key)
+  const updates = {}
+
+  if (has('content')) {
+    updates.content = normalizeBoardContent(incoming.content)
+  }
+  if (has('color')) {
+    updates.color = BOARD_COLORS.has(incoming.color)
+      ? incoming.color
+      : (note.color || 'yellow')
+  }
+  if (has('size')) {
+    updates.size = Math.min(4, Math.max(1, toSafeNumber(incoming.size, note.size || 2)))
+  }
+  if (has('fontSize')) {
+    updates.fontSize = incoming.fontSize || (note.fontSize || 'md')
+  }
+  if (has('textAlign')) {
+    updates.textAlign = incoming.textAlign || (note.textAlign || 'left')
+  }
+  if (has('textVertical')) {
+    updates.textVertical = incoming.textVertical || (note.textVertical || 'top')
+  }
+  if (has('fontFamily')) {
+    updates.fontFamily = incoming.fontFamily || (note.fontFamily || 'serif')
+  }
+  if (has('positionMode')) {
+    updates.positionMode = incoming.positionMode === 'manual' ? 'manual' : 'auto'
+  }
+  if (has('noteShape')) {
+    updates.noteShape = incoming.noteShape || (note.noteShape || 'rect')
+  }
+  if (has('noteType')) {
+    updates.noteType = BOARD_NOTE_TYPES.has(incoming.noteType)
+      ? incoming.noteType
+      : (note.noteType || 'text')
+  }
+  if (has('checkItems')) {
+    if (Array.isArray(incoming.checkItems) && incoming.checkItems.length > BOARD_MAX_CHECK_ITEMS) {
+      return fail('清单最多 50 项')
+    }
+    updates.checkItems = normalizeBoardCheckItems(incoming.checkItems)
+  }
+  if (has('linkedHabitId')) {
+    const linkedHabitCheck = await verifyLinkedHabit(openid, incoming.linkedHabitId)
+    if (!linkedHabitCheck.ok) return fail(linkedHabitCheck.message)
+    updates.linkedHabitId = linkedHabitCheck.linkedHabitId
+  }
+  if (has('isPinned')) {
+    updates.isPinned = !!incoming.isPinned
+  }
+  if (has('tags')) {
+    updates.tags = normalizeBoardTags(incoming.tags)
+  }
+  if (has('x')) updates.x = toSafeNumber(incoming.x, note.x || 0)
+  if (has('y')) updates.y = toSafeNumber(incoming.y, note.y || 0)
+  if (has('rotation')) {
+    updates.rotation = toSafeNumber(incoming.rotation, note.rotation || 0)
+  }
+
+  const nextType = updates.noteType || note.noteType || 'text'
+  const nextCheckItems = Array.isArray(updates.checkItems)
+    ? updates.checkItems
+    : normalizeBoardCheckItems(note.checkItems)
+  const nextContent = has('content')
+    ? updates.content
+    : normalizeBoardContent(note.content)
+  const fallbackContent = nextCheckItems.map((item) => item.text).join('\n')
+  const finalContent = nextContent || fallbackContent
+
+  if (nextType === 'checklist' && nextCheckItems.length === 0) {
+    return fail('清单至少需要 1 项')
+  }
+  if (!finalContent) {
+    return fail('便签内容不能为空')
+  }
+
+  if (nextType === 'checklist') {
+    updates.checkItems = nextCheckItems
+  } else if (has('noteType') || has('checkItems')) {
+    updates.checkItems = []
+  }
+  if (!nextContent && fallbackContent) {
+    updates.content = fallbackContent
+  }
+
+  updates.updatedAt = toIsoStr()
   await boardCol.doc(data.id).update({ data: updates })
   const { data: next } = await boardCol.doc(data.id).get()
   return ok(next)

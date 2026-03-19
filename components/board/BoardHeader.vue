@@ -53,14 +53,29 @@
         :style="activeTag === tag.key ? { background: tag.color, color: '#fff' } : { color: tag.color }"
         @click="selectTagFilter(tag.key)"
       >{{ tag.label }}</view>
+
+      <!-- Habit Filters -->
+      <template v-if="linkedHabitChips.length > 0">
+        <view class="chip-divider"></view>
+        <view
+          v-for="hc in linkedHabitChips"
+          :key="hc.id"
+          class="chip habit-filter-chip"
+          :class="{ active: activeHabitId === hc.id }"
+          :style="activeHabitId === hc.id ? { background: hc.color || '#1E1E2E', color: '#fff' } : { borderLeft: '4rpx solid ' + (hc.color || '#1E1E2E') }"
+          @click="selectHabitFilter(hc.id)"
+        >🔗 {{ hc.name }} <text class="chip-count">{{ hc.count }}</text></view>
+      </template>
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { NoteColor, NoteType } from '@/types'
 import { PRESET_TAGS } from '@/utils/boardTags'
+import { useHabitStore } from '@/stores/habit'
+import { useBoardStore } from '@/stores/board'
 
 function getStatusBarHeight(): number {
   try {
@@ -73,8 +88,11 @@ function getStatusBarHeight(): number {
 const statusBarHeight = ref(getStatusBarHeight())
 
 const emit = defineEmits<{
-  (e: 'filter', options: { color: NoteColor | null, type: NoteType | null, query: string, tag: string | null }): void
+  (e: 'filter', options: { color: NoteColor | null, type: NoteType | null, query: string, tag: string | null, habitId: string | null }): void
 }>()
+
+const habitStore = useHabitStore()
+const boardStore = useBoardStore()
 
 const colors: NoteColor[] = ['yellow', 'pink', 'blue', 'green', 'purple', 'cream']
 const presetTags = PRESET_TAGS
@@ -83,6 +101,21 @@ const searchQuery = ref('')
 const activeColor = ref<NoteColor | null>(null)
 const activeType = ref<NoteType | null>(null)
 const activeTag = ref<string | null>(null)
+const activeHabitId = ref<string | null>(null)
+
+// Collect all unique linked habits from board notes
+const linkedHabitChips = computed(() => {
+  const countMap = new Map<string, number>()
+  for (const note of boardStore.notes) {
+    if (note.linkedHabitId) {
+      countMap.set(note.linkedHabitId, (countMap.get(note.linkedHabitId) || 0) + 1)
+    }
+  }
+  return Array.from(countMap.entries()).map(([id, count]) => {
+    const h = habitStore.habits.find((habit: any) => habit._id === id)
+    return { id, name: h ? (h.name.length > 4 ? h.name.slice(0, 4) + '…' : h.name) : '习惯', color: h?.color || '', count }
+  })
+})
 
 // Simple debounce for search
 let searchTimeout: any
@@ -103,14 +136,17 @@ const selectFilter = (color: NoteColor | null, type: NoteType | null) => {
     activeColor.value = activeColor.value === color ? null : color
     activeType.value = null
     activeTag.value = null
+    activeHabitId.value = null
   } else if (type !== null) {
     activeType.value = activeType.value === type ? null : type
     activeColor.value = null
     activeTag.value = null
+    activeHabitId.value = null
   } else {
     activeColor.value = null
     activeType.value = null
     activeTag.value = null
+    activeHabitId.value = null
   }
   emitFilter()
 }
@@ -119,11 +155,20 @@ const selectTagFilter = (key: string) => {
   activeTag.value = activeTag.value === key ? null : key
   activeColor.value = null
   activeType.value = null
+  activeHabitId.value = null
+  emitFilter()
+}
+
+const selectHabitFilter = (id: string) => {
+  activeHabitId.value = activeHabitId.value === id ? null : id
+  activeColor.value = null
+  activeType.value = null
+  activeTag.value = null
   emitFilter()
 }
 
 const emitFilter = () => {
-  emit('filter', { color: activeColor.value, type: activeType.value, query: searchQuery.value, tag: activeTag.value })
+  emit('filter', { color: activeColor.value, type: activeType.value, query: searchQuery.value, tag: activeTag.value, habitId: activeHabitId.value })
 }
 </script>
 
@@ -241,6 +286,33 @@ const emitFilter = () => {
   &.active {
     border-color: transparent;
     transform: scale(1.05);
+  }
+}
+
+.habit-filter-chip {
+  background: rgba(255, 255, 255, 0.7) !important;
+  font-size: 24rpx;
+  &.active {
+    transform: scale(1.05);
+    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1);
+  }
+}
+
+.chip-count {
+  display: inline-block;
+  min-width: 28rpx;
+  height: 28rpx;
+  line-height: 28rpx;
+  text-align: center;
+  font-size: 20rpx;
+  font-weight: 600;
+  border-radius: 14rpx;
+  background: rgba(0, 0, 0, 0.1);
+  margin-left: 6rpx;
+  padding: 0 8rpx;
+
+  .active & {
+    background: rgba(255, 255, 255, 0.25);
   }
 }
 

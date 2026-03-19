@@ -9,6 +9,124 @@ import type {
   StepDetail,
 } from '@/services/journeyService'
 
+type JourneyLike = Partial<Journey> & { _id?: string; presetKey?: string }
+
+function normalizeJourneyToken(value: unknown): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')
+}
+
+function getJourneyCanonicalKey(journey: JourneyLike | null | undefined): string {
+  if (!journey || typeof journey !== 'object') return ''
+  const presetKey = normalizeJourneyToken(journey.presetKey)
+  if (presetKey) return `preset:${presetKey}`
+  const title = normalizeJourneyToken(journey.title)
+  if (title) return `title:${title}`
+  const id = normalizeJourneyToken(journey._id)
+  if (id) return `id:${id}`
+  return ''
+}
+
+function dedupePresetJourneyList(list: Journey[]): Journey[] {
+  const seen = new Set<string>()
+  const result: Journey[] = []
+  for (const item of list) {
+    const canonicalKey = getJourneyCanonicalKey(item as JourneyLike)
+    const titleKey = normalizeJourneyToken((item as JourneyLike).title)
+    const dedupKeys = [
+      canonicalKey,
+      titleKey ? `title:${titleKey}` : '',
+      item._id ? `id:${item._id}` : '',
+    ].filter(Boolean)
+
+    if (dedupKeys.some((key) => seen.has(key))) continue
+    dedupKeys.forEach((key) => seen.add(key))
+    result.push(item)
+  }
+  return result
+}
+
+function getUserJourneyCanonicalKey(item: UserJourneyDetail): string {
+  const journeyKey = getJourneyCanonicalKey(item.journey as JourneyLike | null | undefined)
+  if (journeyKey) return journeyKey
+  const journeyId = normalizeJourneyToken(item.journeyId)
+  return journeyId ? `id:${journeyId}` : ''
+}
+
+function toTimestamp(value: unknown): number {
+  const t = Date.parse(String(value || ''))
+  return Number.isFinite(t) ? t : 0
+}
+
+function pickBetterUserJourney(
+  current: UserJourneyDetail,
+  candidate: UserJourneyDetail,
+): UserJourneyDetail {
+  const currentActive = current.isCompleted ? 0 : 1
+  const candidateActive = candidate.isCompleted ? 0 : 1
+  if (candidateActive !== currentActive) {
+    return candidateActive > currentActive ? candidate : current
+  }
+
+  const currentCompleted = Array.isArray(current.completedSteps)
+    ? current.completedSteps.length
+    : 0
+  const candidateCompleted = Array.isArray(candidate.completedSteps)
+    ? candidate.completedSteps.length
+    : 0
+  if (candidateCompleted !== currentCompleted) {
+    return candidateCompleted > currentCompleted ? candidate : current
+  }
+
+  const currentStep = Number.isInteger(current.currentStep) ? current.currentStep : 0
+  const candidateStep = Number.isInteger(candidate.currentStep) ? candidate.currentStep : 0
+  if (candidateStep !== currentStep) {
+    return candidateStep > currentStep ? candidate : current
+  }
+
+  const currentUpdatedAt = Math.max(
+    toTimestamp(current.updatedAt),
+    toTimestamp(current.startedAt),
+    toTimestamp(current.createdAt),
+  )
+  const candidateUpdatedAt = Math.max(
+    toTimestamp(candidate.updatedAt),
+    toTimestamp(candidate.startedAt),
+    toTimestamp(candidate.createdAt),
+  )
+  if (candidateUpdatedAt !== currentUpdatedAt) {
+    return candidateUpdatedAt > currentUpdatedAt ? candidate : current
+  }
+
+  return current
+}
+
+function dedupeUserJourneyList(list: UserJourneyDetail[]): UserJourneyDetail[] {
+  const result: UserJourneyDetail[] = []
+  const keyToIndex = new Map<string, number>()
+
+  for (const item of list) {
+    const key = getUserJourneyCanonicalKey(item)
+    if (!key) {
+      result.push(item)
+      continue
+    }
+
+    const existingIndex = keyToIndex.get(key)
+    if (existingIndex === undefined) {
+      keyToIndex.set(key, result.length)
+      result.push(item)
+      continue
+    }
+
+    result[existingIndex] = pickBetterUserJourney(result[existingIndex], item)
+  }
+
+  return result
+}
+
 export const useJourneyStore = defineStore('journey', () => {
   // --- State ---
 
@@ -28,61 +146,76 @@ export const useJourneyStore = defineStore('journey', () => {
     userJourneys.value.filter((uj) => Boolean(uj) && uj.isCompleted),
   )
 
-  const startedJourneyIds = computed(() =>
-    new Set(
-      userJourneys.value
-        .map((uj) => uj?.journeyId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  )
+  const startedJourneyIds = computed(() => {
+    const ids = new Set<string>()
+    for (const uj of userJourneys.value) {
+      if (uj?.journeyId) ids.add(uj.journeyId)
+      const canonicalKey = getJourneyCanonicalKey(
+        (uj?.journey as JourneyLike | null | undefined) || { _id: uj?.journeyId || '' },
+      )
+      if (canonicalKey) ids.add(canonicalKey)
+    }
+    return ids
+  })
 
   const availablePresets = computed(() =>
     presetJourneys.value.filter(
-      (j) => j._id && !startedJourneyIds.value.has(j._id),
+      (j) => {
+        if (!j?._id) return false
+        const canonicalKey = getJourneyCanonicalKey(j as JourneyLike)
+        return (
+          !startedJourneyIds.value.has(j._id) &&
+          (!canonicalKey || !startedJourneyIds.value.has(canonicalKey))
+        )
+      },
     ),
   )
 
   function sanitizePresetJourneys(list: Journey[] | null | undefined): Journey[] {
     if (!Array.isArray(list)) return []
-    return list
+    return dedupePresetJourneyList(
+      list
       .filter((item): item is Journey => Boolean(item && typeof item === 'object'))
       .map((item) => ({
         ...item,
         _id: item._id || (item as Journey & { id?: string }).id || '',
         steps: Array.isArray(item.steps) ? item.steps.filter(Boolean) : [],
       }))
-      .filter((item) => Boolean(item._id))
+      .filter((item) => Boolean(item._id)),
+    )
   }
 
   function sanitizeUserJourneyList(
     list: UserJourneyDetail[] | null | undefined,
   ): UserJourneyDetail[] {
     if (!Array.isArray(list)) return []
-    return list
-      .filter(
-        (item): item is UserJourneyDetail =>
-          Boolean(item && typeof item === 'object' && item.journeyId),
-      )
-      .map((item) => ({
-        ...item,
-        _id: item._id || (item as UserJourneyDetail & { id?: string }).id || '',
-        completedSteps: Array.isArray(item.completedSteps)
-          ? item.completedSteps.filter(
-            (step): step is number => Number.isInteger(step) && step >= 0,
-          )
-          : [],
-        currentStep: typeof item.currentStep === 'number' ? item.currentStep : 0,
-        isCompleted: Boolean(item.isCompleted),
-        journey:
-          item.journey && typeof item.journey === 'object'
-            ? {
-              ...item.journey,
-              steps: Array.isArray(item.journey.steps)
-                ? item.journey.steps.filter(Boolean)
-                : [],
-            }
-            : null,
-      }))
+    return dedupeUserJourneyList(
+      list
+        .filter(
+          (item): item is UserJourneyDetail =>
+            Boolean(item && typeof item === 'object' && item.journeyId),
+        )
+        .map((item) => ({
+          ...item,
+          _id: item._id || (item as UserJourneyDetail & { id?: string }).id || '',
+          completedSteps: Array.isArray(item.completedSteps)
+            ? item.completedSteps.filter(
+              (step): step is number => Number.isInteger(step) && step >= 0,
+            )
+            : [],
+          currentStep: typeof item.currentStep === 'number' ? item.currentStep : 0,
+          isCompleted: Boolean(item.isCompleted),
+          journey:
+            item.journey && typeof item.journey === 'object'
+              ? {
+                ...item.journey,
+                steps: Array.isArray(item.journey.steps)
+                  ? item.journey.steps.filter(Boolean)
+                  : [],
+              }
+              : null,
+        })),
+    )
   }
 
   let presetFetchVersion = 0
@@ -102,7 +235,6 @@ export const useJourneyStore = defineStore('journey', () => {
     const msg = getErrMessage(err).toLowerCase()
     if (msg.includes('user_journeys')) return '缺少集合 user_journeys'
     if (msg.includes('journeys')) return '缺少集合 journeys'
-    if (msg.includes('letters')) return '缺少集合 letters'
     return fallback
   }
 

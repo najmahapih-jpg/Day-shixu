@@ -96,18 +96,6 @@
           }
         },
         {
-          "path": "letter-list/index",
-          "style": {
-            "navigationStyle": "custom"
-          }
-        },
-        {
-          "path": "letter-view/index",
-          "style": {
-            "navigationStyle": "custom"
-          }
-        },
-        {
           "path": "habit-archive/index",
           "style": {
             "navigationBarTitleText": "已归档习惯"
@@ -121,6 +109,12 @@
         },
         {
           "path": "onboarding/index",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "archive/index",
           "style": {
             "navigationStyle": "custom"
           }

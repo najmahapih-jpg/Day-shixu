@@ -33,7 +33,7 @@
         <text class="time-ago">{{ formatTime(note.createdAt) }}</text>
         <view class="tags-container">
           <view v-if="note.noteType === 'checklist'" class="meta-pill" :class="note.color">清单 {{ completedCount }}/{{ checkItemsCount }}</view>
-          <view v-if="note.linkedHabitId" class="meta-pill" :class="note.color">🔗 习惯</view>
+          <view v-if="note.linkedHabitId" class="meta-pill habit-pill" :class="note.color" :style="linkedHabitPillStyle">🔗 {{ linkedHabitName }}</view>
           <view
             v-for="tag in displayTags"
             :key="tag"
@@ -50,9 +50,12 @@
 import { computed } from 'vue'
 import type { BoardNote } from '@/types'
 import { getTagLabel, getTagColor } from '@/utils/boardTags'
+import { useHabitStore } from '@/stores/habit'
 
 const props = defineProps<{ note: BoardNote; index?: number }>()
 defineEmits(['click', 'longpress'])
+
+const habitStore = useHabitStore()
 
 // Organic Scatter — subtle rotation for visual interest in masonry
 const scatterClass = computed(() => {
@@ -106,6 +109,23 @@ const completedCount = computed(() => {
 
 const displayTags = computed(() => {
   return (props.note.tags || []).slice(0, 2)
+})
+
+const linkedHabit = computed(() => {
+  if (!props.note.linkedHabitId) return null
+  return habitStore.habits.find((habit: any) => habit._id === props.note.linkedHabitId) || null
+})
+
+const linkedHabitName = computed(() => {
+  const h = linkedHabit.value
+  if (!h) return '习惯'
+  return h.name.length > 6 ? h.name.slice(0, 6) + '…' : h.name
+})
+
+const linkedHabitPillStyle = computed(() => {
+  const h = linkedHabit.value
+  if (!h?.color) return {}
+  return { background: h.color + '18', borderLeft: '4rpx solid ' + h.color }
 })
 
 // Time formatter (simple mock, usually import a util)

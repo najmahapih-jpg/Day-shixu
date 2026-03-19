@@ -41,7 +41,7 @@ const ILLUSTRATION_SET = new Set([
   'heart-pulse-bold', 'book-bold', 'dumbbell-bold', 'brain-bold',
   'moon-stars-bold', 'apple-bold', 'running-2-bold', 'meditation-round-bold',
   'flag-bold', 'chart-2-bold', 'calendar-bold', 'bell-bold',
-  'letter-bold', 'star-bold', 'fire-bold', 'confetti-bold',
+  'star-bold', 'fire-bold', 'confetti-bold',
   'crown-bold', 'cup-bold', 'gift-bold', 'cloud-bold',
   'camera-bold', 'chat-round-bold', 'music-note-bold', 'notebook-bold',
   'sun-bold', 'sunrise-bold', 'sleeping-bold', 'bookmark-bold',

@@ -32,7 +32,6 @@ const ILLUSTRATIONS: Record<string, string> = {
   checkin: 'empty/no-habit.svg',
   data: 'empty/no-stats.svg',
   search: 'empty/no-note.svg',
-  letter: 'empty/no-letter.svg',
   network: 'empty/network.svg',
   journey: 'empty/no-journey.svg',
   note: 'empty/no-note.svg',
@@ -44,14 +43,13 @@ const TYPE_CONFIG: Record<string, { icon: string; message: string }> = {
   checkin: { icon: 'calendar-linear', message: '今天还没有打卡记录' },
   data: { icon: 'chart-2-bold', message: '暂无数据' },
   search: { icon: 'magnifer-bold', message: '没有找到相关结果' },
-  letter: { icon: 'letter-linear', message: '还没有收到信件' },
   network: { icon: 'cloud-bold', message: '网络出了点问题' },
   journey: { icon: 'flag-bold', message: '还没有开启任何旅程' },
   note: { icon: 'notes-linear', message: '还没有创建便签' },
 }
 
 const props = withDefaults(defineProps<{
-  type?: 'habit' | 'archive' | 'checkin' | 'data' | 'search' | 'letter' | 'network' | 'journey' | 'note'
+  type?: 'habit' | 'archive' | 'checkin' | 'data' | 'search' | 'network' | 'journey' | 'note'
   message?: string
   actionText?: string
 }>(), {

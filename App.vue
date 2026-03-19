@@ -1,24 +1,21 @@
 <script setup>
 import { onLaunch, onShow } from '@dcloudio/uni-app'
-import { useAppStore } from '@/stores/app'
+import { createApp } from 'vue'
 import { useNetwork } from '@/composables/useNetwork'
+import { useAppStore } from '@/stores/app'
 import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
-// Global error handler
-import { createApp } from 'vue'
 const app = createApp({})
 app.config.errorHandler = (err, _vm, info) => {
   console.error('[全局错误]', err, info)
 }
 
 onLaunch(() => {
-  // Initialize network monitoring
   const { init: initNetwork } = useNetwork()
   initNetwork()
 
   // #ifdef MP-WEIXIN
   try {
-    // Prefer DevTools-selected env first; explicit envId is fallback.
     const dynamicEnv = wx.cloud && wx.cloud.DYNAMIC_CURRENT_ENV
       ? wx.cloud.DYNAMIC_CURRENT_ENV
       : undefined
@@ -32,7 +29,6 @@ onLaunch(() => {
   const appStore = useAppStore()
   appStore.initSystemInfo()
 
-  // Restore reduceMotion preference
   try {
     const storedReduceMotion = uni.getStorageSync('reduceMotion')
     if (storedReduceMotion) {
@@ -41,19 +37,11 @@ onLaunch(() => {
   } catch {
     // ignore storage read failure
   }
-
-  // First-time onboarding check
-  try {
-    const hasOnboarded = uni.getStorageSync('hasOnboarded')
-    if (!hasOnboarded) {
-      uni.redirectTo({ url: '/pages/sub/onboarding/index' })
-    }
-  } catch {
-    // Storage read failed — skip onboarding guard
-  }
 })
+
 onShow(() => {})
 </script>
+
 <style lang="scss">
 @import '@/styles/reset.scss';
 @import '@/styles/animation.scss';

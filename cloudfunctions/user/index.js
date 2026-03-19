@@ -14,6 +14,16 @@ function ok(data) {
   return { code: 0, data }
 }
 
+function normalizeAvatarUrl(raw) {
+  if (typeof raw !== 'string') return ''
+  const val = raw.trim()
+  if (!val) return ''
+  if (val.length > 2048) return ''
+  const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://', 'data:image/']
+  if (!allowedPrefixes.some((prefix) => val.startsWith(prefix))) return ''
+  return val
+}
+
 /** 生成 YYYY-MM-DD 格式日期字符串（东八区/北京时间） */
 function toDateStr(d) {
   const dt = typeof d === 'string' ? new Date(d) : d
@@ -108,6 +118,29 @@ async function updateSettings(openid, data) {
   return ok(merged)
 }
 
+async function updateAvatar(openid, data) {
+  if (!data || typeof data.avatarUrl !== 'string') return fail('缺少 avatarUrl 数据')
+  const avatarUrl = normalizeAvatarUrl(data.avatarUrl)
+  if (!avatarUrl) return fail('头像地址不合法')
+
+  const { data: existing } = await usersCol
+    .where({ _openid: openid })
+    .limit(1)
+    .get()
+
+  if (existing.length === 0) return fail('用户不存在')
+  const user = existing[0]
+
+  await usersCol.doc(user._id).update({
+    data: {
+      avatarUrl,
+      updatedAt: db.serverDate(),
+    },
+  })
+
+  return ok(avatarUrl)
+}
+
 // ── main ─────────────────────────────────────────────────
 
 exports.main = async (event, context) => {
@@ -120,6 +153,7 @@ exports.main = async (event, context) => {
       case 'login': return await login(OPENID)
       case 'getProfile': return await getProfile(OPENID)
       case 'updateSettings': return await updateSettings(OPENID, data)
+      case 'updateAvatar': return await updateAvatar(OPENID, data)
       default: return fail('未知操作: ' + action)
     }
   } catch (err) {

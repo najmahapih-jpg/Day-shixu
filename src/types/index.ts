@@ -161,18 +161,6 @@ export interface BoardNote extends BaseDocument {
   linkedHabitId?: string
 }
 
-// --- Letter ---
-
-export interface Letter extends BaseDocument {
-  type: 'journey' | 'milestone' | 'custom'
-  title: string
-  content: string
-  illustration: string
-  triggerCondition: string
-  isRead: boolean
-  receivedAt: string
-}
-
 // --- AI Insight ---
 
 export type HabitTrendDirection = 'up' | 'down' | 'flat'

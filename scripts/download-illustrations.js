@@ -33,7 +33,7 @@ const ILLUSTRATIONS = {
             { file: 'no-note.svg', search: 'notes / sticky notes / blank', desc: '无便签 - 空白板' },
             { file: 'no-journey.svg', search: 'explore / compass / map', desc: '无旅程 - 地图/指南针' },
             { file: 'no-stats.svg', search: 'chart / analytics / growing', desc: '无数据 - 萌芽生长' },
-            { file: 'no-letter.svg', search: 'mailbox / letter / envelope', desc: '无信件 - 空邮箱' },
+            { file: 'archive.svg', search: 'archive / memory / timeline', desc: 'Archive 空态' },
             { file: 'network.svg', search: 'connection lost / offline', desc: '断网 - 断开的线缆' },
         ]
     },

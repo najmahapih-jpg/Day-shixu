@@ -261,7 +261,7 @@ const journeyIllustration = computed(() => {
     title.includes('冥') ||
     title.includes('想') ||
     title.includes('静') ||
-    title.includes('专') ||
+    title.includes('正') ||
     title.includes('mind')
   ) {
     return `journeys/${JOURNEY_IMAGE_FALLBACKS[2]}`
@@ -405,17 +405,12 @@ async function handleCompleteStep(stepIndex: number) {
     if (result.isCompleted) {
       // Navigate to completion page
       uni.redirectTo({
-        url: `/pages/sub/journey-complete/index?id=${userJourney.value._id}`,
+        url: `/pages/sub/journey-complete/index?id=${encodeURIComponent(userJourney.value._id)}`,
       })
       return
     }
 
-    // Show letter if returned
-    if (result.letter) {
-      uni.showToast({ title: '收到一封信！', icon: 'success' })
-    } else {
-      uni.showToast({ title: '步骤完成！', icon: 'success' })
-    }
+    uni.showToast({ title: '阶段完成', icon: 'success' })
   } catch {
     // error handled in store
   } finally {
@@ -976,3 +971,4 @@ onPullDownRefresh(async () => {
   height: calc(env(safe-area-inset-bottom) + #{$space-8});
 }
 </style>
+

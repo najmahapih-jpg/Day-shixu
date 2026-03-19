@@ -12,16 +12,13 @@
 
     <scroll-view scroll-y class="complete-scroll">
       <view class="journey-complete">
-        <!-- Celebration illustration -->
         <view class="celebrate-area">
           <HfIllustration name="decorative/celebration" width="500rpx" height="380rpx" />
         </view>
 
-        <!-- Title -->
-        <text class="complete-title">旅程完成！</text>
+        <text class="complete-title">旅程完成</text>
         <text class="complete-journey-name">{{ journeyTitle }}</text>
 
-        <!-- Stats -->
         <view class="complete-stats">
           <HfStatCard
             :value="String(totalDays)"
@@ -37,25 +34,18 @@
           />
         </view>
 
-        <!-- Encouraging message -->
         <view class="complete-message-wrap">
           <text class="complete-message">
             从第一天到今天，你已经完成了一次了不起的蜕变。这些习惯会继续陪着你。
           </text>
         </view>
 
-        <!-- Letter entry (if available) -->
-        <view
-          v-if="completionLetterId"
-          class="letter-preview"
-          @tap="goLetter"
-        >
-          <HfIcon name="letter-bold" size="sm" color="#F5C563" />
-          <text class="letter-preview__text">你收到了一封信</text>
+        <view class="archive-preview" @tap="goArchive">
+          <HfIcon name="star-bold" size="sm" color="#F5C563" />
+          <text class="archive-preview__text">这段旅程已收纳进 Archive</text>
           <HfIcon name="arrow-right-linear" size="xs" color="#D4CEC8" />
         </view>
 
-        <!-- Action buttons -->
         <view class="complete-actions">
           <HfButton type="primary" block @tap="backToHome">回到首页</HfButton>
           <view class="action-spacer" />
@@ -67,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
@@ -80,15 +70,11 @@ import HfIllustration from '@/components/base/HfIllustration.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { usePageTransition } from '@/composables/usePageTransition'
 
-// --- Stores ---
-
 const appStore = useAppStore()
 const journeyStore = useJourneyStore()
 const { isDark } = storeToRefs(appStore)
 const nav = useNavigation()
 const { entered: pageEntered } = usePageTransition()
-
-// --- Route params ---
 
 const userJourneyId = ref('')
 
@@ -97,8 +83,6 @@ onLoad((options: Record<string, string> | undefined) => {
     userJourneyId.value = options.id
   }
 })
-
-// --- Data ---
 
 const userJourney = computed(() =>
   journeyStore.userJourneys.find((uj) => uj._id === userJourneyId.value) || null,
@@ -116,38 +100,14 @@ const habitsGained = computed(() => {
   )
 })
 
-// --- Letter ---
-
-const completionLetterId = ref('')
-
-// Check if the last step had a letter
-onMounted(async () => {
-  if (journeyStore.userJourneys.length === 0) {
-    await journeyStore.fetchUserJourneys()
-  }
-  // Try to find a letter for this completed journey
-  try {
-    const { getLetters } = await import('@/services/letterService')
-    const letters = await getLetters()
-    const journeyLetter = letters.find(
-      (l) => l.triggerCondition?.includes(userJourneyId.value) || l.type === 'journey',
-    )
-    if (journeyLetter?._id) {
-      completionLetterId.value = journeyLetter._id
-    }
-  } catch {
-    // silent
-  }
-})
-
-// --- Navigation ---
-
 function getStatusBarHeight(): number {
   try {
     if (typeof uni.getWindowInfo === 'function') {
       return uni.getWindowInfo().statusBarHeight ?? 0
     }
-  } catch { /* fallback */ }
+  } catch {
+    // fallback
+  }
   return 0
 }
 
@@ -165,9 +125,8 @@ const backBtnStyle = {
   flexShrink: 0,
 }
 
-function goLetter() {
-  if (!completionLetterId.value) return
-  nav.openFullscreen(`/pages/sub/letter-view/index?id=${completionLetterId.value}`)
+function goArchive() {
+  nav.openFullscreen('/pages/sub/archive/index')
 }
 
 function goBack() {
@@ -228,7 +187,9 @@ function goJourneyList() {
     color: $neutral-900;
     text-align: center;
 
-    .dark-mode & { color: $dark-text-primary; }
+    .dark-mode & {
+      color: $dark-text-primary;
+    }
   }
 
   &__spacer {
@@ -255,9 +216,19 @@ function goJourneyList() {
 }
 
 @keyframes bounceIn {
-  0% { opacity: 0; transform: scale(0.7); }
-  60% { opacity: 1; transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .complete-title {
@@ -268,7 +239,9 @@ function goJourneyList() {
   text-align: center;
   animation: fadeInUp 400ms $ease-out-soft 200ms both;
 
-  .dark-mode & { color: $dark-text-primary; }
+  .dark-mode & {
+    color: $dark-text-primary;
+  }
 }
 
 .complete-journey-name {
@@ -281,8 +254,15 @@ function goJourneyList() {
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20rpx); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .complete-stats {
@@ -301,7 +281,9 @@ function goJourneyList() {
   margin-bottom: $space-5;
   animation: fadeInUp 400ms $ease-out-soft 500ms both;
 
-  .dark-mode & { background: $dark-card; }
+  .dark-mode & {
+    background: $dark-card;
+  }
 }
 
 .complete-message {
@@ -310,10 +292,12 @@ function goJourneyList() {
   line-height: 1.8;
   text-align: center;
 
-  .dark-mode & { color: $dark-text-secondary; }
+  .dark-mode & {
+    color: $dark-text-secondary;
+  }
 }
 
-.letter-preview {
+.archive-preview {
   display: flex;
   align-items: center;
   gap: $space-2;
@@ -331,7 +315,9 @@ function goJourneyList() {
     font-weight: $font-medium;
     color: $neutral-700;
 
-    .dark-mode & { color: $dark-text-primary; }
+    .dark-mode & {
+      color: $dark-text-primary;
+    }
   }
 }
 

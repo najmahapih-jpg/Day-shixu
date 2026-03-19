@@ -201,12 +201,6 @@ $overlay-darker: rgba(0, 0, 0, 0.5);
 $overlay-darkest: rgba(0, 0, 0, 0.6);
 $overlay-blur: rgba($neutral-50, 0.85); // For frosted glass
 
-// --- Semantic: Letter / Parchment ---
-$letter-bg-start: #F5E6D0;
-$letter-bg-mid: #E8D5BC;
-$letter-bg-end: #DCC8AC;
-$letter-paper: #FFFDE7;
-
 // --- Board Note 6-Color Palette ---
 $note-yellow: #F5C563;
 $note-pink:   #E8889A;
@@ -216,12 +210,12 @@ $note-purple: #B8A9C9;
 $note-cream:  #D4A574;
 
 $note-colors: (
-  yellow: $note-yellow,
-  pink:   $note-pink,
-  blue:   $note-blue,
-  green:  $note-green,
-  purple: $note-purple,
-  cream:  $note-cream,
+  'yellow': $note-yellow,
+  'pink':   $note-pink,
+  'blue':   $note-blue,
+  'green':  $note-green,
+  'purple': $note-purple,
+  'cream':  $note-cream,
 );
 
 // --- Z-Index Scale ---

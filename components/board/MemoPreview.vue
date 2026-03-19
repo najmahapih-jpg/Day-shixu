@@ -30,6 +30,18 @@
         <!-- Scroll Fade Mask -->
         <view class="scroll-fade-bottom"></view>
 
+        <!-- Linked Habit Info -->
+        <view v-if="linkedHabit" class="habit-link-bar" @click="goHabitDetail">
+          <view class="habit-link-icon" :style="{ background: linkedHabit.color + '1F' }">
+            <text class="habit-link-emoji">{{ getHabitEmoji(linkedHabit.icon) }}</text>
+          </view>
+          <view class="habit-link-info">
+            <text class="habit-link-name">{{ linkedHabit.name }}</text>
+            <text class="habit-link-streak">连续 {{ linkedHabit.streakCurrent }} 天</text>
+          </view>
+          <text class="habit-link-arrow">›</text>
+        </view>
+
         <!-- Actions -->
         <view class="action-bar">
           <view class="icon-btn" :class="{ active: note.isPinned }" @click="handlePin">{{ note.isPinned ? '取消置顶' : '置顶' }}</view>
@@ -45,6 +57,7 @@
 import { ref, computed } from 'vue'
 import type { BoardNote } from '@/types'
 import { useBoardStore } from '@/stores/board'
+import { useHabitStore } from '@/stores/habit'
 
 const emit = defineEmits<{
   (e: 'edit', note: BoardNote): void
@@ -54,6 +67,27 @@ const visible = ref(false)
 const isClosing = ref(false)
 const note = ref<BoardNote | null>(null)
 const boardStore = useBoardStore()
+const habitStore = useHabitStore()
+
+const linkedHabit = computed(() => {
+  if (!note.value?.linkedHabitId) return null
+  return habitStore.habits.find((h: any) => h._id === note.value?.linkedHabitId) || null
+})
+
+function getHabitEmoji(icon: string): string {
+  const emojiMap: Record<string, string> = {
+    'sun-bold': '☀️', 'moon-bold': '🌙', 'star-bold': '⭐',
+    'heart-bold': '❤️', 'book-bold': '📖', 'dumbbell-bold': '💪',
+    'lotus-bold': '🧘', 'apple-bold': '🍎', 'palette-bold': '🎨',
+    'people-bold': '👥', 'music-bold': '🎵', 'pen-bold': '✏️',
+  }
+  return emojiMap[icon] || '✦'
+}
+
+function goHabitDetail() {
+  if (!linkedHabit.value?._id) return
+  uni.navigateTo({ url: `/pages/sub/habit-detail/index?id=${linkedHabit.value._id}` })
+}
 
 const open = (n: BoardNote) => {
   note.value = n
@@ -319,5 +353,33 @@ defineExpose({ open, close })
     background: #FEF2F2;
     &:active { background: #FEE2E2; }
   }
+}
+
+/* Habit Link Bar */
+.habit-link-bar {
+  display: flex; align-items: center; gap: 20rpx;
+  padding: 20rpx 24rpx; margin-top: 32rpx;
+  background: rgba(126, 184, 201, 0.06);
+  border: 1px solid rgba(126, 184, 201, 0.15);
+  border-radius: $radius-lg;
+  transition: background 0.2s;
+  &:active { background: rgba(126, 184, 201, 0.12); }
+}
+.habit-link-icon {
+  width: 56rpx; height: 56rpx; border-radius: 14rpx;
+  display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+}
+.habit-link-emoji { font-size: 28rpx; }
+.habit-link-info { flex: 1; min-width: 0; }
+.habit-link-name {
+  display: block; font-size: $text-base; color: $neutral-900;
+  font-weight: $font-medium; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.habit-link-streak {
+  display: block; font-size: $text-xs; color: $neutral-500; margin-top: 4rpx;
+}
+.habit-link-arrow {
+  font-size: 36rpx; color: $neutral-400; font-weight: 300;
 }
 </style>

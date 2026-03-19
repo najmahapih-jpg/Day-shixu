@@ -61,11 +61,32 @@ function normalizeCheckItems(items?: CheckItem[]): CheckItem[] {
     .filter((item) => item.text.length > 0)
 }
 
+function normalizeTags(tags?: string[]): string[] {
+  if (!Array.isArray(tags)) return []
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const raw of tags) {
+    const tag = (raw || '').trim()
+    if (!tag || seen.has(tag)) continue
+    seen.add(tag)
+    normalized.push(tag)
+    if (normalized.length >= 3) break
+  }
+  return normalized
+}
+
+function normalizeLinkedHabitId(value?: string): string {
+  if (typeof value !== 'string') return ''
+  return value.trim()
+}
+
 function normalizePayload(data: NotePayload): NotePayload {
   const checkItems = normalizeCheckItems(data.checkItems)
-  const noteType = data.noteType || 'text'
+  const noteType = data.noteType === 'checklist' ? 'checklist' : 'text'
   const content = (data.content || '').trim()
   const fallbackContent = checkItems.map((item) => item.text).join('\n')
+  const linkedHabitId = normalizeLinkedHabitId(data.linkedHabitId)
+  const tags = normalizeTags(data.tags)
 
   if (noteType === 'checklist' && checkItems.length === 0) {
     throw new Error('清单至少需要 1 项')
@@ -83,6 +104,8 @@ function normalizePayload(data: NotePayload): NotePayload {
     noteType,
     checkItems: noteType === 'checklist' ? checkItems : undefined,
     color: data.color || 'yellow',
+    linkedHabitId,
+    tags,
     isPinned: !!data.isPinned,
   }
 }
@@ -139,6 +162,7 @@ export const useBoardStore = defineStore('board', () => {
   const notes = ref<BoardNote[]>([])
   const loading = ref(false)
   const sortMode = ref<BoardSortMode>('default')
+  const pendingHabitFilter = ref('')
   let fetchVersion = 0
   let creatingNote = false
 
@@ -202,6 +226,8 @@ export const useBoardStore = defineStore('board', () => {
     id: string,
     data: Partial<Omit<BoardNote, '_id' | '_openid' | 'createdAt' | 'updatedAt'>>,
   ) {
+    const hasLinkedHabitId = Object.prototype.hasOwnProperty.call(data, 'linkedHabitId')
+    const hasTags = Object.prototype.hasOwnProperty.call(data, 'tags')
     const checkItems = normalizeCheckItems(data.checkItems)
     const nextCheckItems = data.noteType === 'checklist'
       ? checkItems
@@ -210,13 +236,20 @@ export const useBoardStore = defineStore('board', () => {
         : checkItems.length > 0
           ? checkItems
           : undefined
+    const noteType = data.noteType
+      ? data.noteType === 'checklist' ? 'checklist' : 'text'
+      : undefined
 
     const rawPatch = {
       ...data,
       color: data.color,
-      noteType: data.noteType,
+      noteType,
       isPinned: data.isPinned,
       checkItems: nextCheckItems,
+      linkedHabitId: hasLinkedHabitId
+        ? normalizeLinkedHabitId(data.linkedHabitId)
+        : undefined,
+      tags: hasTags ? normalizeTags(data.tags) : undefined,
       content: data.content?.trim() ?? data.content,
     }
     const patch = compactPatch(rawPatch)
@@ -360,6 +393,7 @@ export const useBoardStore = defineStore('board', () => {
     notes.value = []
     loading.value = false
     sortMode.value = 'default'
+    pendingHabitFilter.value = ''
     fetchVersion = 0
     creatingNote = false
   }
@@ -368,6 +402,7 @@ export const useBoardStore = defineStore('board', () => {
     notes,
     loading,
     sortMode,
+    pendingHabitFilter,
     fetchNotes,
     createNote,
     updateNote,

@@ -9,7 +9,6 @@ export interface UserJourneyDetail extends UserJourney {
 
 export interface CompleteStepResult extends UserJourney {
   step: JourneyStep
-  letter: { _id: string; title: string; content: string } | null
   unlockHabits: string[]
 }
 

@@ -22,7 +22,6 @@
 - `board_notes`
 - `journeys`
 - `user_journeys`
-- `letters`
 - `rituals`
 - `users`
 
