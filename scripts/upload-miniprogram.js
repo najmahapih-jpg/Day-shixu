@@ -9,9 +9,32 @@
  *   - Private key: env WECHAT_CI_PRIVATE_KEY_PATH or .wxci/private.<appid>.key
  */
 
-const ci = require('miniprogram-ci')
+const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
+
+// ── Fix: miniprogram-ci bundles less@4 (ESM) which breaks in Node 22+ worker threads.
+//    Downgrade to less@3 (CJS) if needed. ──
+
+const ciLessDir = path.join(__dirname, '..', 'node_modules', 'miniprogram-ci', 'node_modules', 'less')
+if (fs.existsSync(ciLessDir)) {
+  try {
+    const lessPkg = JSON.parse(fs.readFileSync(path.join(ciLessDir, 'package.json'), 'utf8'))
+    if (lessPkg.type === 'module') {
+      console.log('Patching miniprogram-ci: replacing less@4 (ESM) with less@3 (CJS)...')
+      fs.rmSync(ciLessDir, { recursive: true, force: true })
+      execSync('npm pack less@3.13.1', { cwd: path.dirname(ciLessDir), stdio: 'pipe' })
+      fs.mkdirSync(ciLessDir, { recursive: true })
+      execSync('tar xzf ../less-3.13.1.tgz --strip-components=1', { cwd: ciLessDir, stdio: 'pipe' })
+      fs.unlinkSync(path.join(path.dirname(ciLessDir), 'less-3.13.1.tgz'))
+      console.log('Patched successfully.\n')
+    }
+  } catch (e) {
+    console.warn('Warning: failed to patch less version:', e.message)
+  }
+}
+
+const ci = require('miniprogram-ci')
 
 // ── Parse CLI args ──
 
@@ -80,6 +103,19 @@ console.log(`  robot:   ${robot}`)
 console.log(`  project: ${devtoolsDir}`)
 console.log(`  key:     ${privateKeyPath}\n`)
 
+
+// ── Trim unused static assets from main package ──
+// onboarding SVGs are inlined via illustration-map.js (base64); the raw files are dead weight.
+
+const unusedStaticDirs = ['static/images/onboarding']
+for (const rel of unusedStaticDirs) {
+  const dir = path.join(devtoolsDir, rel)
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true })
+    console.log(`Trimmed unused: ${rel}`)
+  }
+}
+
 // ── Execute upload ──
 
 const project = new ci.Project({
@@ -90,12 +126,24 @@ const project = new ci.Project({
   ignores: ['node_modules/**/*'],
 })
 
+// Disable compilation — HBuilderX already produces final output.
+// miniprogram-ci's parser chokes on ES2019+ syntax (optional catch, ??, ?.) when es6/es7 is on,
+// and its less require is incompatible with less v4+.
+const uploadSetting = {
+  ...(projectConfig.setting || {}),
+  es6: false,
+  es7: false,
+  minified: false,
+  minifyWXSS: false,
+  minifyWXML: false,
+}
+
 ci.upload({
   project,
   version,
   desc,
   robot,
-  setting: projectConfig.setting || {},
+  setting: uploadSetting,
 })
   .then((res) => {
     console.log('Upload succeeded!')
