@@ -1,10 +1,25 @@
 const cloud = require('wx-server-sdk')
+const { normalizeNickName } = require('./nickName')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 const usersCol = db.collection('users')
 
 // ── helpers ──────────────────────────────────────────────
+
+function defaultProfileMeta() {
+  return {
+    source: 'manual',
+    wechatAuthorized: false,
+    firstLoginPromptDismissed: false,
+    manualEditAt: null,
+    wechatSyncAt: null,
+  }
+}
+
+function nowISO() {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString()
+}
 
 function fail(message) {
   return { code: -1, message }
@@ -67,6 +82,7 @@ async function login(openid) {
       currentStreak: 0,
       longestStreak: 0,
     },
+    profileMeta: defaultProfileMeta(),
     createdAt: now,
     updatedAt: now,
   }
@@ -85,7 +101,18 @@ async function getProfile(openid) {
     return { code: 404, message: '用户不存在' }
   }
 
-  return ok(existing[0])
+  const user = existing[0]
+
+  // 懒回填：存量用户无 profileMeta 时补写一次
+  if (!user.profileMeta) {
+    const meta = defaultProfileMeta()
+    await usersCol.doc(user._id).update({
+      data: { profileMeta: meta, updatedAt: db.serverDate() },
+    })
+    user.profileMeta = meta
+  }
+
+  return ok(user)
 }
 
 async function updateSettings(openid, data) {
@@ -141,6 +168,94 @@ async function updateAvatar(openid, data) {
   return ok(avatarUrl)
 }
 
+async function updateNickName(openid, data) {
+  if (!data || typeof data.nickName !== 'string') return fail('缺少 nickName 数据')
+  const nickName = normalizeNickName(data.nickName)
+  if (!nickName) return fail('昵称不合法（最多 20 个字符）')
+
+  const { data: existing } = await usersCol
+    .where({ _openid: openid })
+    .limit(1)
+    .get()
+
+  if (existing.length === 0) return fail('用户不存在')
+
+  await usersCol.doc(existing[0]._id).update({
+    data: { nickName, updatedAt: db.serverDate() },
+  })
+
+  return ok(nickName)
+}
+
+async function updateProfile(openid, data) {
+  if (!data) return fail('缺少 data')
+
+  const { data: existing } = await usersCol
+    .where({ _openid: openid })
+    .limit(1)
+    .get()
+
+  if (existing.length === 0) return fail('用户不存在')
+
+  const user = existing[0]
+  const updateFields = { updatedAt: db.serverDate() }
+  let hasChanges = false
+
+  if (data.nickName !== undefined) {
+    const nick = normalizeNickName(data.nickName)
+    if (!nick) return fail('昵称不合法（最多 20 个字符）')
+    updateFields.nickName = nick
+    hasChanges = true
+  }
+
+  if (data.avatarUrl !== undefined) {
+    const avatar = normalizeAvatarUrl(data.avatarUrl)
+    if (!avatar) return fail('头像地址不合法')
+    updateFields.avatarUrl = avatar
+    hasChanges = true
+  }
+
+  if (!hasChanges) return fail('没有需要更新的字段')
+
+  // profileMeta 来源追踪
+  const source = data.source === 'wechat' ? 'wechat' : 'manual'
+  const ts = nowISO()
+
+  const baseMeta = user.profileMeta || defaultProfileMeta()
+  const mergedMeta = { ...baseMeta, source }
+  if (source === 'wechat') {
+    mergedMeta.wechatAuthorized = true
+    mergedMeta.wechatSyncAt = ts
+  } else {
+    mergedMeta.manualEditAt = ts
+  }
+  updateFields.profileMeta = mergedMeta
+
+  await usersCol.doc(user._id).update({ data: updateFields })
+
+  // 返回完整用户文档
+  const { data: updated } = await usersCol.doc(user._id).get()
+  return ok(updated)
+}
+
+async function dismissWechatProfilePrompt(openid) {
+  const { data: existing } = await usersCol
+    .where({ _openid: openid })
+    .limit(1)
+    .get()
+
+  if (existing.length === 0) return fail('用户不存在')
+
+  const user = existing[0]
+  const baseMeta = user.profileMeta || defaultProfileMeta()
+  const mergedMeta = { ...baseMeta, firstLoginPromptDismissed: true }
+
+  await usersCol.doc(user._id).update({
+    data: { profileMeta: mergedMeta, updatedAt: db.serverDate() },
+  })
+  return ok(true)
+}
+
 // ── main ─────────────────────────────────────────────────
 
 exports.main = async (event, context) => {
@@ -154,6 +269,9 @@ exports.main = async (event, context) => {
       case 'getProfile': return await getProfile(OPENID)
       case 'updateSettings': return await updateSettings(OPENID, data)
       case 'updateAvatar': return await updateAvatar(OPENID, data)
+      case 'updateNickName': return await updateNickName(OPENID, data)
+      case 'updateProfile': return await updateProfile(OPENID, data)
+      case 'dismissWechatProfilePrompt': return await dismissWechatProfilePrompt(OPENID)
       default: return fail('未知操作: ' + action)
     }
   } catch (err) {

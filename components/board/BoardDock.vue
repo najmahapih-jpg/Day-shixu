@@ -29,8 +29,6 @@ const addNote = () => {
   height: 104rpx;
   border-radius: 52rpx;
   background: rgba(17, 24, 39, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   color: white;
   display: flex;
   justify-content: center;

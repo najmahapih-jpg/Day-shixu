@@ -1,5 +1,5 @@
 <template>
-  <HfPageBg variant="cool" class="page page-transition" :class="{ 'dark-mode': isDark, 'page-entered': pageEntered }">
+  <HfPageBg variant="cool" class="page page-transition" :class="[{ 'dark-mode': isDark, 'page-entered': pageEntered }, haptic.feedbackClass]">
     <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="navbar__inner">
         <view class="navbar__back" :style="backBtnStyle" @tap="goBack">
@@ -9,6 +9,9 @@
         <view class="navbar__spacer" />
       </view>
     </view>
+
+    <!-- Fireworks Canvas -->
+    <canvas type="2d" id="fireworksCanvas" canvas-id="fireworksCanvas" class="fireworks-canvas" />
 
     <scroll-view scroll-y class="complete-scroll">
       <view class="journey-complete">
@@ -57,8 +60,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { ref, computed, getCurrentInstance, nextTick, onUnmounted } from 'vue'
+import { onLoad, onHide } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import { useJourneyStore } from '@/stores/journey'
@@ -69,12 +72,131 @@ import HfStatCard from '@/components/base/HfStatCard.vue'
 import HfIllustration from '@/components/base/HfIllustration.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useHaptic } from '@/composables/motion'
 
 const appStore = useAppStore()
 const journeyStore = useJourneyStore()
 const { isDark } = storeToRefs(appStore)
 const nav = useNavigation()
 const { entered: pageEntered } = usePageTransition()
+const haptic = useHaptic()
+const instance = getCurrentInstance()
+
+// --- Canvas fireworks ---
+let fireworksRafId = 0
+let fireworksCanvas: any = null
+let fireworksLaunchTimer: ReturnType<typeof setTimeout> | null = null
+const fireworksTimers: ReturnType<typeof setTimeout>[] = []
+
+function clearFireworksTimers() {
+  if (fireworksLaunchTimer) {
+    clearTimeout(fireworksLaunchTimer)
+    fireworksLaunchTimer = null
+  }
+
+  while (fireworksTimers.length) {
+    const timer = fireworksTimers.pop()
+    if (timer) clearTimeout(timer)
+  }
+}
+
+function stopFireworks() {
+  clearFireworksTimers()
+
+  if (fireworksRafId && fireworksCanvas && typeof fireworksCanvas.cancelAnimationFrame === 'function') {
+    fireworksCanvas.cancelAnimationFrame(fireworksRafId)
+  }
+
+  fireworksRafId = 0
+  fireworksCanvas = null
+}
+
+interface Particle {
+  x: number; y: number
+  vx: number; vy: number
+  life: number; maxLife: number
+  color: string; size: number
+}
+
+function launchFireworks() {
+  if (!instance) return
+  stopFireworks()
+  const query = uni.createSelectorQuery().in(instance)
+  query.select('#fireworksCanvas')
+    .fields({ node: true, size: true })
+    .exec((res: any) => {
+      if (!res?.[0]?.node) return
+      const canvas = res[0].node
+      fireworksCanvas = canvas
+      const ctx = canvas.getContext('2d')
+      const dpr = uni.getWindowInfo?.()?.pixelRatio || 2
+      const w = res[0].width
+      const h = res[0].height
+      canvas.width = w * dpr
+      canvas.height = h * dpr
+      ctx.scale(dpr, dpr)
+
+      const particles: Particle[] = []
+      const colors = ['#F5C563', '#8BA888', '#7EB8C9', '#B8A9C9', '#E8725C', '#D4A574']
+
+      // Launch 3 bursts
+      for (let burst = 0; burst < 3; burst++) {
+        const burstTimer = setTimeout(() => {
+          const cx = w * (0.25 + Math.random() * 0.5)
+          const cy = h * (0.2 + Math.random() * 0.3)
+          for (let i = 0; i < 30; i++) {
+            const angle = (Math.PI * 2 * i) / 30 + Math.random() * 0.3
+            const speed = 2 + Math.random() * 3
+            particles.push({
+              x: cx, y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              life: 1,
+              maxLife: 60 + Math.random() * 30,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              size: 2 + Math.random() * 2,
+            })
+          }
+          haptic.light()
+        }, burst * 400)
+        fireworksTimers.push(burstTimer)
+      }
+
+      function animate() {
+        if (fireworksCanvas !== canvas) return
+        ctx.clearRect(0, 0, w, h)
+        let alive = false
+        for (const p of particles) {
+          if (p.life <= 0) continue
+          alive = true
+          p.x += p.vx
+          p.y += p.vy
+          p.vy += 0.06 // gravity
+          p.vx *= 0.98
+          p.life -= 1 / p.maxLife
+          const alpha = Math.max(0, p.life)
+          ctx.globalAlpha = alpha
+          ctx.fillStyle = p.color
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.globalAlpha = 1
+        if (alive) {
+          fireworksRafId = canvas.requestAnimationFrame(animate)
+        }
+      }
+      fireworksRafId = canvas.requestAnimationFrame(animate)
+    })
+}
+
+onUnmounted(() => {
+  stopFireworks()
+})
+
+onHide(() => {
+  stopFireworks()
+})
 
 const userJourneyId = ref('')
 
@@ -82,6 +204,13 @@ onLoad((options: Record<string, string> | undefined) => {
   if (options?.id) {
     userJourneyId.value = options.id
   }
+  haptic.celebration()
+  nextTick(() => {
+    fireworksLaunchTimer = setTimeout(() => {
+      fireworksLaunchTimer = null
+      launchFireworks()
+    }, 600)
+  })
 })
 
 const userJourney = computed(() =>
@@ -138,10 +267,12 @@ function goBack() {
 }
 
 function backToHome() {
+  haptic.light()
   uni.switchTab({ url: '/pages/index/index' })
 }
 
 function goJourneyList() {
+  haptic.light()
   uni.redirectTo({ url: '/pages/sub/journey-list/index' })
 }
 </script>
@@ -153,6 +284,16 @@ function goJourneyList() {
 
 .page {
   min-height: 100vh;
+}
+
+.fireworks-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
 }
 
 .page-transition {

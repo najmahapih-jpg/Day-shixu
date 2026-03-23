@@ -3,6 +3,7 @@ import type {
   BoardNote,
   CheckItem,
   NoteColor,
+  NoteFontSize,
   NoteType,
   NoteTextAlign,
   NoteTextVertical,
@@ -25,12 +26,13 @@ export async function createNote(
     x?: number
     y?: number
     rotation?: number
-    fontSize?: 'sm' | 'md' | 'lg'
+    fontSize?: NoteFontSize
     textAlign?: NoteTextAlign
     textVertical?: NoteTextVertical
     fontFamily?: NoteFontFamily
     positionMode?: NotePositionMode
     noteShape?: NoteShape
+    imageUrl?: string
     noteType?: NoteType
     checkItems?: CheckItem[]
     linkedHabitId?: string

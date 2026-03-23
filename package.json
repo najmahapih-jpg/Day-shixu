@@ -11,15 +11,20 @@
     "cf:deploy:one": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy",
     "cf:list:changed": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 listChanged",
     "cf:deploy:changed": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deployChanged",
-    "deploy:cloud:all": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloud-all.ps1"
+    "deploy:cloud:all": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloud-all.ps1",
+    "cf:deploy:user": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy user",
+    "wx:upload": "node scripts/upload-miniprogram.js",
+    "release:wechat": "powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1"
   },
   "dependencies": {
     "@qiun/ucharts": "^2.5.0-20230101",
+    "grapheme-splitter": "1.0.4",
     "pinia": "^3.0.4"
   },
   "devDependencies": {
     "@cloudbase/cli": "^2.12.4",
     "@phosphor-icons/core": "^2.1.1",
+    "miniprogram-ci": "^1.9.0",
     "sass": "^1.97.3",
     "sass-loader": "^16.0.7"
   }

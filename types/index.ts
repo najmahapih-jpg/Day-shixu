@@ -31,11 +31,22 @@ export interface UserStats {
   freezeTotal: number
 }
 
+export type ProfileSource = 'manual' | 'wechat'
+
+export interface ProfileMeta {
+  source: ProfileSource
+  wechatAuthorized: boolean
+  firstLoginPromptDismissed: boolean
+  manualEditAt: string | null
+  wechatSyncAt: string | null
+}
+
 export interface User extends BaseDocument {
   nickName: string
   avatarUrl: string
   settings: UserSettings
   stats: UserStats
+  profileMeta?: ProfileMeta
 }
 
 // --- Habit ---
@@ -132,6 +143,12 @@ export interface UserJourney extends BaseDocument {
 
 export type NoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'cream'
 export type NoteType = 'text' | 'checklist'
+export type NoteFontSize = 'sm' | 'md' | 'lg'
+export type NoteTextAlign = 'left' | 'center' | 'right'
+export type NoteTextVertical = 'top' | 'center' | 'bottom'
+export type NoteFontFamily = 'serif' | 'sans' | 'hand' | 'rounded' | 'mono'
+export type NotePositionMode = 'auto' | 'manual'
+export type NoteShape = 'rect' | 'heart' | 'star'
 
 export interface CheckItem {
   id: string
@@ -148,6 +165,17 @@ export interface NoteTag {
 export interface BoardNote extends BaseDocument {
   content: string
   color: NoteColor
+  size: number
+  x: number
+  y: number
+  rotation: number
+  fontSize?: NoteFontSize
+  textAlign?: NoteTextAlign
+  textVertical?: NoteTextVertical
+  fontFamily?: NoteFontFamily
+  positionMode?: NotePositionMode
+  noteShape?: NoteShape
+  imageUrl?: string
   noteType?: NoteType
   checkItems?: CheckItem[]
   groupId?: string

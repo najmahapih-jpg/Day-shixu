@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { withDefaultPinia } from './pinia'
 import type { Ritual } from '@/types'
 
-export const useRitualStore = defineStore('ritual', () => {
+export const useRitualStore = withDefaultPinia(defineStore('ritual', () => {
   const rituals = ref<Ritual[]>([])
   const loading = ref(false)
 
@@ -35,4 +36,4 @@ export const useRitualStore = defineStore('ritual', () => {
     updateRitual,
     deleteRitual,
   }
-})
+}))

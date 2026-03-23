@@ -1,5 +1,5 @@
 <template>
-  <view class="habit-item" :class="{ 'list-fading': isFading }" :style="itemStyle" @tap="goDetail" @longpress="handleLongPress">
+  <view class="habit-item" :class="{ 'list-fading': isFading, 'list-warning': isWarning }" :style="itemStyle" @tap="goDetail" @longpress="handleLongPress">
     <view class="sheet-music-card" :class="{ 'sheet-music-card--played': isCompleted }">
       
       <!-- 微型网点纹理 -->
@@ -53,7 +53,7 @@
         </view>
 
         <!-- 打卡区 (Note Action) -->
-        <view class="note-action" @tap.stop="onNoteTap">
+        <view class="note-action" :class="{ 'note-action--glow': showGlow }" @tap.stop="onNoteTap">
           <view class="note-btn" :class="{ 'note-btn--pressed': isPressing, 'note-btn--filled': displayCompleted }">
             <!-- 音符符头 (Note Head) -->
             <view class="note-head"></view>
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, type Ref } from 'vue'
+import { ref, computed, inject, watch, onUnmounted, type Ref } from 'vue'
 import type { Habit, CheckIn } from '@/types'
 import HfIcon from '@/components/base/HfIcon.vue'
 
@@ -92,10 +92,12 @@ const props = withDefaults(defineProps<{
   checkIn?: CheckIn
   animIndex?: number
   isFading?: boolean
+  isWarning?: boolean
 }>(), {
   checkIn: undefined,
   animIndex: 0,
-  isFading: false
+  isFading: false,
+  isWarning: false,
 })
 
 const emit = defineEmits<{
@@ -110,17 +112,19 @@ const isCompleted = computed(() => Boolean(props.checkIn?.completed))
 const localAnimComplete = ref(false)
 
 const displayCompleted = computed(() => isCompleted.value || localAnimComplete.value)
+const checking = ref(false)
 
 // --- 防抖 (Debounce) ---
-const checking = ref(false)
 
 // --- 按压蓄力状态 ---
 const isPressing = ref(false)
+const showGlow = ref(false)
 
 // --- 涟漪 (Ripple) ---
 const showRipple = ref(false)
 const rippleKey = ref(0)
 const isPlayingEasterEgg = inject<Ref<boolean>>('isPlayingEasterEgg', ref(false))
+const activeTimers = new Set<ReturnType<typeof setTimeout>>()
 
 const completedValue = computed(() => {
   if (props.habit.type === 'boolean') return 1
@@ -173,33 +177,87 @@ const itemStyle = computed(() => ({
   '--item-delay': `${Math.min(Math.max(props.animIndex, 0), 12) * 50}ms`,
 }))
 
+function schedule(fn: () => void, delay: number) {
+  const timer = setTimeout(() => {
+    activeTimers.delete(timer)
+    fn()
+  }, delay)
+  activeTimers.add(timer)
+  return timer
+}
+
+function wait(delay: number) {
+  return new Promise<void>((resolve) => {
+    schedule(resolve, delay)
+  })
+}
+
+function resetMicroStates() {
+  isPressing.value = false
+  showGlow.value = false
+  showRipple.value = false
+  localAnimComplete.value = false
+}
+
+watch(() => props.isWarning, (isWarning) => {
+  if (isWarning) resetMicroStates()
+})
+
+watch(() => props.checkIn?.completed, (completed) => {
+  if (!completed) return
+  localAnimComplete.value = false
+  schedule(() => {
+    isPressing.value = false
+    showGlow.value = false
+  }, 180)
+})
+
+onUnmounted(() => {
+  activeTimers.forEach((timer) => clearTimeout(timer))
+  activeTimers.clear()
+})
+
 // 打卡核心交互（乐观更新与延迟流转）
 function onNoteTap() {
   if (checking.value) return // 防抖
   checking.value = true
 
   const id = props.habit._id
-  if (!id) {
-    checking.value = false
-    return
-  }
+  if (!id) return
+  isPressing.value = true
 
   if (isCompleted.value) {
     // 已经完成的点击撤销操作
-    emit('uncheck', id)
-    setTimeout(() => { checking.value = false }, 300)
+    setTimeout(() => {
+      isPressing.value = false
+      emit('uncheck', id)
+      checking.value = false
+      setTimeout(() => {
+        showGlow.value = false
+        if (!props.checkIn?.completed) {
+          localAnimComplete.value = false
+        }
+      }, 180)
+    }, 120)
   } else {
     // 尚未完成的点击打卡：启动视觉特效，阻断真理源更新
     localAnimComplete.value = true
+    showGlow.value = true
     triggerRipple()
     
     // 延迟提交，给予动画充足的 600ms 余热时间，完成后再让列表将组件重排到底部
     setTimeout(() => {
+      isPressing.value = false
       emit('check', id, completedValue.value)
+      setTimeout(() => {
+        showGlow.value = false
+        if (!props.checkIn?.completed) {
+          localAnimComplete.value = false
+        }
+      }, 180)
       // 复原假象状态，交接给响应式 props
-      localAnimComplete.value = false
       checking.value = false
-    }, 600)
+    }, 140)
   }
 }
 
@@ -213,7 +271,7 @@ function triggerRipple() {
   // 自动消散
   setTimeout(() => {
     showRipple.value = false
-  }, 600)
+  }, 320)
 }
 
 function goDetail() {
@@ -261,12 +319,18 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   animation-delay: var(--item-delay, 0ms);
   margin-bottom: $space-2;
   padding: 0 6rpx;
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  transition: opacity 0.28s ease-out, transform 0.28s ease-out;
 
   &.list-fading {
     opacity: 0 !important;
     transform: scale(0.95) translateY(10rpx);
     pointer-events: none;
+  }
+
+  &.list-warning {
+    .sheet-music-card {
+      animation: habitWarning 280ms ease;
+    }
   }
 }
 
@@ -548,6 +612,16 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   align-items: center;
   justify-content: center;
   position: relative;
+
+  &--glow::after {
+    content: '';
+    position: absolute;
+    inset: 10rpx;
+    border-radius: 999rpx;
+    background: radial-gradient(circle, rgba(122, 0, 22, 0.24) 0%, rgba(122, 0, 22, 0.1) 42%, rgba(122, 0, 22, 0) 72%);
+    animation: noteBloom 300ms ease-out forwards;
+    pointer-events: none;
+  }
 }
 
 .note-btn {
@@ -556,11 +630,13 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   height: 80rpx;
   display: flex;
   flex-direction: column;
-  transition: all 0.25s $ease-spring;
+  transition: transform 0.18s $ease-spring, filter 0.18s ease, opacity 0.18s ease;
+  will-change: transform;
 
   // 蓄力按压
   &--pressed {
-    transform: scale(0.88);
+    transform: scale(0.92);
+    filter: brightness(1.04);
   }
 
   // 打卡完成状态
@@ -592,7 +668,7 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   border-radius: 50%;
   transform: rotate(-24deg);
   background: transparent;
-  transition: all 0.3s $ease-spring;
+  transition: all 0.22s $ease-spring;
   z-index: 2;
 }
 
@@ -604,7 +680,7 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   width: 4rpx;
   height: 48rpx;
   background: $ink-black;
-  transition: background 0.3s ease;
+  transition: background 0.22s ease;
   z-index: 1;
 }
 
@@ -620,7 +696,7 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   border-radius: 0 16rpx 20rpx 0;
   border-bottom: 6rpx solid transparent; // 让尾部有收尖变软的效果
   opacity: 0.9;
-  transition: all 0.3s ease;
+  transition: all 0.22s ease;
   z-index: 1;
 }
 
@@ -634,7 +710,7 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   font-size: 64rpx;
   font-weight: 900;
   color: $crimson;
-  animation: marcatoPop 0.5s $ease-out-soft forwards;
+  animation: marcatoPop 0.34s $ease-out-soft forwards;
   pointer-events: none;
   z-index: 20;
 }
@@ -645,7 +721,7 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
     opacity: 1;
   }
   100% {
-    transform: translate(20rpx, -50%) scale(2);
+    transform: translate(14rpx, -50%) scale(1.6);
     opacity: 0;
   }
 }
@@ -700,6 +776,35 @@ $mono-stack: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes habitWarning {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5rpx);
+  }
+  50% {
+    transform: translateX(4rpx);
+  }
+  75% {
+    transform: translateX(-2rpx);
+  }
+}
+
+@keyframes noteBloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
   }
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <view class="page" :class="{ 'page--dark': isDarkBg }" :style="bgStyle">
+  <view class="page" :class="[{ 'page--dark': isDarkBg }, haptic.feedbackClass]" :style="bgStyle">
     <!-- Exit button -->
     <view class="exit-btn" :style="{ top: statusBarTop + 'px' }" @tap="handleExit">
       <HfIcon name="close-circle-bold" size="md" :color="isDarkBg ? '#D4CEC8' : '#908880'" />
@@ -28,18 +28,23 @@
       <text class="start-screen__meta">{{ habits.length }} 个习惯 · 约 {{ ritualData?.estimatedMinutes }} 分钟</text>
       <text class="start-screen__count">今天第 {{ todayExecutionCount }} 次执行</text>
 
-      <view class="start-screen__action start-screen__action--pulse" @tap="startBreathPhase">
+      <view class="start-screen__action start-screen__action--pulse press-scale" @tap="startBreathPhase">
         <text class="start-screen__btn-text">开始</text>
       </view>
     </view>
 
     <!-- ===== Phase: Breath ===== -->
-    <BreathGuide
-      v-else-if="phase === 'breath'"
-      :cycles="3"
-      @done="startExecution"
-      @skip="startExecution"
-    />
+    <view v-else-if="phase === 'breath'" class="breath-phase">
+      <!-- Particle ring around BreathGuide -->
+      <view class="breath-particles">
+        <view v-for="i in 8" :key="i" class="breath-particle" :class="'bp-' + i" />
+      </view>
+      <BreathGuide
+        :cycles="3"
+        @done="startExecution"
+        @skip="startExecution"
+      />
+    </view>
 
     <!-- ===== Phase: Habit ===== -->
     <view v-else-if="phase === 'habit'" class="habit-screen">
@@ -182,9 +187,11 @@ import HabitCounter from '@/components/habit/HabitCounter.vue'
 import RitualTimer from '@/components/ritual/RitualTimer.vue'
 import BreathGuide from '@/components/ritual/BreathGuide.vue'
 import { useNavigation } from '@/composables/useNavigation'
+import { useHaptic } from '@/composables/motion'
 
 const habitStore = useHabitStore()
 const nav = useNavigation()
+const haptic = useHaptic()
 
 // --- Constants ---
 
@@ -334,6 +341,7 @@ function startBreathPhase() {
     uni.showToast({ title: '没有可执行的习惯', icon: 'none' })
     return
   }
+  haptic.medium()
   phase.value = 'breath'
 }
 
@@ -348,6 +356,7 @@ function startExecution() {
 // --- Interaction handlers ---
 
 function toggleBoolean() {
+  haptic.light()
   booleanDone.value = !booleanDone.value
 }
 
@@ -381,6 +390,7 @@ async function completeHabit() {
     if (habit.type === 'timer') value = timerElapsed.value
 
     completedRecords.value = [...completedRecords.value, { habitId, value }]
+    haptic.success()
 
     try {
       await habitStore.checkIn(habitId, value)
@@ -428,6 +438,7 @@ function advanceToNext(mode: 'complete' | 'skip') {
 
 async function finishRitual() {
   phase.value = 'complete'
+  haptic.celebration()
 
   if (completedRecords.value.length === 0 || !ritualData.value) return
 
@@ -1009,6 +1020,56 @@ onUnmounted(() => {
   50% {
     transform: scale(1.03);
     box-shadow: 0 12rpx 40rpx rgba($brand-primary, 0.45);
+  }
+}
+
+// --- Breath phase particles ---
+
+.breath-phase {
+  position: relative;
+  @include flex-col;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.breath-particles {
+  position: absolute;
+  width: 400rpx;
+  height: 400rpx;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.breath-particle {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: $radius-full;
+  background: rgba($brand-primary, 0.4);
+  animation: particleBreathe 4s $ease-in-out infinite;
+
+  @for $i from 1 through 8 {
+    &.bp-#{$i} {
+      $angle: ($i - 1) * 45deg;
+      top: calc(50% + #{120rpx} * sin(#{$angle}));
+      left: calc(50% + #{120rpx} * cos(#{$angle}));
+      animation-delay: #{($i - 1) * 0.5}s;
+      opacity: 0.3 + ($i * 0.05);
+    }
+  }
+}
+
+@keyframes particleBreathe {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.8) translate(0, -10rpx);
+    opacity: 0.7;
   }
 }
 

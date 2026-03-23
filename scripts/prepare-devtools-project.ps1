@@ -121,6 +121,27 @@ function renderProps(props) {
   Write-Host "Patched: renderProps null-instance fallback in $VendorPath"
 }
 
+function Ensure-LazyCodeLoadingRequiredComponents {
+  param(
+    [Parameter(Mandatory = $true)][string]$AppJsonPath
+  )
+
+  if (-not (Test-Path $AppJsonPath)) {
+    return
+  }
+
+  $json = Get-Content -Raw -Encoding UTF8 $AppJsonPath | ConvertFrom-Json
+  if ($json.lazyCodeLoading -eq 'requiredComponents') {
+    return
+  }
+
+  $json | Add-Member -NotePropertyName lazyCodeLoading -NotePropertyValue 'requiredComponents' -Force
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $fullPath = (Get-Item -LiteralPath $AppJsonPath).FullName
+  [System.IO.File]::WriteAllText($fullPath, ($json | ConvertTo-Json -Depth 64), $utf8NoBom)
+  Write-Host "Patched: lazyCodeLoading='requiredComponents' in $AppJsonPath"
+}
+
 if (-not (Test-Path $sourceDir)) {
   throw "Source not found: $sourceDir. Please build mp-weixin first."
 }
@@ -159,6 +180,9 @@ $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 if (-not (Test-Path $targetAppJson)) {
   throw "Target app.json missing: $targetAppJson"
 }
+
+Ensure-LazyCodeLoadingRequiredComponents -AppJsonPath (Join-Path $sourceDir 'app.json')
+Ensure-LazyCodeLoadingRequiredComponents -AppJsonPath $targetAppJson
 
 # Patch both dist and DevTools copies because some workflows import root project
 # (miniprogramRoot -> unpackage/dist/dev/mp-weixin), while others import _mp_devtools.

@@ -216,12 +216,13 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .page-board {
+  height: 100vh;
   min-height: 100vh;
   background: linear-gradient(180deg, #FBF9F7, #F5F3F8);
-  background-attachment: fixed;
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   &::before {
     content: '';
@@ -236,21 +237,27 @@ onShow(() => {
 
 .board-content {
   flex: 1;
+  min-height: 0;
   padding: 0 24rpx;
   height: 0;
+  box-sizing: border-box;
 }
 
 /* Dual-Column Masonry */
 .masonry-wrapper {
   display: flex;
+  align-items: flex-start;
   gap: 16rpx;
   padding-bottom: 240rpx;
   position: relative;
   z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .masonry-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16rpx;
@@ -321,10 +328,13 @@ onShow(() => {
   flex-wrap: wrap;
   gap: 20rpx;
   padding-bottom: 240rpx;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .skeleton-card {
   width: calc(50% - 10rpx);
+  min-width: 0;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 24rpx;
   padding: 28rpx;

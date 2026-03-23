@@ -3,6 +3,7 @@ import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { createApp } from 'vue'
 import { useNetwork } from '@/composables/useNetwork'
 import { useAppStore } from '@/stores/app'
+import { useUserStore } from '@/stores/user'
 import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 const app = createApp({})
@@ -37,6 +38,10 @@ onLaunch(() => {
   } catch {
     // ignore storage read failure
   }
+
+  // 静默登录，确保 userInfo 尽早就绪
+  const userStore = useUserStore()
+  userStore.login().catch(() => {})
 })
 
 onShow(() => {})

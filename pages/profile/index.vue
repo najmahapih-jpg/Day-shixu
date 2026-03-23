@@ -1,5 +1,5 @@
 <template>
-  <HfPageBg variant="cool" :show-pattern="false" class="profile-page page-transition" :class="{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }">
+  <HfPageBg variant="cool" :show-pattern="false" class="profile-page page-transition" :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }, haptic.feedbackClass]">
     <view class="paper-texture" />
 
     <scroll-view scroll-y class="profile-scroll profile-scroll--immersive">
@@ -10,8 +10,8 @@
           <view class="hero-zone__deco" />
           <view class="hero-zone__top">
             <view class="hero-zone__titles">
-              <text class="hero-zone__t1">MY</text>
-              <text class="hero-zone__t2">PROFILE</text>
+              <text class="hero-zone__t1">{{ profileCopy.heroTitleTop }}</text>
+              <text class="hero-zone__t2">{{ profileCopy.heroTitleBottom }}</text>
             </view>
             <view class="hero-zone__avatar" @tap="handleAvatarTap">
               <image
@@ -27,21 +27,66 @@
               <view class="avatar-action" :class="{ 'is-uploading': avatarUploading }" @tap.stop="pickAvatarBgImage">
                 <HfIcon name="camera-bold" size="xs" color="#0B0B0C" plain />
               </view>
-              <view v-if="userStore.isLoggedIn" class="hero-stamp">AUTHORIZED</view>
+              <view v-if="userStore.isLoggedIn" class="hero-stamp">{{ profileCopy.heroStamp }}</view>
             </view>
           </view>
           <view class="hero-zone__bar">
-            <text class="hero-bar__name">{{ nickName }}</text>
-            <view class="hero-bar__badge">{{ joinedText }}</view>
-            <text class="hero-bar__id mono-bold">{{ userStore.userInfo?._id?.slice(-8).toUpperCase() || 'XXXXXXXX' }}</text>
+            <view class="hero-bar__main">
+              <view class="hero-bar__name-wrap">
+                <input
+                  v-if="isEditingNickName"
+                  class="hero-bar__name-input"
+                  type="text"
+                  :value="editNickNameValue"
+                  :focus="isEditingNickName && !nickNameSaving"
+                  :disabled="nickNameSaving"
+                  :placeholder="profileCopy.nickNamePlaceholder"
+                  confirm-type="done"
+                  @input="onNickNameInput"
+                  @change="onNickNameInput"
+                  @confirm="confirmNickName"
+                  @blur="confirmNickName"
+                />
+                <text v-else class="hero-bar__name" @tap="startNickNameEdit">{{ nickName }}</text>
+              </view>
+              <view
+                v-if="!isEditingNickName"
+                class="hero-bar__edit-btn"
+                :class="{ 'is-guest': !userStore.isLoggedIn }"
+                @tap.stop="startNickNameEdit"
+              >
+                <HfIcon name="pen-2-linear" size="xs" color="#0B0B0C" plain />
+                <text class="hero-bar__edit-label">
+                  {{ userStore.isLoggedIn ? profileCopy.editNickNameCta : profileCopy.guestNickNameCta }}
+                </text>
+              </view>
+              <view
+                v-else
+                class="hero-bar__edit-state"
+                :class="{ 'is-saving': nickNameSaving }"
+              >
+                <text class="hero-bar__edit-state-text">
+                  {{ nickNameSaving ? '保存中...' : '手动修改昵称，回车或失焦保存' }}
+                </text>
+              </view>
+            </view>
+            <view class="hero-bar__meta">
+              <view class="hero-bar__badge">{{ joinedText }}</view>
+              <text class="hero-bar__id mono-bold">{{ profileCopy.uidLabel }} {{ userIdSuffix }}</text>
+            </view>
           </view>
-          <view class="hero-zone__version">VOYAGE V1.0 • EST. 2026</view>
+          <view class="hero-zone__bottom">
+            <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
+            <view v-if="userStore.isLoggedIn" class="hero-zone__wx-sync" @tap="toggleWxSync">
+              <text class="wx-sync__label">从微信导入</text>
+            </view>
+          </view>
         </view>
 
         <!-- ========== 2. Slogan Tape (Full-bleed) ========== -->
         <view class="slogan-tape anim-stagger-up" style="--stagger-idx: 1;">
           <text class="slogan-tape__text">{{ profileSlogan || '保持稳定的节奏，比偶发冲刺更重要。' }} ▶</text>
-          <view v-if="currentStreak > 0" class="slogan-tape__streak">DAY {{ currentStreak }}</view>
+          <view v-if="currentStreak > 0" class="slogan-tape__streak">{{ profileCopy.streakDayPrefix }} {{ currentStreak }}</view>
         </view>
 
         <!-- ========== 3. Metrics Dashboard (Asymmetric Grid) ========== -->
@@ -56,17 +101,17 @@
                 <text class="ring-symbol">%</text>
               </view>
             </view>
-            <text class="metrics-hero__label">COMPLETION RATE</text>
+            <text class="metrics-hero__label">{{ profileCopy.completionLabel }}</text>
             <view class="metrics-hero__status">{{ myFocusText }}</view>
           </view>
           <view class="metrics-dash__side">
             <view class="metrics-cell brutal-card brutal-coral">
               <text class="metrics-cell__value">{{ animHabitCount }}</text>
-              <text class="metrics-cell__label">ACTIVE</text>
+              <text class="metrics-cell__label">{{ profileCopy.activeLabel }}</text>
             </view>
             <view class="metrics-cell brutal-card brutal-mint">
               <text class="metrics-cell__value">{{ animTotalCheckIns }}</text>
-              <text class="metrics-cell__label">TOTAL</text>
+              <text class="metrics-cell__label">{{ profileCopy.totalLabel }}</text>
             </view>
           </view>
         </view>
@@ -80,7 +125,7 @@
         <view class="stamp-section anim-stagger-up" style="--stagger-idx: 4;">
           <view class="stamp-section__head">
             <view class="stamp-head__bar" />
-            <text class="stamp-head__title">ACHIEVEMENTS</text>
+            <text class="stamp-head__title">{{ profileCopy.achievementsTitle }}</text>
             <view class="stamp-head__count">{{ unlockedCount }}/{{ achievements.length }}</view>
           </view>
           <scroll-view scroll-x class="stamp-scroll" :show-scrollbar="false">
@@ -91,7 +136,7 @@
                 class="stamp-card"
                 :class="{ 'is-locked': !ach.unlocked }"
               >
-                <view v-if="!ach.unlocked" class="classified-tape">CLASSIFIED</view>
+                <view v-if="!ach.unlocked" class="classified-tape">{{ profileCopy.lockedRibbon }}</view>
                 <view class="stamp-card__inner">
                   <view class="stamp-icon" :style="{ background: ach.unlocked ? ach.color : 'transparent' }">
                     <HfIcon :name="ach.icon" size="md" :color="ach.unlocked ? '#0B0B0C' : '#A0A0A0'" :plain="ach.unlocked" />
@@ -106,36 +151,36 @@
 
         <!-- ========== 6. Navigation — Primary Pair ========== -->
         <view class="nav-primary anim-stagger-up" style="--stagger-idx: 5;">
-          <view class="nav-block brutal-card brutal-yellow" @tap="handleMenuTap('journey')">
+          <view class="nav-block brutal-card brutal-yellow press-scale" @tap="handleMenuTap('journey')">
             <view class="nav-block__icon"><HfIcon name="flag-bold" size="sm" color="#0B0B0C" plain /></view>
-            <text class="nav-block__title">JOURNEY</text>
-            <text class="nav-block__sub">我的旅程之旅</text>
+            <text class="nav-block__title">{{ profileCopy.journeyTitle }}</text>
+            <text class="nav-block__sub">{{ profileCopy.journeySub }}</text>
           </view>
-          <view class="nav-block brutal-card brutal-mint-bg" @tap="handleMenuTap('stellarArchive')">
+          <view class="nav-block brutal-card brutal-mint-bg press-scale" @tap="handleMenuTap('stellarArchive')">
             <view class="nav-block__icon"><HfIcon name="star-bold" size="sm" color="#0B0B0C" plain /></view>
-            <text class="nav-block__title">ARCHIVE</text>
-            <text class="nav-block__sub">星辰档案</text>
+            <text class="nav-block__title">{{ profileCopy.archiveTitle }}</text>
+            <text class="nav-block__sub">{{ profileCopy.archiveSub }}</text>
           </view>
         </view>
 
         <!-- ========== 7. Navigation — Secondary List ========== -->
         <view class="nav-secondary anim-stagger-up" style="--stagger-idx: 6;">
-          <view class="nav-row brutal-card" @tap="handleMenuTap('aiInsight')">
+          <view class="nav-row brutal-card press-light" @tap="handleMenuTap('aiInsight')">
             <view class="nav-row__icon brutal-purple"><HfIcon name="brain-bold" size="xs" color="#0B0B0C" plain /></view>
-            <text class="nav-row__text">AI INSIGHT</text>
-            <text class="nav-row__sub">星之顾问</text>
+            <text class="nav-row__text">{{ profileCopy.aiInsightTitle }}</text>
+            <text class="nav-row__sub">{{ profileCopy.aiInsightSub }}</text>
             <HfIcon name="arrow-right-linear" size="xs" color="#0B0B0C" />
           </view>
-          <view class="nav-row brutal-card" @tap="handleMenuTap('archive')">
+          <view class="nav-row brutal-card press-light" @tap="handleMenuTap('archive')">
             <view class="nav-row__icon brutal-sky"><HfIcon name="box-bold" size="xs" color="#0B0B0C" plain /></view>
-            <text class="nav-row__text">ARCHIVE</text>
-            <text class="nav-row__sub">档案馆</text>
+            <text class="nav-row__text">{{ profileCopy.archiveTitle }}</text>
+            <text class="nav-row__sub">{{ profileCopy.archiveSub }}</text>
             <HfIcon name="arrow-right-linear" size="xs" color="#0B0B0C" />
           </view>
-          <view class="nav-row brutal-card" @tap="handleMenuTap('settings')">
+          <view class="nav-row brutal-card press-light" @tap="handleMenuTap('settings')">
             <view class="nav-row__icon brutal-grey"><HfIcon name="settings-bold" size="xs" color="#0B0B0C" plain /></view>
-            <text class="nav-row__text">SETTINGS</text>
-            <text class="nav-row__sub">偏好设置</text>
+            <text class="nav-row__text">{{ profileCopy.settingsTitle }}</text>
+            <text class="nav-row__sub">{{ profileCopy.settingsSub }}</text>
             <HfIcon name="arrow-right-linear" size="xs" color="#0B0B0C" />
           </view>
         </view>
@@ -144,12 +189,15 @@
         <view class="profile-footer anim-stagger-up" style="--stagger-idx: 7;">
           <view class="profile-footer__divider" />
           <text class="profile-footer__ver">V1.0</text>
-          <text class="profile-footer__motto">Consistency builds empires.</text>
+          <text class="profile-footer__motto">{{ profileCopy.footerMotto }}</text>
         </view>
 
         <view class="bottom-space" />
       </view>
     </scroll-view>
+
+    <!-- WeChat Sync Panel -->
+    <WechatProfileSyncSheet v-model:visible="wxSyncVisible" @synced="onWxSynced" />
 
     <HfTabBar />
   </HfPageBg>
@@ -170,9 +218,21 @@ import HfIcon from '@/components/base/HfIcon.vue'
 import HfPageBg from '@/components/base/HfPageBg.vue'
 import RhythmBarcode from '@/components/profile/RhythmBarcode.vue'
 import HfIllustration from '@/components/base/HfIllustration.vue'
+import WechatProfileSyncSheet from '@/components/profile/WechatProfileSyncSheet.vue'
 import { useCountUp } from '@/composables/useCountUp'
 import { useNavigation } from '@/composables/useNavigation'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useHaptic } from '@/composables/motion'
+import {
+  isCloudFileId,
+  getTempFileUrl,
+  chooseAvatarImage,
+  normalizeAvatarTempFile,
+  uploadAvatarToCloud,
+  isUserCancelError,
+} from '@/composables/useAvatarUpload'
+import { getNickNameValidationMessage, normalizeNickName } from '@/utils/nickName'
+import { PUBLIC_COPY } from '@/utils/publicCopy'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -181,6 +241,8 @@ const boardStore = useBoardStore()
 const { isNeo } = storeToRefs(appStore)
 const nav = useNavigation()
 const { entered: pageEntered } = usePageTransition()
+const haptic = useHaptic()
+const profileCopy = PUBLIC_COPY.profile
 
 const isNeoTheme = computed(() => isNeo.value)
 
@@ -202,10 +264,6 @@ function getNavBarBottom(): number {
 }
 
 const navBarBottom = ref(getNavBarBottom())
-const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024
-const MIN_AVATAR_EDGE_PX = 120
-const COMPRESS_TRIGGER_SIZE = 2 * 1024 * 1024
-const COMPRESS_TRIGGER_EDGE = 1800
 
 const avatarUploading = ref(false)
 const avatarLoadFailed = ref(false)
@@ -250,12 +308,139 @@ watch(
   },
   { immediate: true },
 )
-const nickName = computed(() => (userStore.isLoggedIn ? userStore.userInfo!.nickName : 'Mortal Explorer'))
+const nickName = computed(() => (userStore.isLoggedIn ? userStore.userInfo!.nickName : profileCopy.guestName))
+const userIdSuffix = computed(() => userStore.userInfo?._id?.slice(-8).toUpperCase() || 'XXXXXXXX')
+
+// ── Nickname Editing ──
+const isEditingNickName = ref(false)
+const editNickNameValue = ref('')
+const nickNameSaving = ref(false)
+
+// ── WeChat Sync Panel ──
+const wxSyncVisible = ref(false)
+
+function onWxSynced() {
+  // Avatar watcher will auto-resolve the new URL
+  syncNickNameDrafts(userStore.userInfo?.nickName || '')
+}
+
+type AvatarPreviewSnapshot = {
+  version: number
+  resolvedUrl: string
+  loadFailed: boolean
+}
+
+function syncNickNameDrafts(value: string) {
+  const next = (value || '').trim()
+  editNickNameValue.value = next
+}
+
+function applyAvatarLocalPreview(path: string): AvatarPreviewSnapshot {
+  const snapshot: AvatarPreviewSnapshot = {
+    version: ++avatarResolveVersion,
+    resolvedUrl: avatarResolvedUrl.value,
+    loadFailed: avatarLoadFailed.value,
+  }
+  avatarResolvedUrl.value = path
+  avatarLoadFailed.value = false
+  return snapshot
+}
+
+function restoreAvatarPreview(snapshot: AvatarPreviewSnapshot | null) {
+  if (!snapshot || snapshot.version !== avatarResolveVersion) return
+  avatarResolvedUrl.value = snapshot.resolvedUrl
+  avatarLoadFailed.value = snapshot.loadFailed
+}
+
+async function ensureLoggedIn(): Promise<boolean> {
+  if (userStore.isLoggedIn) return true
+  try {
+    await userStore.login()
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function startNickNameEdit() {
+  haptic.light()
+  if (nickNameSaving.value) return
+  const loggedIn = await ensureLoggedIn()
+  if (!loggedIn) return
+  if (isEditingNickName.value) return
+  wxSyncVisible.value = false
+  syncNickNameDrafts(userStore.userInfo?.nickName || '')
+  isEditingNickName.value = true
+}
+
+function onNickNameInput(e: any) {
+  syncNickNameDrafts(e.detail?.value || '')
+}
+
+async function submitNickName() {
+  const draftValue = editNickNameValue.value
+  const validationMessage = getNickNameValidationMessage(draftValue)
+  if (validationMessage) {
+    uni.showToast({ title: validationMessage, icon: 'none' })
+    return false
+  }
+
+  const nickName = normalizeNickName(draftValue)
+  const currentNickName = normalizeNickName(userStore.userInfo?.nickName || '')
+
+  if (!nickName) {
+    uni.showToast({ title: '昵称不能为空', icon: 'none' })
+    return false
+  }
+
+  if (nickName === currentNickName) {
+    syncNickNameDrafts(nickName)
+    isEditingNickName.value = false
+    return true
+  }
+
+  if (nickNameSaving.value) return false
+  nickNameSaving.value = true
+
+  try {
+    await userStore.updateProfile({ nickName }, 'manual')
+    syncNickNameDrafts(userStore.userInfo?.nickName || nickName)
+    isEditingNickName.value = false
+    uni.hideKeyboard()
+    haptic.success()
+    uni.showToast({ title: '昵称已更新', icon: 'success' })
+    return true
+  } catch {
+    haptic.warning()
+    return false
+  } finally {
+    nickNameSaving.value = false
+  }
+}
+
+async function confirmNickName() {
+  if (!isEditingNickName.value || nickNameSaving.value) return
+  await submitNickName()
+}
+
+async function toggleWxSync() {
+  haptic.light()
+  if (avatarUploading.value || nickNameSaving.value) return
+  if (wxSyncVisible.value) {
+    wxSyncVisible.value = false
+    return
+  }
+  const loggedIn = await ensureLoggedIn()
+  if (!loggedIn) return
+  isEditingNickName.value = false
+  syncNickNameDrafts(userStore.userInfo?.nickName || '')
+  wxSyncVisible.value = true
+}
 
 const joinedDays = computed(() => userStore.userInfo?.stats?.joinedDays ?? 0)
 const joinedText = computed(() => {
-  if (!userStore.userInfo?.stats) return 'UNREGISTERED'
-  return `DAY ${joinedDays.value}`
+  if (!userStore.userInfo?.stats) return profileCopy.guestBadge
+  return `${profileCopy.joinedDayPrefix} ${joinedDays.value}`
 })
 
 const totalHabits = computed(() => habitStore.activeHabits.length)
@@ -266,11 +451,11 @@ const pendingCount = computed(() => habitStore.pendingHabits.length)
 
 // Advanced Dossier Logic
 const myFocusText = computed(() => {
-  if (!userStore.isLoggedIn) return 'AWAITING LOGIN'
-  if (totalHabits.value === 0) return 'NO HABITS TRACKED'
-  if (completionRate.value >= 85) return 'PEAK PERFORMANCE'
-  if (completionRate.value >= 50) return 'STABLE RHYTHM'
-  return 'GATHERING MOMENTUM'
+  if (!userStore.isLoggedIn) return profileCopy.focusAwaiting
+  if (totalHabits.value === 0) return profileCopy.focusReady
+  if (completionRate.value >= 85) return profileCopy.focusPeak
+  if (completionRate.value >= 50) return profileCopy.focusStable
+  return profileCopy.focusMomentum
 })
 
 const profileSlogan = computed(() => {
@@ -281,6 +466,16 @@ const profileSlogan = computed(() => {
   if (pendingCount.value === 0 && totalHabits.value > 0) return '今日计划已悉数达成。休息是为了走更远的路。'
   return '把注意力放在今天最重要的一件事上。别让噪音干扰你。'
 })
+
+watch(
+  () => userStore.userInfo?.nickName || '',
+  (value) => {
+    if (!isEditingNickName.value && !nickNameSaving.value) {
+      syncNickNameDrafts(value)
+    }
+  },
+  { immediate: true },
+)
 
 const { displayValue: animHabitCount } = useCountUp(totalHabits)
 const { displayValue: animTotalCheckIns } = useCountUp(totalCheckIns)
@@ -377,44 +572,23 @@ const achievements = computed<Achievement[]>(() => {
   const allDoneDays = (stats as any)?.allDoneDays ?? 0
   const ritualDone = (stats as any)?.ritualDone ?? 0
   const journeyDone = (stats as any)?.journeyDone ?? 0
+  const achievementCopyMap = Object.fromEntries(profileCopy.achievements.map(item => [item.id, item])) as Record<string, { name: string; desc: string }>
 
   return [
-    { id: 'first', name: 'GENESIS', desc: 'Create first entry', icon: 'flag-bold', color: '#1E1E2E', unlocked: totalHabits.value >= 1 },
-    { id: 'streak7', name: 'PIONEER', desc: '7 days solid rhythm', icon: 'fire-bold', color: '#B8860B', unlocked: streak >= 7 },
-    { id: 'streak21', name: 'ARCHITECT', desc: '21 days momentum', icon: 'star-bold', color: '#8B0000', unlocked: streak >= 21 },
-    { id: 'allDone10', name: 'FLAWLESS', desc: '10 perfect days', icon: 'cup-bold', color: '#2F4F4F', unlocked: allDoneDays >= 10 },
-    { id: 'ritual', name: 'RITUALIST', desc: 'Complete ceremony', icon: 'confetti-bold', color: '#483D8B', unlocked: ritualDone >= 1 },
-    { id: 'journey', name: 'VOYAGER', desc: 'Finish a phase', icon: 'gift-bold', color: '#8B4513', unlocked: journeyDone >= 1 },
+    { id: 'first', name: achievementCopyMap.first.name, desc: achievementCopyMap.first.desc, icon: 'flag-bold', color: '#1E1E2E', unlocked: totalHabits.value >= 1 },
+    { id: 'streak7', name: achievementCopyMap.streak7.name, desc: achievementCopyMap.streak7.desc, icon: 'fire-bold', color: '#B8860B', unlocked: streak >= 7 },
+    { id: 'streak21', name: achievementCopyMap.streak21.name, desc: achievementCopyMap.streak21.desc, icon: 'star-bold', color: '#8B0000', unlocked: streak >= 21 },
+    { id: 'allDone10', name: achievementCopyMap.allDone10.name, desc: achievementCopyMap.allDone10.desc, icon: 'cup-bold', color: '#2F4F4F', unlocked: allDoneDays >= 10 },
+    { id: 'ritual', name: achievementCopyMap.ritual.name, desc: achievementCopyMap.ritual.desc, icon: 'confetti-bold', color: '#483D8B', unlocked: ritualDone >= 1 },
+    { id: 'journey', name: achievementCopyMap.journey.name, desc: achievementCopyMap.journey.desc, icon: 'gift-bold', color: '#8B4513', unlocked: journeyDone >= 1 },
   ]
 })
 
 const unlockedCount = computed(() => achievements.value.filter((a) => a.unlocked).length)
 
-function isCloudFileId(url: string): boolean {
-  return typeof url === 'string' && url.startsWith('cloud://')
-}
-
-function getTempFileUrl(fileId: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // #ifdef MP-WEIXIN
-    wx.cloud.getTempFileURL({
-      fileList: [fileId],
-      success: (res) => {
-        const item = (res.fileList as any[])?.[0]
-        const tempUrl = typeof item?.tempFileURL === 'string' ? item.tempFileURL.trim() : ''
-        resolve(tempUrl)
-      },
-      fail: reject,
-    })
-    // #endif
-
-    // #ifndef MP-WEIXIN
-    resolve(fileId)
-    // #endif
-  })
-}
 
 function handleAvatarTap() {
+  haptic.light()
   if (userStore.isLoggedIn) return
   userStore.login().catch(() => {})
 }
@@ -443,100 +617,6 @@ function handleAvatarLoadError() {
   avatarLoadFailed.value = true
 }
 
-function isUserCancelError(err: unknown): boolean {
-  const msg = String((err as any)?.errMsg || (err as any)?.message || '').toLowerCase()
-  return msg.includes('cancel')
-}
-
-function chooseAvatarImage(): Promise<{ path: string; size: number }> {
-  return new Promise((resolve, reject) => {
-    uni.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const path = res.tempFilePaths?.[0]
-        const size = Number((res.tempFiles as any)?.[0]?.size || 0)
-        if (!path) {
-          reject(new Error('未获取到图片文件'))
-          return
-        }
-        resolve({ path, size })
-      },
-      fail: reject,
-    })
-  })
-}
-
-function getImageInfo(path: string): Promise<UniApp.GetImageInfoSuccessData> {
-  return new Promise((resolve, reject) => {
-    uni.getImageInfo({
-      src: path,
-      success: resolve,
-      fail: reject,
-    })
-  })
-}
-
-function compressLocalImage(path: string, quality = 78): Promise<string> {
-  return new Promise((resolve, reject) => {
-    uni.compressImage({
-      src: path,
-      quality,
-      success: (res) => resolve(res.tempFilePath),
-      fail: reject,
-    })
-  })
-}
-
-function getFileExtFromPath(path: string): string {
-  const matched = path.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)
-  const ext = matched?.[1]?.toLowerCase() || 'jpg'
-  if (ext === 'jpeg') return 'jpg'
-  return ext
-}
-
-async function normalizeAvatarTempFile(path: string, size: number): Promise<string> {
-  if (size > MAX_AVATAR_FILE_SIZE) throw new Error('图片需小于 5MB')
-
-  const info = await getImageInfo(path)
-  const minEdge = Math.min(info.width || 0, info.height || 0)
-  const maxEdge = Math.max(info.width || 0, info.height || 0)
-  if (minEdge < MIN_AVATAR_EDGE_PX) {
-    throw new Error('图片分辨率太低，请换一张清晰图片')
-  }
-
-  const shouldCompress =
-    size >= COMPRESS_TRIGGER_SIZE || maxEdge >= COMPRESS_TRIGGER_EDGE
-  if (!shouldCompress || typeof uni.compressImage !== 'function') {
-    return path
-  }
-
-  try {
-    return await compressLocalImage(path)
-  } catch {
-    return path
-  }
-}
-
-async function uploadAvatarToCloud(filePath: string): Promise<string> {
-  // #ifdef MP-WEIXIN
-  const userId = userStore.userInfo?._id || 'anonymous'
-  const random = Math.random().toString(36).slice(2, 8)
-  const ext = getFileExtFromPath(filePath)
-  const cloudPath = `avatars/${userId}/${Date.now()}_${random}.${ext}`
-  const res = await wx.cloud.uploadFile({
-    cloudPath,
-    filePath,
-  })
-  if (!res?.fileID) throw new Error('头像上传失败，请重试')
-  return res.fileID
-  // #endif
-
-  // #ifndef MP-WEIXIN
-  throw new Error('当前平台暂不支持头像上传')
-  // #endif
-}
 
 async function pickAvatarBgImage() {
   if (!userStore.isLoggedIn) {
@@ -544,21 +624,24 @@ async function pickAvatarBgImage() {
     return
   }
   if (avatarUploading.value) return
+  avatarUploading.value = true
 
   let loadingShown = false
+  let avatarPreview: AvatarPreviewSnapshot | null = null
   try {
     const chosen = await chooseAvatarImage()
     const normalizedPath = await normalizeAvatarTempFile(chosen.path, chosen.size)
+    avatarPreview = applyAvatarLocalPreview(normalizedPath)
 
-    avatarUploading.value = true
     uni.showLoading({ title: '头像上传中', mask: true })
     loadingShown = true
 
     const avatarUrl = await uploadAvatarToCloud(normalizedPath)
-    await userStore.updateAvatar(avatarUrl)
+    await userStore.updateProfile({ avatarUrl }, 'manual')
     avatarLoadFailed.value = false
     uni.showToast({ title: '头像已更新', icon: 'success' })
   } catch (err: any) {
+    restoreAvatarPreview(avatarPreview)
     if (!isUserCancelError(err)) {
       uni.showToast({ title: err?.message || '头像上传失败', icon: 'none' })
     }
@@ -573,6 +656,7 @@ let isNavigating = false
 async function handleMenuTap(key: string) {
   if (isNavigating) return
   isNavigating = true
+  haptic.light()
   
   try {
     if (!userStore.isLoggedIn) {
@@ -597,9 +681,15 @@ async function handleMenuTap(key: string) {
   }
 }
 
-onShow(() => {
+onShow(async () => {
   appStore.switchTab('profile')
   habitStore.refreshDateIfNeeded()
+
+  // 确保已登录，否则 fetchProfile 会因 userInfo 为空而跳过
+  if (!userStore.isLoggedIn) {
+    try { await userStore.login() } catch { /* toast handled in store */ }
+  }
+
   const tasks: Array<Promise<unknown>> = [userStore.fetchProfile()]
   if (habitStore.habits.length === 0) tasks.push(habitStore.fetchHabits())
   if (boardStore.notes.length === 0) tasks.push(boardStore.fetchNotes())
@@ -608,6 +698,9 @@ onShow(() => {
 
 onPullDownRefresh(async () => {
   try {
+    if (!userStore.isLoggedIn) {
+      try { await userStore.login() } catch { /* toast handled in store */ }
+    }
     await Promise.all([
       habitStore.fetchHabits(),
       boardStore.fetchNotes(),
@@ -836,16 +929,93 @@ $nb-red: #FF4444;
       pointer-events: none;
       background: rgba(255,255,255,0.85);
       z-index: 4;
+      text-transform: none;
+      letter-spacing: 1rpx;
     }
   }
 
   &__bar {
     display: flex;
-    align-items: center;
-    gap: $space-3;
+    flex-direction: column;
+    gap: 14rpx;
     background: $ink-black;
     margin: $space-4 (-$space-4) 0;
     padding: $space-3 $space-4;
+
+    .hero-bar__main {
+      display: flex;
+      align-items: center;
+      gap: 16rpx;
+      min-width: 0;
+    }
+
+    .hero-bar__name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      min-height: 56rpx;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .hero-bar__edit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8rpx;
+      padding: 10rpx 18rpx 10rpx 14rpx;
+      background: $nb-yellow;
+      border: 2px solid $ink-black;
+      border-radius: 4rpx;
+      box-shadow: 4rpx 4rpx 0 $ink-black;
+      flex-shrink: 0;
+      min-height: 56rpx;
+      max-width: 320rpx;
+
+      &.is-guest {
+        background: #FFFFFF;
+      }
+
+      &:active {
+        box-shadow: none;
+        transform: translate(4rpx, 4rpx);
+      }
+    }
+
+    .hero-bar__edit-label {
+      font-size: 22rpx;
+      font-weight: 900;
+      color: $ink-black;
+      line-height: 1;
+      letter-spacing: 0.5rpx;
+      white-space: nowrap;
+    }
+
+    .hero-bar__edit-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56rpx;
+      padding: 10rpx 18rpx;
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 4rpx;
+      flex-shrink: 0;
+
+      &.is-saving {
+        border-style: solid;
+        border-color: rgba(255, 229, 102, 0.72);
+        background: rgba(255, 229, 102, 0.14);
+      }
+    }
+
+    .hero-bar__edit-state-text {
+      font-size: 20rpx;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.78);
+      letter-spacing: 0.5rpx;
+      white-space: nowrap;
+    }
 
     .hero-bar__name {
       font-family: 'Helvetica Neue', Helvetica, sans-serif;
@@ -857,6 +1027,28 @@ $nb-red: #FF4444;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 280rpx;
+    }
+
+    .hero-bar__name-input {
+      font-family: 'Helvetica Neue', Helvetica, sans-serif;
+      font-size: 36rpx;
+      font-weight: 900;
+      color: $ink-black;
+      border: $brutal-border;
+      border-radius: 4rpx;
+      padding: 4rpx 12rpx;
+      background: #fff;
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .hero-bar__meta {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      flex-wrap: wrap;
+      min-width: 0;
     }
 
     .hero-bar__badge {
@@ -873,11 +1065,23 @@ $nb-red: #FF4444;
 
     .hero-bar__id {
       font-size: 18rpx;
-      color: rgba(255,255,255,0.5);
-      letter-spacing: 2rpx;
+      color: rgba(255,255,255,0.42);
+      letter-spacing: 1.5rpx;
       margin-left: auto;
       flex-shrink: 0;
+      white-space: nowrap;
+      text-transform: uppercase;
     }
+  }
+
+  &__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: $ink-black;
+    margin: 0 (-$space-4);
+    padding: 4rpx $space-4 8rpx;
+    border-radius: 0 0 $brutal-radius $brutal-radius;
   }
 
   &__version {
@@ -885,14 +1089,35 @@ $nb-red: #FF4444;
     font-size: 16rpx;
     font-weight: 900;
     color: rgba(255,255,255,0.35);
-    background: $ink-black;
-    margin: 0 (-$space-4);
-    padding: 4rpx $space-4 8rpx;
-    letter-spacing: 2rpx;
-    text-transform: uppercase;
-    border-radius: 0 0 $brutal-radius $brutal-radius;
+    letter-spacing: 1rpx;
+    text-transform: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__wx-sync {
+    display: flex;
+    align-items: center;
+    gap: 4rpx;
+    padding: 4rpx 12rpx;
+    border-radius: 4rpx;
+    background: rgba(255,255,255,0.1);
+
+    .wx-sync__label {
+      font-family: monospace;
+      font-size: 16rpx;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.5rpx;
+    }
+
+    &:active {
+      background: rgba(255,255,255,0.2);
+    }
   }
 }
+
 
 // =============================================
 // 2. SLOGAN TAPE — Full-bleed color strip
@@ -1016,9 +1241,10 @@ $nb-red: #FF4444;
   font-size: 16rpx;
   font-weight: 700;
   color: $ink-black;
-  letter-spacing: 2rpx;
-  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  text-transform: none;
   text-align: center;
+  line-height: 1.45;
 }
 
 .metrics-hero__status {
@@ -1029,7 +1255,7 @@ $nb-red: #FF4444;
   background: $ink-black;
   padding: 2rpx 12rpx;
   margin-top: $space-2;
-  text-transform: uppercase;
+  text-transform: none;
   text-align: center;
 }
 
@@ -1055,8 +1281,9 @@ $nb-red: #FF4444;
     font-weight: 700;
     color: $ink-black;
     margin-top: $space-1;
-    text-transform: uppercase;
-    letter-spacing: 2rpx;
+    text-transform: none;
+    letter-spacing: 1rpx;
+    text-align: center;
   }
 }
 
@@ -1068,7 +1295,7 @@ $nb-red: #FF4444;
 }
 
 // =============================================
-// 5. ACHIEVEMENTS — Horizontal Stamp Scroll
+// 5. Achievement cards
 // =============================================
 .stamp-section {
   @include flex-col;
@@ -1092,10 +1319,11 @@ $nb-red: #FF4444;
   font-family: 'Helvetica Neue', Helvetica, sans-serif;
   font-size: 28rpx;
   font-weight: 900;
-  letter-spacing: 2rpx;
+  letter-spacing: 1rpx;
   color: $ink-black;
-  text-transform: uppercase;
+  text-transform: none;
   flex: 1;
+  line-height: 1.35;
 }
 
 .stamp-head__count {
@@ -1173,7 +1401,7 @@ $nb-red: #FF4444;
   font-family: 'Helvetica Neue', Helvetica, sans-serif;
   font-size: 22rpx;
   font-weight: 900;
-  text-transform: uppercase;
+  text-transform: none;
   color: $ink-black;
   white-space: normal;
 
@@ -1240,7 +1468,8 @@ $nb-red: #FF4444;
     font-size: 32rpx;
     font-weight: 900;
     color: $ink-black;
-    text-transform: uppercase;
+    text-transform: none;
+    line-height: 1.3;
   }
 
   &__sub {
@@ -1249,6 +1478,7 @@ $nb-red: #FF4444;
     font-weight: 700;
     color: $ink-light;
     letter-spacing: 1rpx;
+    line-height: 1.45;
   }
 
   &__badge {
@@ -1292,7 +1522,7 @@ $nb-red: #FF4444;
     font-size: 28rpx;
     font-weight: 900;
     color: $ink-black;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__sub {
@@ -1302,6 +1532,7 @@ $nb-red: #FF4444;
     color: $ink-light;
     flex: 1;
     letter-spacing: 1rpx;
+    line-height: 1.45;
   }
 }
 
@@ -1334,7 +1565,8 @@ $nb-red: #FF4444;
     font-size: 20rpx;
     color: $ink-black;
     letter-spacing: 1rpx;
-    text-transform: uppercase;
+    text-transform: none;
+    text-align: center;
   }
 }
 

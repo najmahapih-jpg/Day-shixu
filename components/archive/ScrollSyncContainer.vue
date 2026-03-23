@@ -140,20 +140,34 @@ function onScroll(event, ownerInstance) {
     var dy = itemCenterY - centerY;
     var distanceRatio = dy / (windowHeight / 2);
 
-    var scale = 1 - Math.abs(distanceRatio) * 0.2;
-    scale = Math.max(0.6, Math.min(1, scale));
+    var scale = 1 - Math.abs(distanceRatio) * 0.18;
+    scale = Math.max(0.65, Math.min(1, scale));
 
-    var rotateX = distanceRatio * -25;
-    rotateX = Math.max(-45, Math.min(45, rotateX));
+    var rotateX = distanceRatio * -22;
+    rotateX = Math.max(-40, Math.min(40, rotateX));
 
-    var opacity = 1 - Math.abs(distanceRatio) * 0.8;
-    opacity = Math.max(0.1, Math.min(1, opacity));
+    // Subtle Y-axis rotation for 3D flip feel
+    var rotateY = distanceRatio * 6;
+    rotateY = Math.max(-12, Math.min(12, rotateY));
+
+    // Z-depth push for non-center items
+    var translateZ = -Math.abs(distanceRatio) * 60;
+
+    var opacity = 1 - Math.abs(distanceRatio) * 0.7;
+    opacity = Math.max(0.15, Math.min(1, opacity));
 
     instance.setStyle({
-      transform: 'perspective(1000px) scale(' + scale + ') rotateX(' + rotateX + 'deg)',
+      transform: 'perspective(1000px) scale(' + scale + ') rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateZ(' + translateZ + 'px)',
       opacity: opacity,
-      transition: 'transform 0.1s linear, opacity 0.1s linear'
+      transition: 'transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.15s ease-out'
     });
+
+    // Toggle active class for glow effect
+    if (Math.abs(distanceRatio) < 0.3) {
+      instance.addClass('archive-item--active');
+    } else {
+      instance.removeClass('archive-item--active');
+    }
   }
 }
 
@@ -192,6 +206,12 @@ module.exports = {
   align-items: center;
   transform-origin: right center;
   will-change: transform, opacity;
+  transition: box-shadow 0.3s ease-out;
+}
+
+/* Active card glow */
+.archive-item--active {
+  filter: drop-shadow(0 4px 20px rgba(232, 114, 92, 0.15));
 }
 
 /* Stellar HUD Overlay Styles */
@@ -227,7 +247,7 @@ module.exports = {
   font-size: 112rpx;
   font-weight: 900;
   line-height: 0.9;
-  letter-spacing: -4rpx;
+  letter-spacing: -2rpx;
   color: #1A1A1A;
   margin-top: -4rpx;
 }

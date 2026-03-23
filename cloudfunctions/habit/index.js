@@ -489,6 +489,16 @@ function normalizeLinkedHabitId(linkedHabitId) {
   return linkedHabitId.trim()
 }
 
+function normalizeBoardGroupId(groupId) {
+  if (typeof groupId !== 'string') return ''
+  return groupId.trim().slice(0, 24)
+}
+
+function normalizeBoardImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string') return ''
+  return imageUrl.trim()
+}
+
 async function verifyLinkedHabit(openid, linkedHabitId) {
   const normalized = normalizeLinkedHabitId(linkedHabitId)
   if (!normalized) {
@@ -525,6 +535,7 @@ async function boardCreate(openid, data) {
   const noteType = BOARD_NOTE_TYPES.has(data.noteType) ? data.noteType : 'text'
   const checkItems = normalizeBoardCheckItems(data.checkItems)
   const tags = normalizeBoardTags(data.tags)
+  const groupId = normalizeBoardGroupId(data.groupId)
   const content = normalizeBoardContent(data.content)
   const fallbackContent = checkItems.map((item) => item.text).join('\n')
   const finalContent = content || fallbackContent
@@ -542,14 +553,16 @@ async function boardCreate(openid, data) {
     fontSize: data.fontSize || 'md',
     textAlign: data.textAlign || 'left',
     textVertical: data.textVertical || 'top',
-    fontFamily: data.fontFamily || 'serif',
+    fontFamily: data.fontFamily || 'hand',
     positionMode,
     noteShape: data.noteShape || 'rect',
     noteType,
     checkItems: noteType === 'checklist' ? checkItems : [],
+    groupId,
     linkedHabitId: linkedHabitCheck.linkedHabitId,
     isPinned: !!data.isPinned,
     tags,
+    imageUrl: normalizeBoardImageUrl(data.imageUrl),
     x: positionMode === 'manual' ? toSafeNumber(data.x, 0) : 0,
     y: positionMode === 'manual' ? toSafeNumber(data.y, 0) : 0,
     rotation: toSafeNumber(
@@ -596,7 +609,7 @@ async function boardUpdate(openid, data) {
     updates.textVertical = incoming.textVertical || (note.textVertical || 'top')
   }
   if (has('fontFamily')) {
-    updates.fontFamily = incoming.fontFamily || (note.fontFamily || 'serif')
+    updates.fontFamily = incoming.fontFamily || (note.fontFamily || 'hand')
   }
   if (has('positionMode')) {
     updates.positionMode = incoming.positionMode === 'manual' ? 'manual' : 'auto'
@@ -620,11 +633,17 @@ async function boardUpdate(openid, data) {
     if (!linkedHabitCheck.ok) return fail(linkedHabitCheck.message)
     updates.linkedHabitId = linkedHabitCheck.linkedHabitId
   }
+  if (has('groupId')) {
+    updates.groupId = normalizeBoardGroupId(incoming.groupId)
+  }
   if (has('isPinned')) {
     updates.isPinned = !!incoming.isPinned
   }
   if (has('tags')) {
     updates.tags = normalizeBoardTags(incoming.tags)
+  }
+  if (has('imageUrl')) {
+    updates.imageUrl = normalizeBoardImageUrl(incoming.imageUrl)
   }
   if (has('x')) updates.x = toSafeNumber(incoming.x, note.x || 0)
   if (has('y')) updates.y = toSafeNumber(incoming.y, note.y || 0)

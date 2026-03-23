@@ -96,7 +96,7 @@
 
         <view class="setting-row">
           <text class="setting-row__label">开发者</text>
-          <text class="setting-row__value">HabitFlow Team</text>
+          <text class="setting-row__value">{{ settingsAboutCopy.developerValue }}</text>
         </view>
       </HfCard>
     </view>
@@ -118,6 +118,7 @@ import HfSectionHeader from '@/components/base/HfSectionHeader.vue'
 import { useStaggerAnimation } from '@/composables/useStaggerAnimation'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { getBeijingIsoNow } from '@/services/cloud'
+import { PUBLIC_COPY } from '@/utils/publicCopy'
 
 // --- Stores ---
 
@@ -125,6 +126,7 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 const { getItemStyle: groupStagger, triggerAnimation: triggerGroupStagger } = useStaggerAnimation()
 const { entered: pageEntered } = usePageTransition()
+const settingsAboutCopy = PUBLIC_COPY.settingsAbout
 
 const {
   reduceMotion,

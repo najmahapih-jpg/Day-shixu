@@ -4,7 +4,7 @@
       <!-- Glow background -->
       <view class="tactile-shadow" :class="note.color"></view>
 
-      <view class="preview-card">
+      <view class="preview-card" :class="note.color">
         <view class="accent-strip" :class="note.color"></view>
         
         <scroll-view scroll-y class="scroll-content">
@@ -162,8 +162,6 @@ defineExpose({ open, close })
   position: fixed;
   inset: 0;
   background: rgba(249, 248, 246, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   z-index: $z-top;
   display: flex;
   justify-content: center;
@@ -171,7 +169,7 @@ defineExpose({ open, close })
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  padding: 40rpx;
+  padding: 32rpx 24rpx calc(32rpx + env(safe-area-inset-bottom));
 
   &.is-visible {
     opacity: 1;
@@ -194,22 +192,23 @@ defineExpose({ open, close })
 .preview-container {
   width: 100%;
   max-width: 680rpx;
+  min-width: 0;
   position: relative;
   transform: scale(0.95) translateY(20rpx);
   opacity: 0;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tactile-shadow {
   position: absolute;
   inset: -10rpx;
   border-radius: 40rpx;
-  filter: blur(50rpx);
-  opacity: 1;
+  opacity: 0.16;
   z-index: 0;
+  transform: translateY(6rpx) scale(0.985);
   
   @each $name, $color in $note-colors {
-    &.#{$name} { background: rgba($color, 0.6); }
+    &.#{$name} { background: radial-gradient(circle at center, rgba($color, 0.26), rgba($color, 0.08) 72%, rgba($color, 0) 100%); }
   }
 }
 
@@ -218,11 +217,21 @@ defineExpose({ open, close })
   z-index: 1;
   background: $color-white;
   border-radius: $radius-2xl;
-  padding: $space-6 $space-5;
-  box-shadow: $shadow-elevated, inset 0 0 0 1px rgba(255,255,255,0.8);
+  padding: $space-5 $space-4;
+  box-shadow: 0 16rpx 36rpx rgba(15, 23, 42, 0.08), 0 4rpx 12rpx rgba(15, 23, 42, 0.04);
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: calc(100vh - 96rpx - env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow: hidden;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
+
+  @each $name, $color in $note-colors {
+    &.#{$name} {
+      background: linear-gradient(180deg, rgba($color, 0.16) 0%, rgba($color, 0.06) 100%);
+      box-shadow: 0 16rpx 36rpx rgba(15, 23, 42, 0.08), 0 4rpx 12rpx rgba(15, 23, 42, 0.04), inset 0 0 0 1rpx rgba($color, 0.14);
+    }
+  }
 }
 
 .accent-strip {
@@ -231,12 +240,13 @@ defineExpose({ open, close })
   border-radius: 32rpx 32rpx 0 0;
   
   @each $name, $color in $note-colors {
-    &.#{$name} { background: $color; }
+    &.#{$name} { background: linear-gradient(90deg, rgba($color, 0.72), rgba($color, 0.96)); }
   }
 }
 
 .scroll-content {
   flex: 1;
+  min-height: 0;
   overflow-y: hidden; // scroll-view handles it
 }
 
@@ -277,6 +287,7 @@ defineExpose({ open, close })
   line-height: $line-height-relaxed;
   font-weight: $font-normal;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Checklist */
@@ -312,12 +323,14 @@ defineExpose({ open, close })
   color: $neutral-900;
   line-height: 1.6;
   flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .action-bar {
   display: flex;
-  justify-content: flex-end;
-  gap: 32rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
   margin-top: 48rpx;
   padding-top: 24rpx;
   border-top: 1px solid $neutral-100;
@@ -333,40 +346,51 @@ defineExpose({ open, close })
 }
 
 .icon-btn {
+  flex: 1 1 calc(33.333% - 16rpx);
+  min-width: 0;
+  min-height: 72rpx;
   font-size: $text-base;
   color: $neutral-700;
   font-weight: $font-medium;
   padding: 12rpx 24rpx;
-  border-radius: $radius-full;
-  background: $neutral-100;
-  transition: background 0.2s, color 0.2s;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  text-align: center;
+  box-sizing: border-box;
   
-  &:active { background: $neutral-200; }
+  &:active { background: rgba(255, 255, 255, 0.9); }
 
   &.active {
-    background: $neutral-900;
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(15, 23, 42, 0.92);
     color: white;
   }
   
   &.danger {
     color: #DC2626;
-    background: #FEF2F2;
+    background: rgba(254, 242, 242, 0.9);
+    border-color: rgba(220, 38, 38, 0.12);
     &:active { background: #FEE2E2; }
   }
 }
 
 /* Habit Link Bar */
 .habit-link-bar {
+  min-height: 96rpx;
   display: flex; align-items: center; gap: 20rpx;
-  padding: 20rpx 24rpx; margin-top: 32rpx;
-  background: rgba(126, 184, 201, 0.06);
-  border: 1px solid rgba(126, 184, 201, 0.15);
+  padding: 18rpx 24rpx; margin-top: 32rpx;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(126, 184, 201, 0.18);
   border-radius: $radius-lg;
   transition: background 0.2s;
-  &:active { background: rgba(126, 184, 201, 0.12); }
+  min-width: 0;
+  box-sizing: border-box;
+  &:active { background: rgba(255, 255, 255, 0.78); }
 }
 .habit-link-icon {
-  width: 56rpx; height: 56rpx; border-radius: 14rpx;
+  width: 60rpx; height: 60rpx; border-radius: 16rpx;
   display: flex; justify-content: center; align-items: center; flex-shrink: 0;
 }
 .habit-link-emoji { font-size: 28rpx; }
@@ -380,6 +404,8 @@ defineExpose({ open, close })
   display: block; font-size: $text-xs; color: $neutral-500; margin-top: 4rpx;
 }
 .habit-link-arrow {
+  min-width: 40rpx;
+  text-align: right;
   font-size: 36rpx; color: $neutral-400; font-weight: 300;
 }
 </style>

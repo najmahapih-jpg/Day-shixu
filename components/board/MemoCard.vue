@@ -1,5 +1,5 @@
 <template>
-  <view class="memo-card-wrapper" :class="[scatterClass, { 'is-pinned': note.isPinned }]" :style="entranceStyle" @click="$emit('click', note)" @longpress="$emit('longpress', note)">
+  <view class="memo-card-wrapper" :class="{ 'is-pinned': note.isPinned }" :style="entranceStyle" @click="$emit('click', note)" @longpress="$emit('longpress', note)">
     <!-- Diffuse Shadow Layer (the glowing cloud effect) -->
     <view class="tactile-shadow" :class="note.color"></view>
 
@@ -58,16 +58,16 @@ defineEmits(['click', 'longpress'])
 const habitStore = useHabitStore()
 
 // Organic Scatter — subtle rotation for visual interest in masonry
-const scatterClass = computed(() => {
-  if (props.note.isPinned) return 'scatter-none'
+const scatterTilt = computed(() => {
+  if (props.note.isPinned) return '0deg'
   let hash = 0
   const idStr = props.note._id || ''
   for (let i = 0; i < idStr.length; i++) {
     hash = idStr.charCodeAt(i) + ((hash << 5) - hash)
   }
   hash = Math.abs(hash)
-  const types = ['scatter-tilt-l', 'scatter-tilt-r', 'scatter-none']
-  return types[hash % types.length]
+  const tilts = ['-0.3deg', '0.3deg', '0deg']
+  return tilts[hash % tilts.length]
 })
 
 // Staggered entrance animation
@@ -76,6 +76,7 @@ const entranceStyle = computed(() => {
   const delay = Math.min(idx * 60, 400)
   return {
     animationDelay: `${delay}ms`,
+    '--memo-tilt': scatterTilt.value,
   }
 })
 
@@ -140,20 +141,18 @@ const formatTime = (isoTimeString: string) => {
 .memo-card-wrapper {
   position: relative;
   width: 100%;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  min-width: 0;
+  transform: rotate(var(--memo-tilt, 0deg));
+  transform-origin: center center;
+  transition: transform 0.22s ease, opacity 0.22s ease;
   animation: cardEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
   
-  /* Subtle organic tilt for visual variety */
-  &.scatter-tilt-l { transform: rotate(-0.4deg); }
-  &.scatter-tilt-r { transform: rotate(0.4deg); }
-  &.scatter-none { transform: none; }
-  
   &:active {
-    transform: scale(0.97) translateY(4rpx) !important;
+    transform: translateY(2rpx) scale(0.985) rotate(var(--memo-tilt, 0deg));
 
     .memo-card-body {
       @each $name, $color in $note-colors {
-        &.#{$name} { box-shadow: 0 0 0 2rpx rgba($color, 0.3), 0 2rpx 12rpx rgba(0,0,0,0.03); }
+        &.#{$name} { box-shadow: 0 0 0 2rpx rgba($color, 0.22), 0 10rpx 22rpx rgba(15, 23, 42, 0.08); }
       }
     }
   }
@@ -162,11 +161,11 @@ const formatTime = (isoTimeString: string) => {
 @keyframes cardEntrance {
   from {
     opacity: 0;
-    transform: translateY(24rpx) scale(0.96);
+    transform: translateY(18rpx) scale(0.985) rotate(var(--memo-tilt, 0deg));
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) rotate(var(--memo-tilt, 0deg));
   }
 }
 
@@ -178,52 +177,54 @@ const formatTime = (isoTimeString: string) => {
   right: 5%;
   bottom: -5%;
   border-radius: 30rpx;
-  filter: blur(40rpx);
-  opacity: 0.6;
+  opacity: 0.14;
   z-index: 0;
-  transition: all 0.4s ease;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+  transform: translateY(8rpx) scale(0.97);
   
   /* 6-Color Mapping for Shadows */
   @each $name, $color in $note-colors {
-    &.#{$name} { background: rgba($color, 0.5); }
+    &.#{$name} { background: radial-gradient(circle at center, rgba($color, 0.24), rgba($color, 0.08) 72%, rgba($color, 0) 100%); }
   }
 }
 
 /* Hover/Press Z-Axis effect simulation for touch devices */
 .memo-card-wrapper:active .tactile-shadow {
-  filter: blur(50rpx);
-  opacity: 0.8;
-  transform: scale(1.05) translateY(10rpx);
+  opacity: 0.2;
+  transform: translateY(10rpx) scale(0.99);
 }
 
 .memo-card-body {
   position: relative;
   z-index: 1;
   background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-radius: 24rpx;
   padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03), inset 0 0 0 1px rgba(255,255,255,0.6);
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.06), 0 2rpx 8rpx rgba(15, 23, 42, 0.03);
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.22s ease, background 0.22s ease;
+  min-width: 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
 
   @each $name, $color in $note-colors {
-    &.#{$name} { background: rgba($color, 0.04); }
+    &.#{$name} {
+      background: linear-gradient(180deg, rgba($color, 0.16) 0%, rgba($color, 0.08) 100%);
+      box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.06), 0 2rpx 8rpx rgba(15, 23, 42, 0.03), inset 0 0 0 1rpx rgba($color, 0.14);
+    }
   }
 }
 
 .is-pinned .memo-card-body {
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.6);
+  box-shadow: 0 14rpx 28rpx rgba(15, 23, 42, 0.08), 0 4rpx 10rpx rgba(15, 23, 42, 0.04);
 }
 
 .accent-strip {
   position: absolute;
-  top: 0; left: 0; right: 0; height: 4rpx;
+  top: 0; left: 0; right: 0; height: 6rpx;
   
   @each $name, $color in $note-colors {
-    &.#{$name} { background: linear-gradient(90deg, rgba($color, 0.4), $color); }
+    &.#{$name} { background: linear-gradient(90deg, rgba($color, 0.68), rgba($color, 0.96)); }
   }
 }
 
@@ -237,7 +238,7 @@ const formatTime = (isoTimeString: string) => {
   z-index: 2;
   
   @each $name, $color in $note-colors {
-    &.#{$name} { background: $color; box-shadow: 0 0 8rpx rgba($color, 0.6); }
+    &.#{$name} { background: $color; box-shadow: 0 0 0 4rpx rgba($color, 0.16); }
   }
 }
 
@@ -246,6 +247,7 @@ const formatTime = (isoTimeString: string) => {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+  min-width: 0;
 }
 
 .editorial-title {
@@ -254,6 +256,7 @@ const formatTime = (isoTimeString: string) => {
   color: $neutral-900;
   line-height: $line-height-snug;
   letter-spacing: $letter-spacing-normal;
+  word-break: break-word;
 }
 
 .editorial-body {
@@ -261,6 +264,8 @@ const formatTime = (isoTimeString: string) => {
   color: $neutral-700;
   line-height: 1.65;
   font-weight: $font-normal;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 /* Checklist Styles */
@@ -269,6 +274,7 @@ const formatTime = (isoTimeString: string) => {
   align-items: flex-start;
   gap: 16rpx;
   margin-bottom: 8rpx;
+  min-width: 0;
   
   &.checked .check-text {
     text-decoration: line-through;
@@ -308,6 +314,8 @@ const formatTime = (isoTimeString: string) => {
   color: $neutral-700;
   line-height: $line-height-normal;
   flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .more-items {
@@ -319,8 +327,9 @@ const formatTime = (isoTimeString: string) => {
 /* Footer Metadata */
 .footer-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12rpx;
   margin-top: 20rpx;
   border-top: 1px solid rgba(0,0,0,0.04);
   padding-top: 12rpx;
@@ -334,22 +343,32 @@ const formatTime = (isoTimeString: string) => {
   font-size: $text-xs;
   color: $neutral-400;
   font-family: $mono-stack;
+  align-self: flex-start;
 }
 
 .tags-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 12rpx;
+  min-width: 0;
 }
 
 .meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
   font-size: $text-xs;
   color: $neutral-600;
-  background: $neutral-100;
+  background: rgba(255, 255, 255, 0.66);
   padding: 4rpx $space-2 4rpx calc(#{$space-2} + 6rpx);
   border-radius: $radius-full;
   font-weight: $font-medium;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 
   &::before {
     content: '';
@@ -378,7 +397,7 @@ const formatTime = (isoTimeString: string) => {
 }
 
 /* Utils */
-.clamp-1 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; }
-.clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.clamp-4 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.clamp-1 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; word-break: break-word; }
+.clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; word-break: break-word; }
+.clamp-4 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; word-break: break-word; }
 </style>

@@ -180,11 +180,9 @@ const emitFilter = () => {
   top: 0;
   z-index: 100;
   background: rgba(249, 248, 246, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 .search-bar { 
-  height: 72rpx; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+  height: 72rpx; background: rgba(255, 255, 255, 0.94);
   border-radius: 36rpx; padding: 0 32rpx; display: flex; align-items: center; 
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.03), inset 0 0 0 1px rgba(255,255,255,0.5); 
 }
@@ -255,7 +253,6 @@ const emitFilter = () => {
   display: inline-block;
   padding: 10rpx 32rpx;
   background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
   border-radius: 40rpx;
   margin-right: 16rpx;
   font-size: 26rpx;

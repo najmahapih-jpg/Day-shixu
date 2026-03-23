@@ -110,7 +110,10 @@
         {
           "path": "onboarding/index",
           "style": {
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "disableScroll": true,
+            "renderer": "skyline",
+            "componentFramework": "glass-easel"
           }
         },
         {
@@ -127,6 +130,12 @@
     "navigationBarTitleText": "HabitFlow",
     "navigationBarBackgroundColor": "#FAF8F5",
     "backgroundColor": "#FAF8F5"
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true
+    }
   },
   "tabBar": {
     "custom": true,

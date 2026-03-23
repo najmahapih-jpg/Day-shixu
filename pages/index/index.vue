@@ -2,7 +2,7 @@
   <HfPageBg
     variant="warm"
     class="home-page page-transition"
-    :class="{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }"
+    :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }, haptic.feedbackClass]"
   >
     <view class="home-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="home-nav__left">
@@ -122,7 +122,7 @@
           </view>
         </view>
 
-        <view v-if="activeJourney" class="journey-card" @tap="goJourneyDetail">
+        <view v-if="activeJourney" class="journey-card press-scale" @tap="goJourneyDetail">
           <view class="journey-card__icon">
             <HfIcon name="flag-bold" size="xs" color="#8BA888" />
           </view>
@@ -139,19 +139,33 @@
             @action="goCreate"
           />
 
-          <view v-if="displayPendingHabits.length > 0" class="habit-list">
-            <HabitListItem
+          <transition-group
+            v-if="displayPendingHabits.length > 0"
+            tag="view"
+            class="habit-list"
+            :move-class="habitFlip.moveClass"
+            :enter-active-class="habitFlip.enterActiveClass"
+            :leave-active-class="habitFlip.leaveActiveClass"
+            enter-from-class="flip-enter-from"
+            leave-to-class="flip-leave-to"
+          >
+            <view
               v-for="(habit, idx) in displayPendingHabits"
               :key="habit._id"
-              :habit="habit"
-              :check-in="habitStore.todayCheckIns.get(habit._id!)"
-              :anim-index="idx"
-              :is-fading="fadingHabitIds.includes(habit._id!)"
-              @check="handleCheck"
-              @uncheck="handleUncheck"
-              @delete="handleDelete"
-            />
-          </view>
+              class="habit-list__item"
+            >
+              <HabitListItem
+                :habit="habit"
+                :check-in="habitStore.todayCheckIns.get(habit._id!)"
+                :anim-index="idx"
+                :is-fading="fadingHabitIds.includes(habit._id!)"
+                :is-warning="warningHabitIds.includes(habit._id!)"
+                @check="handleCheck"
+                @uncheck="handleUncheck"
+                @delete="handleDelete"
+              />
+            </view>
+          </transition-group>
 
           <view v-else class="empty-card">
             <HfIllustration name="empty/no-habit.svg" width="240rpx" height="160rpx" />
@@ -168,7 +182,7 @@
               <view
                 v-for="ritual in activeRituals"
                 :key="ritual._id"
-                class="ritual-card"
+                class="ritual-card press-scale"
                 @tap="startRitual(ritual)"
               >
                 <view class="ritual-card__icon" :style="{ background: ritualColor(ritual.type) + '18' }">
@@ -201,17 +215,30 @@
 
           <!-- Standard Guaranteed Render Wrapper -->
           <view v-show="showCompleted" class="completed-body">
-            <view class="habit-list habit-list--completed">
-              <HabitListItem
+            <transition-group
+              tag="view"
+              class="habit-list habit-list--completed"
+              :move-class="habitFlip.moveClass"
+              :enter-active-class="habitFlip.enterActiveClass"
+              :leave-active-class="habitFlip.leaveActiveClass"
+              enter-from-class="flip-enter-from"
+              leave-to-class="flip-leave-to"
+            >
+              <view
                 v-for="habit in displayCompletedHabits"
                 :key="habit._id"
-                :habit="habit"
-                :check-in="habitStore.todayCheckIns.get(habit._id!)"
-                @check="handleCheck"
-                @uncheck="handleUncheck"
-                @delete="handleDelete"
-              />
-            </view>
+                class="habit-list__item"
+              >
+                <HabitListItem
+                  :habit="habit"
+                  :check-in="habitStore.todayCheckIns.get(habit._id!)"
+                  :is-warning="warningHabitIds.includes(habit._id!)"
+                  @check="handleCheck"
+                  @uncheck="handleUncheck"
+                  @delete="handleDelete"
+                />
+              </view>
+            </transition-group>
           </view>
         </view>
 
@@ -219,18 +246,18 @@
         <view class="starmap-terminal anim-slide-up">
           <view class="starmap-card" @tap="navigateToAiInsight">
             <!-- 终端标题栏 -->
-            <view class="starmap-header">
-              <view class="starmap-dots">
-                <view class="dot dot-close"></view>
-                <view class="dot dot-min"></view>
-                <view class="dot dot-max"></view>
+              <view class="starmap-header">
+                <view class="starmap-dots">
+                  <view class="dot dot-close"></view>
+                  <view class="dot dot-min"></view>
+                  <view class="dot dot-max"></view>
+                </view>
+              <text class="starmap-title">{{ starMapCopy.titleBar }}</text>
               </view>
-              <text class="starmap-title">starmap-engine-core v2.1.0</text>
-            </view>
             
             <!-- 浮动提示：增强入口认知 -->
             <view class="starmap-float-hint">
-              <text class="hint-text">[ Click to Enter ]</text>
+              <text class="hint-text">{{ starMapCopy.hint }}</text>
             </view>
             
             <!-- 内容区域 (带底层环境氛围) -->
@@ -284,36 +311,36 @@
                 <!-- 右侧：上下文信息块 (史诗级间距) -->
                 <view class="starmap-context">
                   <view class="context-line-1">
-                    <text class="ctx-title">StarMap Terminal</text>
+                    <text class="ctx-title">{{ starMapCopy.contextTitle }}</text>
                     <text class="ctx-version">v2.1.0</text>
                   </view>
-                  <text class="context-line-2">Core Engine 4.0 · Analysis Pro</text>
-                  <text class="context-line-3">C:\Users\Commander\StarMap</text>
+                  <text class="context-line-2">{{ starMapCopy.contextSubtitle }}</text>
+                  <text class="context-line-3">{{ starMapCopy.contextCaption }}</text>
                 </view>
               </view>
 
               <!-- 明确的主题双语标识：解决认知门槛 -->
               <view class="starmap-bilingual-title">
-                <text class="bilingual-text">[ AI 周刊生成器 / Weekly Report ]</text>
+                <text class="bilingual-text">{{ starMapCopy.bilingualTitle }}</text>
               </view>
 
               <!-- 核心数据：防拥挤，极大字号对齐网格 -->
               <view class="starmap-stats-grid">
                 <!-- Added .stop to prevent the tap/longpress from bubbling up to the card's jump event -->
                 <view class="stat-row" @longpress.stop="triggerGlitch" @tap.stop="stopEvent">
-                  <text class="stat-key">SCORE</text>
+                  <text class="stat-key">{{ starMapCopy.statScore }}</text>
                   <view class="stat-dots"></view>
                   <text class="stat-val stat-val--highlight magnetic-pulse" :class="{ 'glitching-text': isScoreGlitching }">
                     {{ isScoreGlitching ? glitchScoreText : displayScore }}
                   </text>
                 </view>
                 <view class="stat-row">
-                  <text class="stat-key">HIGHLIGHTS</text>
+                  <text class="stat-key">{{ starMapCopy.statHighlights }}</text>
                   <view class="stat-dots"></view>
                   <text class="stat-val">{{ displayHighlightCount }}</text>
                 </view>
                 <view class="stat-row">
-                  <text class="stat-key">TOP_HABIT</text>
+                  <text class="stat-key">{{ starMapCopy.statTopHabit }}</text>
                   <view class="stat-dots"></view>
                   <text class="stat-val stat-val--truncate">{{ displayTopHabit }}</text>
                 </view>
@@ -330,7 +357,7 @@
               <!-- 强入口交互：赛博发光 CTA 按钮 -->
               <view class="starmap-cta-btn" @tap.stop="handleTerminalAction">
                 <view class="cta-inner">
-                  <text class="cta-text matrix-text">{{ isDecoding ? decodingText : (aiInsight ? '[ 查看 StarMap 洞察报告 ]' : '[ 生成 StarMap 洞察报告 ]') }}</text>
+                  <text class="cta-text matrix-text">{{ isDecoding ? decodingText : (aiInsight ? starMapCopy.ctaReady : starMapCopy.ctaEmpty) }}</text>
                   <text class="cta-arrow" :class="{ 'cursor-decoding': isDecoding }">█</text>
                 </view>
                 <view class="cta-sweep-light"></view>
@@ -347,11 +374,14 @@
 
     <view v-if="showFirstUseTip" class="first-tip-mask" @tap="dismissFirstUseTip">
       <view class="first-tip" @tap.stop="stopEvent">
-        <text class="first-tip__title">首次使用提示</text>
-        <text class="first-tip__desc">首页支持插画占位、习惯卡片和仪式入口。你可以先完成框架，后续再替换成自己的插画素材。</text>
+        <text class="first-tip__title">{{ starMapCopy.firstUseTipTitle }}</text>
+        <text class="first-tip__desc">{{ starMapCopy.firstUseTipDesc }}</text>
         <HfButton type="primary" size="sm" round block @tap="dismissFirstUseTip">知道了</HfButton>
       </view>
     </view>
+
+    <!-- WeChat Profile Sync Prompt (first login) -->
+    <WechatProfileSyncSheet v-model:visible="wxProfilePromptVisible" />
 
     <HfTabBar />
   </HfPageBg>
@@ -376,12 +406,15 @@ import HfIllustration from '@/components/base/HfIllustration.vue'
 import HfIcon from '@/components/base/HfIcon.vue'
 import HabitListItem from '@/components/habit/HabitListItem.vue'
 import ProgressBlockCard from '@/components/home/ProgressBlockCard.vue'
+import WechatProfileSyncSheet from '@/components/profile/WechatProfileSyncSheet.vue'
 import { usePageError } from '@/composables/usePageError'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useFLIPGroup, useHaptic } from '@/composables/motion'
 import * as aiService from '@/services/aiService'
 import * as habitService from '@/services/habitService'
 import { getToday, getBeijingDateParts, getWeekdayFromDateStr } from '@/services/cloud'
 import type { HabitInsight } from '@/types'
+import { PUBLIC_COPY } from '@/utils/publicCopy'
 
 const appStore = useAppStore()
 const { isNeo } = storeToRefs(appStore)
@@ -392,6 +425,11 @@ const ritualStore = useRitualStore()
 const journeyStore = useJourneyStore()
 const { pageError, runSafe, retry } = usePageError()
 const isNeoTheme = computed(() => isNeo.value)
+const starMapCopy = PUBLIC_COPY.homeStarMap
+
+// --- Motion System ---
+const haptic = useHaptic()
+const habitFlip = useFLIPGroup()
 
 function getStatusBarHeight() {
   try {
@@ -405,6 +443,7 @@ function getStatusBarHeight() {
 }
 
 const statusBarHeight = ref(getStatusBarHeight())
+const wxProfilePromptVisible = ref(false)
 
 const greetingText = computed(() => {
   const hour = getBeijingDateParts().hour
@@ -490,19 +529,20 @@ const launchRedirectPending = ref(false)
 const completed = computed(() => habitStore.completedHabits.length)
 const total = computed(() => habitStore.todayHabits.length)
 
-// --- UX Fading Pool (Global Sync with Timeline V4) ---
-const dyingHabitIds = ref<string[]>([])
+// --- UX Transition Pool ---
+const transitioningHabitIds = ref<string[]>([])
 const fadingHabitIds = ref<string[]>([])
+const warningHabitIds = ref<string[]>([])
 
 const displayPendingHabits = computed(() => {
   return habitStore.todayHabits.filter(h =>
-    h._id && (!habitStore.todayCheckIns.has(h._id) || dyingHabitIds.value.includes(h._id))
+    h._id && (!habitStore.todayCheckIns.has(h._id) || transitioningHabitIds.value.includes(h._id))
   )
 })
 
 const displayCompletedHabits = computed(() => {
   return habitStore.todayHabits.filter(h =>
-    h._id && habitStore.todayCheckIns.has(h._id) && !dyingHabitIds.value.includes(h._id)
+    h._id && habitStore.todayCheckIns.has(h._id) && !transitioningHabitIds.value.includes(h._id)
   )
 })
 
@@ -523,34 +563,13 @@ provide('isPlayingEasterEgg', isPlayingEasterEgg) // Share with child components
 
 function stopEvent() {}
 
-const terminalPrompt = computed(() => {
-  const hour = getBeijingDateParts().hour
-  if (hour >= 0 && hour < 6) return 'root@night_owl:~#'
-  if (hour >= 6 && hour < 12) return 'agent@sunrise:~$'
-  if (hour >= 12 && hour < 18) return 'sys@daytime:~%'
-  return 'admin@evening:~$'
-})
-
 // === StarMap CLI Dynamic Logs System ===
-const logLibrary = [
-  '[SYS] calibrating semantic nodes...',
-  '[WARN] resolving temporal sync...',
-  '[OK] memory map saved_0x2f',
-  '[SYS] computing contextual score',
-  '[SYS] scanning past 7 days of rituals',
-  '[OK] connection established',
-  '[WARN] energy output fluctuating...',
-  '[SYS] aligning hex-grid matrices',
-  '[OK] week report hash #8f2a generated'
-]
-const dynamicLogs = ref<string[]>([
-  '[SYS] initializing StarMap core engine...',
-  '[OK] semantic neural link established'
-])
+const logLibrary = [...starMapCopy.rotatingLogs]
+const dynamicLogs = ref<string[]>([...starMapCopy.initialLogs])
 let dynamicLogTimer: any = null
 
 function triggerGlitch() {
-  // Easter Egg: Long press on SCORE triggers a cyber glitch decoding sequence
+  // Easter egg: long press on the main score line triggers a glitch sequence.
   if (isScoreGlitching.value) return
   isScoreGlitching.value = true
   isPlayingEasterEgg.value = true // Lock navigation
@@ -734,11 +753,13 @@ function getCardFanStyle(cardIndex: number) {
 
 function onFanTouchStart(e: any) {
   if (idleReturnTimer) clearTimeout(idleReturnTimer)
-  
+
   isDragging.value = true
   touchStartX = e.touches[0].clientX
   touchStartAngle = fanAngle.value
+  _fanTouchStartTime = Date.now()
 }
+let _fanTouchStartTime = 0
 
 function onFanTouchMove(e: any) {
   if (!isDragging.value) return
@@ -767,14 +788,17 @@ function onFanTouchMove(e: any) {
 
 function onFanTouchEnd() {
   isDragging.value = false
-  
+
   // Snap to nearest slot
   let targetIdx = Math.round(-fanAngle.value / GAP_ANGLE)
   targetIdx = Math.max(0, Math.min(targetIdx, 6)) // Clamp 0-6
-  
+
   const targetAngle = targetIdx * -GAP_ANGLE
   fanAngle.value = targetAngle
-  
+
+  // Haptic snap feedback
+  haptic.light()
+
   // Start Idle Return Timer if not on Today
   const todayIdx = getBaseTodayIndex()
   if (targetIdx !== todayIdx) {
@@ -788,7 +812,8 @@ function onFanTouchEnd() {
 function onCardTap(index: number) {
   // Optional: Tapping a card directly snaps the fan to that card
   if (idleReturnTimer) clearTimeout(idleReturnTimer)
-  
+  haptic.light()
+
   fanAngle.value = -index * GAP_ANGLE
   
   const todayIdx = getBaseTodayIndex()
@@ -943,11 +968,18 @@ const displayHighlightCount = computed(() => {
 })
 
 const displayTopHabit = computed(() => {
-  if (!aiInsight.value?.trend) return '--'
-  const dir = aiInsight.value.trend.direction
-  if (dir === 'up') return '↑ 上升'
-  if (dir === 'down') return '↓ 调整'
-  return '→ 持平'
+  const rankedHabit = [...habitStore.activeHabits]
+    .sort((left, right) => {
+      if ((right.streakCurrent || 0) !== (left.streakCurrent || 0)) {
+        return (right.streakCurrent || 0) - (left.streakCurrent || 0)
+      }
+      if ((right.totalCompletions || 0) !== (left.totalCompletions || 0)) {
+        return (right.totalCompletions || 0) - (left.totalCompletions || 0)
+      }
+      return (right.updatedAt || '').localeCompare(left.updatedAt || '')
+    })[0]
+
+  return rankedHabit?.name || '--'
 })
 
 function readAiCache(): HabitInsight | null {
@@ -963,6 +995,19 @@ function readAiCache(): HabitInsight | null {
 }
 
 function hasCompletedOnboarding() {
+  try {
+    const app = getApp() as
+      | {
+          __hfOnboardingCompleted?: boolean
+          globalData?: Record<string, unknown>
+        }
+      | undefined
+    if (app?.__hfOnboardingCompleted === true) return true
+    if (app?.globalData?.__hfOnboardingCompleted === true) return true
+  } catch {
+    // Ignore runtime state read failures and fall back to storage.
+  }
+
   try {
     const stored = uni.getStorageSync(HAS_ONBOARDED_KEY)
     return stored === true || stored === 'true' || stored === '1'
@@ -1031,30 +1076,89 @@ function toggleCompleted() {
   showCompleted.value = !showCompleted.value
 }
 
-function handleCheck(habitId: string, value: number) {
-  habitStore.checkIn(habitId, value)
-  
-  // UX fusion: Keep the item in pending display for 2500ms before moving to completed
-  if (!dyingHabitIds.value.includes(habitId)) {
-    dyingHabitIds.value.push(habitId)
-  }
-  
-  // Trigger fading CSS at 2000ms
-  setTimeout(() => {
-    if (!fadingHabitIds.value.includes(habitId)) fadingHabitIds.value.push(habitId)
-  }, 2000)
+const habitFadeTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const habitTransitionTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const habitWarningTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
-  // Unmount completely at 2500ms
-  setTimeout(() => {
-    dyingHabitIds.value = dyingHabitIds.value.filter(id => id !== habitId)
-    fadingHabitIds.value = fadingHabitIds.value.filter(id => id !== habitId)
-  }, 2500)
+function clearTimer(map: Map<string, ReturnType<typeof setTimeout>>, habitId: string) {
+  const timer = map.get(habitId)
+  if (!timer) return
+  clearTimeout(timer)
+  map.delete(habitId)
 }
 
-function handleUncheck(habitId: string) {
-  habitStore.uncheckIn(habitId)
-  dyingHabitIds.value = dyingHabitIds.value.filter(id => id !== habitId)
+function clearHabitTransition(habitId: string) {
+  clearTimer(habitFadeTimers, habitId)
+  clearTimer(habitTransitionTimers, habitId)
+  transitioningHabitIds.value = transitioningHabitIds.value.filter(id => id !== habitId)
   fadingHabitIds.value = fadingHabitIds.value.filter(id => id !== habitId)
+}
+
+function markHabitWarning(habitId: string) {
+  if (!warningHabitIds.value.includes(habitId)) {
+    warningHabitIds.value.push(habitId)
+  }
+  clearTimer(habitWarningTimers, habitId)
+  const delay = appStore.reduceMotion ? 180 : 320
+  const timer = setTimeout(() => {
+    warningHabitIds.value = warningHabitIds.value.filter(id => id !== habitId)
+    habitWarningTimers.delete(habitId)
+  }, delay)
+  habitWarningTimers.set(habitId, timer)
+}
+
+function clearHabitWarning(habitId: string) {
+  clearTimer(habitWarningTimers, habitId)
+  warningHabitIds.value = warningHabitIds.value.filter(id => id !== habitId)
+}
+
+async function handleCheck(habitId: string, value: number) {
+  clearHabitWarning(habitId)
+  clearHabitTransition(habitId)
+
+  if (!transitioningHabitIds.value.includes(habitId)) {
+    transitioningHabitIds.value.push(habitId)
+  }
+
+  const fadeDelay = appStore.reduceMotion ? 0 : 120
+  const fadeTimer = setTimeout(() => {
+    if (!fadingHabitIds.value.includes(habitId)) {
+      fadingHabitIds.value.push(habitId)
+    }
+    habitFadeTimers.delete(habitId)
+  }, fadeDelay)
+  habitFadeTimers.set(habitId, fadeTimer)
+
+  haptic.success()
+
+  try {
+    await habitStore.checkIn(habitId, value)
+    const settleDelay = appStore.reduceMotion ? 120 : 320
+    const transitionTimer = setTimeout(() => {
+      clearHabitTransition(habitId)
+      if (habitStore.todayHabits.length > 0 && habitStore.pendingHabits.length === 0) {
+        haptic.celebration()
+      }
+      habitTransitionTimers.delete(habitId)
+    }, settleDelay)
+    habitTransitionTimers.set(habitId, transitionTimer)
+  } catch {
+    clearHabitTransition(habitId)
+    markHabitWarning(habitId)
+    haptic.warning()
+  }
+}
+
+async function handleUncheck(habitId: string) {
+  clearHabitWarning(habitId)
+  clearHabitTransition(habitId)
+
+  try {
+    await habitStore.uncheckIn(habitId)
+  } catch {
+    markHabitWarning(habitId)
+    haptic.warning()
+  }
 }
 
 const deleting = ref(false)
@@ -1189,6 +1293,21 @@ onShow(() => {
   journeyStore.fetchUserJourneys().catch(() => {
     // ignore
   })
+
+  // 首登提醒：登录后检查是否需要弹出微信资料同步
+  if (userStore.isLoggedIn && userStore.shouldShowWechatPrompt) {
+    wxProfilePromptVisible.value = true
+  }
+})
+
+onHide(() => {
+  ;[habitFadeTimers, habitTransitionTimers, habitWarningTimers].forEach((timerMap) => {
+    timerMap.forEach((timer) => clearTimeout(timer))
+    timerMap.clear()
+  })
+  transitioningHabitIds.value = []
+  fadingHabitIds.value = []
+  warningHabitIds.value = []
 })
 </script>
 
@@ -1963,9 +2082,38 @@ $star-svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
   @include flex-col;
   gap: $space-3;
 
+  &__item {
+    position: relative;
+  }
+
   &--completed {
     opacity: 0.72;
   }
+}
+
+:deep(.flip-move) {
+  transition: transform 280ms cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+:deep(.flip-enter-active) {
+  transition: opacity 220ms ease, transform 280ms cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+:deep(.flip-leave-active) {
+  transition: opacity 180ms ease, transform 180ms ease;
+  position: absolute !important;
+  left: 0;
+  right: 0;
+}
+
+:deep(.flip-enter-from) {
+  opacity: 0;
+  transform: scale(0.96) translateY(12rpx);
+}
+
+:deep(.flip-leave-to) {
+  opacity: 0;
+  transform: scale(0.94) translateY(-6rpx);
 }
 
 .empty-card {
@@ -2158,6 +2306,9 @@ $starmap-text-dark: #4B5563;
   color: $starmap-text-dark;
   letter-spacing: 1rpx;
   margin-right: 50rpx; // 平衡左侧圆点
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // 浮动提示标签
@@ -2176,6 +2327,7 @@ $starmap-text-dark: #4B5563;
     font-family: $mono-stack;
     font-size: 22rpx; // 放大提示语可读性
     color: $starmap-text-dim;
+    white-space: nowrap;
   }
 }
 
@@ -2548,6 +2700,7 @@ $starmap-text-dark: #4B5563;
 .context-line-2 {
   font-size: 24rpx;
   color: #8b8b8b;
+  @include text-ellipsis(1);
 }
 
 .context-line-3 {
@@ -2721,6 +2874,8 @@ $starmap-text-dark: #4B5563;
     font-size: 28rpx; // Scale up
     font-weight: 700;
     color: #d97757;
+    max-width: 480rpx;
+    @include text-ellipsis(1);
   }
   
   .cta-arrow {
@@ -2796,6 +2951,10 @@ $starmap-text-dark: #4B5563;
     font-size: $text-sm;
     color: $neutral-600;
     line-height: $line-height-relaxed;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 }
 

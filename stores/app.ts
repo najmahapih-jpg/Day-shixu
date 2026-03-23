@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { withDefaultPinia } from './pinia'
 
 type ThemeMode = 'neo'
 
-export const useAppStore = defineStore('app', () => {
+export const useAppStore = withDefaultPinia(defineStore('app', () => {
   const currentTab = ref<string>('index')
   const theme = ref<ThemeMode>('neo')
   const reduceMotion = ref(false)
@@ -44,23 +45,6 @@ export const useAppStore = defineStore('app', () => {
 
   function setReduceMotion(value: boolean) {
     reduceMotion.value = value
-    // Sync to page element dataset for CSS selector
-    syncReduceMotionToPage(value)
-  }
-
-  function syncReduceMotionToPage(value: boolean) {
-    try {
-      const pages = getCurrentPages()
-      const currentPage = pages[pages.length - 1]
-      if (currentPage) {
-        const pageNode = currentPage.$el || currentPage.$vm?.$el
-        if (pageNode?.setAttribute) {
-          pageNode.setAttribute('data-reduce-motion', String(value))
-        }
-      }
-    } catch {
-      // Silently fail if not in page context
-    }
   }
 
   function setWeekStartsOn(value: 0 | 1) {
@@ -95,4 +79,4 @@ export const useAppStore = defineStore('app', () => {
     setDefaultView,
     setNotifyEnabled,
   }
-})
+}))

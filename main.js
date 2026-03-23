@@ -1,10 +1,10 @@
 import App from './App'
 import { createSSRApp } from 'vue'
-import { createPinia } from 'pinia'
+import { pinia } from './stores/pinia'
 import { initNavigationGuard } from './services/navigationGuard'
 export function createApp() {
   initNavigationGuard()
   const app = createSSRApp(App)
-  app.use(createPinia())
-  return { app }
+  app.use(pinia)
+  return { app, pinia }
 }

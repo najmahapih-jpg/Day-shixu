@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { withDefaultPinia } from './pinia'
 import { useHabitStore } from './habit'
 import { useBoardStore } from './board'
 import * as habitService from '@/services/habitService'
@@ -15,7 +16,7 @@ export interface DailyArchive {
   milestoneHabits: Habit[]
 }
 
-export const useArchiveStore = defineStore('archive', () => {
+export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
   const habitStore = useHabitStore()
   const boardStore = useBoardStore()
 
@@ -108,4 +109,4 @@ export const useArchiveStore = defineStore('archive', () => {
     fetchArchive,
     $reset,
   }
-})
+}))

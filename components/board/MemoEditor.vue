@@ -96,17 +96,33 @@
         <view class="options-section">
           <view class="section-head">
             <text class="section-label">关联习惯 <text class="tag-limit-hint">（可选）</text></text>
-            <text v-if="linkedHabitId" class="section-action" @tap="openHabitPicker">更换</text>
           </view>
 
-          <view v-if="linkedHabitId" class="linked-habit-chip" :class="{ stale: isLinkedHabitStale }" @tap="openHabitPicker">
-            <text class="linked-habit-name">🔗 {{ linkedHabitName }}</text>
-            <text class="linked-habit-clear" @tap.stop="clearLinkedHabit">✕</text>
-          </view>
-
-          <view v-else class="link-btn" :class="{ loading: loadingHabits }" @tap="openHabitPicker">
-            <text class="add-icon">{{ loadingHabits ? '…' : '+' }}</text>
-            <text class="link-text">{{ linkedHabitButtonText }}</text>
+          <view
+            class="habit-link-trigger"
+            :class="{
+              linked: !!linkedHabitId,
+              stale: isLinkedHabitStale,
+              loading: loadingHabits,
+              expanded: showHabitPicker,
+            }"
+            @tap="openHabitPicker"
+          >
+            <view class="habit-link-leading">
+              <view class="habit-link-badge" :style="habitLinkBadgeStyle">
+                <text class="habit-link-badge-text">{{ habitLinkBadgeText }}</text>
+              </view>
+              <view class="habit-link-copy">
+                <text class="habit-link-trigger-title">{{ habitLinkPrimaryText }}</text>
+                <text class="habit-link-trigger-sub">{{ habitLinkSecondaryText }}</text>
+              </view>
+            </view>
+            <view class="habit-link-trailing">
+              <view v-if="linkedHabitId" class="habit-link-clear-btn" @tap.stop="clearLinkedHabit">
+                <text class="habit-link-clear-label">清除</text>
+              </view>
+              <text class="habit-link-action">{{ habitLinkActionText }}</text>
+            </view>
           </view>
 
           <view v-if="isLinkedHabitStale" class="habit-status warning">
@@ -130,7 +146,7 @@
             </view>
           </view>
 
-          <scroll-view scroll-y class="habit-picker-list" :style="{ maxHeight: '360rpx' }">
+          <scroll-view scroll-y class="habit-picker-list" :style="{ maxHeight: '420rpx' }">
             <view class="habit-picker-item clear" :class="{ selected: !linkedHabitId }" @tap="selectHabit('')">
               <view class="habit-picker-icon clear-icon">
                 <text class="habit-picker-emoji">－</text>
@@ -139,7 +155,9 @@
                 <text class="habit-picker-name">不关联习惯</text>
                 <text class="habit-picker-cat">仅保存为普通灵感便签</text>
               </view>
-              <text v-if="!linkedHabitId" class="habit-picker-check">✓</text>
+              <view class="habit-picker-check" :class="{ active: !linkedHabitId }">
+                <text v-if="!linkedHabitId" class="habit-picker-check-mark">✓</text>
+              </view>
             </view>
 
             <view
@@ -156,7 +174,9 @@
                 <text class="habit-picker-name">{{ h.name }}</text>
                 <text class="habit-picker-cat">{{ getCategoryLabel(h.category) }}</text>
               </view>
-              <text v-if="linkedHabitId === h._id" class="habit-picker-check">✓</text>
+              <view class="habit-picker-check" :class="{ active: linkedHabitId === h._id }">
+                <text v-if="linkedHabitId === h._id" class="habit-picker-check-mark">✓</text>
+              </view>
             </view>
 
             <view v-if="!loadingHabits && availableHabits.length === 0" class="habit-picker-empty">
@@ -248,9 +268,54 @@ const linkedHabitName = computed(() => {
   return '关联习惯已失效'
 })
 
-const linkedHabitButtonText = computed(() => {
+const habitLinkPrimaryText = computed(() => {
+  if (isLinkedHabitStale.value) return '关联习惯已失效'
+  if (linkedHabitName.value) return linkedHabitName.value
   if (loadingHabits.value) return '加载习惯中...'
-  return '选择习惯'
+  return '选择关联习惯'
+})
+
+const habitLinkSecondaryText = computed(() => {
+  if (isLinkedHabitStale.value) return '保存时会自动解除，也可以现在重新选择'
+  if (linkedHabit.value) {
+    const streak = Number(linkedHabit.value.streakCurrent) || 0
+    return `${getCategoryLabel(linkedHabit.value.category)} · 连续 ${streak} 天`
+  }
+  if (loadingHabits.value) return '稍候即可从习惯列表中选择'
+  return '关联后可从便签快速跳转到对应习惯'
+})
+
+const habitLinkBadgeText = computed(() => {
+  if (loadingHabits.value && !linkedHabitId.value) return '...'
+  if (isLinkedHabitStale.value) return '!'
+  if (linkedHabit.value) return getHabitEmoji(linkedHabit.value.icon)
+  return '+'
+})
+
+const habitLinkBadgeStyle = computed(() => {
+  if (isLinkedHabitStale.value) {
+    return {
+      background: 'rgba(245, 158, 11, 0.18)',
+      color: '#b45309',
+    }
+  }
+
+  if (linkedHabit.value?.color) {
+    return {
+      background: `${linkedHabit.value.color}20`,
+      color: linkedHabit.value.color,
+    }
+  }
+
+  return {
+    background: 'rgba(148, 163, 184, 0.16)',
+    color: '#475569',
+  }
+})
+
+const habitLinkActionText = computed(() => {
+  if (showHabitPicker.value) return '收起'
+  return linkedHabitId.value ? '更换' : '选择'
 })
 
 const validCheckItems = computed(() => {
@@ -623,7 +688,7 @@ defineExpose({ open, close })
   transform: translateY(100%);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -20rpx 60rpx rgba(0, 0, 0, 0.18);
+  box-shadow: 0 -16rpx 40rpx rgba(15, 23, 42, 0.16);
 
   &.is-open {
     transform: translateY(0);
@@ -760,12 +825,13 @@ defineExpose({ open, close })
   border-radius: 24rpx;
   padding: 30rpx;
   min-height: 240rpx;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 1rpx solid rgba(255, 255, 255, 0.74);
 
   @each $name, $color in $note-colors {
     &.#{$name} {
-      background: rgba($color, 0.1);
-      box-shadow: inset 0 0 0 1px rgba($color, 0.2);
+      background: linear-gradient(180deg, rgba($color, 0.16) 0%, rgba($color, 0.07) 100%);
+      box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.04), inset 0 0 0 1rpx rgba($color, 0.16);
     }
   }
 }
@@ -867,20 +933,14 @@ defineExpose({ open, close })
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16rpx;
 }
 
 .section-label {
   font-size: $text-base;
   font-weight: $font-semibold;
   color: #1f2937;
-  margin-bottom: 18rpx;
   display: block;
-}
-
-.section-action {
-  font-size: $text-sm;
-  color: #3b82f6;
-  margin-bottom: 18rpx;
 }
 
 .tag-limit-hint {
@@ -910,12 +970,12 @@ defineExpose({ open, close })
   }
 
   &.selected {
-    transform: scale(1.12);
+    transform: scale(1.08);
   }
 
   @each $name, $color in $note-colors {
     &.selected.#{$name} {
-      box-shadow: 0 0 0 5rpx rgba($color, 0.35);
+      box-shadow: 0 0 0 4rpx rgba($color, 0.24);
     }
   }
 }
@@ -955,28 +1015,6 @@ defineExpose({ open, close })
   white-space: nowrap;
 }
 
-.link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 14rpx 24rpx;
-  background: rgba(148, 163, 184, 0.15);
-  border-radius: $radius-full;
-
-  &:active {
-    background: rgba(148, 163, 184, 0.25);
-  }
-
-  &.loading {
-    opacity: 0.75;
-  }
-}
-
-.link-text {
-  font-size: $text-sm;
-  color: #334155;
-}
-
 .habit-status {
   margin-top: 12rpx;
   font-size: $text-xs;
@@ -992,47 +1030,149 @@ defineExpose({ open, close })
   }
 }
 
-.linked-habit-chip {
-  display: inline-flex;
+.habit-link-trigger {
+  min-height: 96rpx;
+  display: flex;
   align-items: center;
-  gap: 10rpx;
-  padding: 12rpx 20rpx;
-  background: rgba(59, 130, 246, 0.08);
-  border-radius: $radius-full;
-  border: 1px solid rgba(59, 130, 246, 0.18);
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(1rpx);
+  }
+
+  &.linked {
+    background: rgba(59, 130, 246, 0.06);
+    border-color: rgba(59, 130, 246, 0.18);
+  }
 
   &.stale {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.28);
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.22);
+  }
+
+  &.expanded {
+    border-color: rgba(59, 130, 246, 0.36);
+    box-shadow: 0 8rpx 18rpx rgba(59, 130, 246, 0.06);
+  }
+
+  &.loading {
+    opacity: 0.78;
   }
 }
 
-.linked-habit-name {
-  font-size: $text-sm;
+.habit-link-leading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.habit-link-badge {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.habit-link-badge-text {
+  font-size: 28rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.habit-link-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.habit-link-trigger-title {
+  display: block;
+  font-size: $text-base;
   color: #0f172a;
+  font-weight: $font-semibold;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-link-trigger-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: $text-xs;
+  color: #64748b;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-link-trailing {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.habit-link-clear-btn {
+  min-width: 84rpx;
+  height: 52rpx;
+  padding: 0 18rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+.habit-link-clear-label {
+  font-size: 24rpx;
+  color: #64748b;
   font-weight: $font-medium;
 }
 
-.linked-habit-clear {
-  font-size: 22rpx;
-  color: #64748b;
-  padding: 2rpx 8rpx;
+.habit-link-action {
+  min-width: 48rpx;
+  font-size: $text-sm;
+  color: #2563eb;
+  font-weight: $font-semibold;
+  text-align: right;
 }
 
 .habit-picker-panel {
   margin-top: 16rpx;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.98);
   border-radius: 22rpx;
   border: 1px solid rgba(148, 163, 184, 0.18);
   overflow: hidden;
-  box-shadow: 0 12rpx 28rpx rgba(15, 23, 42, 0.1);
+  box-shadow: 0 12rpx 28rpx rgba(15, 23, 42, 0.08);
 }
 
 .habit-picker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18rpx 24rpx;
+  min-height: 88rpx;
+  padding: 16rpx 24rpx;
+  box-sizing: border-box;
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
@@ -1043,26 +1183,30 @@ defineExpose({ open, close })
 }
 
 .habit-picker-close {
-  width: 44rpx;
-  height: 44rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   background: rgba(148, 163, 184, 0.14);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: #64748b;
 }
 
 .habit-picker-list {
-  padding: 8rpx 0;
+  padding: 12rpx;
+  box-sizing: border-box;
 }
 
 .habit-picker-item {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 16rpx 24rpx;
+  min-height: 92rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 18rpx;
+  box-sizing: border-box;
 
   &:active {
     background: rgba(148, 163, 184, 0.08);
@@ -1070,6 +1214,7 @@ defineExpose({ open, close })
 
   &.selected {
     background: rgba(59, 130, 246, 0.08);
+    box-shadow: inset 0 0 0 2rpx rgba(59, 130, 246, 0.12);
   }
 
   &.clear .habit-picker-name {
@@ -1078,8 +1223,8 @@ defineExpose({ open, close })
 }
 
 .habit-picker-icon {
-  width: 56rpx;
-  height: 56rpx;
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 14rpx;
   display: flex;
   justify-content: center;
@@ -1118,7 +1263,23 @@ defineExpose({ open, close })
 }
 
 .habit-picker-check {
-  font-size: 28rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(148, 163, 184, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.active {
+    border-color: rgba(37, 99, 235, 0.2);
+    background: rgba(37, 99, 235, 0.12);
+  }
+}
+
+.habit-picker-check-mark {
+  font-size: 24rpx;
   color: #2563eb;
   font-weight: 700;
 }
@@ -1144,7 +1305,7 @@ defineExpose({ open, close })
   gap: 20rpx;
   padding: 24rpx 40rpx 32rpx;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .btn {
@@ -1169,7 +1330,7 @@ defineExpose({ open, close })
   &.primary {
     background: linear-gradient(135deg, #0f172a, #1e293b);
     color: #fff;
-    box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.28);
+    box-shadow: 0 10rpx 20rpx rgba(15, 23, 42, 0.22);
 
     &.disabled {
       opacity: 0.6;

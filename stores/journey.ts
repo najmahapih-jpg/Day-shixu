@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { withDefaultPinia } from './pinia'
 import * as journeyService from '@/services/journeyService'
 import { getCache, setCache } from '@/utils/cache'
 import type { Journey } from '@/types'
@@ -127,7 +128,7 @@ function dedupeUserJourneyList(list: UserJourneyDetail[]): UserJourneyDetail[] {
   return result
 }
 
-export const useJourneyStore = defineStore('journey', () => {
+export const useJourneyStore = withDefaultPinia(defineStore('journey', () => {
   // --- State ---
 
   const presetJourneys = ref<Journey[]>([])
@@ -448,4 +449,4 @@ export const useJourneyStore = defineStore('journey', () => {
     getStepDetail,
     $reset,
   }
-})
+}))

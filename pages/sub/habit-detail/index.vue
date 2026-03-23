@@ -7,8 +7,17 @@
           <HfIcon name="arrow-left-linear" size="sm" plain />
         </view>
         <text class="navbar__title">{{ habitDisplayName }}</text>
-        <view v-if="habit" class="navbar__btn" @tap="goEdit">
-          <HfIcon name="pen-new-square-bold" size="sm" plain />
+        <view v-if="habit" class="navbar__actions">
+          <view class="navbar__btn" @tap="goEdit">
+            <HfIcon name="pen-new-square-bold" size="sm" plain />
+          </view>
+          <view class="navbar__btn" @tap="openHabitActions">
+            <view class="navbar__more">
+              <view class="navbar__more-dot" />
+              <view class="navbar__more-dot" />
+              <view class="navbar__more-dot" />
+            </view>
+          </view>
         </view>
         <view v-else class="navbar__placeholder" />
       </view>
@@ -63,16 +72,26 @@
             </view>
           </view>
 
-          <view class="hero-action">
+          <view class="hero-action" :class="{ 'hero-action--success': detailCheckFlash }">
             <HfButton v-if="!todayCheckedIn" type="primary" size="md" @tap="handleCheckIn">
-              今日打卡
+              {{ detailCheckingIn ? '提交中...' : '今日打卡' }}
             </HfButton>
-            <view v-else class="checked-badge">
+            <view v-else class="checked-badge" :class="{ 'checked-badge--pulse': detailCheckFlash }">
               <HfIcon name="check-circle-bold" size="sm" :color="categoryColor" plain />
               <text class="checked-text" :style="{ color: categoryColor }">今日已完成</text>
             </view>
             <view v-if="showNotePrompt" class="note-prompt" @click="onNotePromptTap">
               <text class="note-prompt-text">✏️ 写点感想？</text>
+            </view>
+          </view>
+          <view class="hero-manage-actions">
+            <view class="hero-manage-btn hero-manage-btn--edit" @tap="goEdit">
+              <HfIcon name="pen-new-square-bold" size="xs" plain />
+              <text class="hero-manage-btn__text">编辑习惯</text>
+            </view>
+            <view class="hero-manage-btn hero-manage-btn--delete" @tap="confirmDeleteHabit">
+              <HfIcon name="trash-bin-trash-bold" size="xs" plain />
+              <text class="hero-manage-btn__text">删除习惯</text>
             </view>
           </view>
         </view>
@@ -102,17 +121,33 @@
         </view>
         <view class="heatmap-grid">
           <view class="heatmap-labels">
+            <view class="heatmap-labels__spacer" />
             <text class="label" v-for="d in ['一','三','五','日']" :key="d">{{ d }}</text>
           </view>
           <scroll-view scroll-x class="heatmap-scroll" :show-scrollbar="false">
             <view class="heatmap-columns">
-              <view class="heatmap-col" v-for="(week, wi) in heatmapWeeks" :key="wi">
-                <view class="heatmap-cell" v-for="(day, di) in week" :key="di"
-                  :class="{ 'heatmap-cell--today': day.isToday }"
-                  :style="{ background: getHeatColor(day.level) }" />
+              <view class="heatmap-col" v-for="(week, wi) in heatmapWeeks" :key="week.key || wi">
+                <text v-if="week.monthLabel" class="heatmap-month">{{ week.monthLabel }}</text>
+                <view
+                  class="heatmap-cell"
+                  v-for="(day, di) in week.days"
+                  :key="day.date || di"
+                  :class="{
+                    'heatmap-cell--today': day.isToday,
+                    'heatmap-cell--recent': day.isRecentActive && !appStore.reduceMotion,
+                    'heatmap-cell--selected': selectedHeatDay?.date === day.date,
+                    'heatmap-cell--freeze': day.level === 1,
+                  }"
+                  :style="{ background: getHeatColor(day.level) }"
+                  @tap="selectHeatDay(day)"
+                />
               </view>
             </view>
           </scroll-view>
+        </view>
+        <view v-if="selectedHeatDay" class="heatmap-tooltip" :class="{ 'heatmap-tooltip--visible': !!selectedHeatDay }">
+          <text class="heatmap-tooltip__date">{{ formatHeatDate(selectedHeatDay.date) }}</text>
+          <text class="heatmap-tooltip__status">{{ selectedHeatDay.statusText }}</text>
         </view>
         <view class="heatmap-legend">
           <text class="legend-label">少</text>
@@ -122,12 +157,59 @@
       </view>
 
       <!-- 5. Week Trend Chart -->
-      <view class="trend-section anim-slide-up anim-delay-3">
+      <view class="trend-section anim-slide-up anim-delay-3" :style="{ '--trend-accent': categoryColor }">
+        <view class="trend-header">
+          <view class="trend-header__title-group">
+            <text class="trend-header__title">本周趋势</text>
+            <text class="trend-header__sub">最近 4 周节奏对比</text>
+          </view>
+        </view>
         <view class="section-title">
           <text class="title-text">本周趋势</text>
         </view>
+        <view class="trend-hero">
+          <view class="trend-hero__body">
+            <text class="trend-hero__eyebrow">节奏摘要</text>
+            <view class="trend-hero__headline">
+              <text class="trend-hero__value">{{ currentWeekTrend.rate }}</text>
+              <text class="trend-hero__unit">% 完成率</text>
+            </view>
+            <text class="trend-hero__copy">{{ trendSummaryTitle }}</text>
+          </view>
+          <view class="trend-hero__delta" :class="`trend-hero__delta--${trendDirection}`">
+            <text class="trend-hero__delta-value">{{ trendDeltaDisplay }}</text>
+            <text class="trend-hero__delta-label">较上周</text>
+          </view>
+        </view>
+        <view class="trend-metrics">
+          <view
+            v-for="item in trendMetricCards"
+            :key="item.label"
+            class="trend-metric"
+            :class="`trend-metric--${item.tone}`"
+          >
+            <text class="trend-metric__label">{{ item.label }}</text>
+            <text class="trend-metric__value">{{ item.value }}</text>
+            <text class="trend-metric__meta">{{ item.meta }}</text>
+          </view>
+        </view>
         <view class="chart-wrap">
           <canvas type="2d" id="trendChart" canvas-id="trendChart" class="chart-canvas" />
+        </view>
+        <view class="trend-week-strip">
+          <view
+            v-for="week in weeklyTrend"
+            :key="week.label"
+            class="trend-week-chip"
+            :class="{ 'trend-week-chip--active': week.label === currentWeekTrend.label }"
+          >
+            <text class="trend-week-chip__label">{{ week.label }}</text>
+            <text class="trend-week-chip__value">{{ week.rate }}%</text>
+          </view>
+        </view>
+        <view class="trend-insight">
+          <text class="trend-insight__title">{{ trendInsightTitle }}</text>
+          <text class="trend-insight__body">{{ trendInsightBody }}</text>
         </view>
       </view>
 
@@ -178,6 +260,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, getCurrentInstance, onUnmounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
+import { useAppStore } from '@/stores/app'
 import { useHabitStore } from '@/stores/habit'
 import { useBoardStore } from '@/stores/board'
 import * as habitService from '@/services/habitService'
@@ -196,6 +279,8 @@ import MemoEditor from '@/components/board/MemoEditor.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useCountUp } from '@/composables/useCountUp'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useHaptic } from '@/composables/motion'
+import { useActionLock } from '@/composables/useActionLock'
 import type { Habit, CheckIn } from '@/types'
 
 // @ts-ignore — uCharts JS library without type declarations
@@ -232,10 +317,13 @@ const HEATMAP_WEEKS = 16
 
 // --- Stores ---
 
+const appStore = useAppStore()
 const habitStore = useHabitStore()
 const boardStore = useBoardStore()
 const nav = useNavigation()
 const { entered: pageEntered } = usePageTransition()
+const haptic = useHaptic()
+const { withLock: withDetailCheckLock } = useActionLock(420)
 
 // --- State ---
 
@@ -244,6 +332,10 @@ const loading = ref(true)
 const fallbackHabit = ref<Habit | null>(null)
 const allCheckIns = ref<CheckIn[]>([])
 const frozenDates = ref<Set<string>>(new Set())
+const selectedHeatDay = ref<HeatDay | null>(null)
+const detailCheckingIn = ref(false)
+const detailCheckFlash = ref(false)
+let detailCheckFlashTimer: ReturnType<typeof setTimeout> | null = null
 let chartInstance: InstanceType<typeof uCharts> | null = null
 
 // --- Navbar ---
@@ -275,6 +367,13 @@ function toUtcDayTs(dateStr: string): number {
   const [y, m, d] = dateStr.split('-').map(Number)
   if (!y || !m || !d) return 0
   return Date.UTC(y, m - 1, d)
+}
+
+function daysDiff(fromDateStr: string, toDateStr: string): number {
+  const fromTs = toUtcDayTs(fromDateStr)
+  const toTs = toUtcDayTs(toDateStr)
+  if (!fromTs || !toTs) return Number.POSITIVE_INFINITY
+  return Math.floor((toTs - fromTs) / 86400000)
 }
 
 // --- Computed: Habit ---
@@ -404,16 +503,60 @@ interface HeatDay {
   date: string
   level: number
   isToday: boolean
+  statusText: string
+  isRecentActive: boolean
 }
 
-const heatmapWeeks = computed<HeatDay[][]>(() => {
+interface HeatWeek {
+  key: string
+  monthLabel?: string
+  days: HeatDay[]
+}
+
+function getHeatStatus(options: {
+  isFuture: boolean
+  isChecked: boolean
+  isFrozen: boolean
+  value: number
+}) {
+  if (options.isFuture) {
+    return { level: 0, statusText: '无记录' }
+  }
+  if (options.isChecked) {
+    if (options.value >= 3) {
+      return { level: 4, statusText: '高强度完成' }
+    }
+    if (options.value >= 2) {
+      return { level: 3, statusText: '已完成' }
+    }
+    return { level: 2, statusText: '已完成' }
+  }
+  if (options.isFrozen) {
+    return { level: 1, statusText: '冻结日' }
+  }
+  return { level: 0, statusText: '无记录' }
+}
+
+function getMonthLabel(dateStr: string) {
+  const date = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getMonth() + 1}月`
+}
+
+function isRecentHeatDate(dateStr: string, today: string) {
+  const diff = daysDiff(dateStr, today)
+  return diff >= 0 && diff < 7
+}
+
+const heatmapWeeks = computed<HeatWeek[]>(() => {
   const today = getToday()
   const endDow = getWeekdayFromDateStr(today)
   const adjustedEnd = endDow === 0 ? 6 : endDow - 1
   const startOffset = -((HEATMAP_WEEKS - 1) * 7 + adjustedEnd)
 
-  const weeks: HeatDay[][] = []
+  const weeks: HeatWeek[] = []
   let currentWeek: HeatDay[] = []
+  let previousMonthLabel = ''
 
   const totalDays = (HEATMAP_WEEKS - 1) * 7 + adjustedEnd
   for (let i = 0; i <= totalDays; i++) {
@@ -421,40 +564,69 @@ const heatmapWeeks = computed<HeatDay[][]>(() => {
     const isFuture = date > today
     const isChecked = checkInDates.value.has(date)
     const isFrozen = frozenDates.value.has(date)
+    const ci = allCheckIns.value.find((c) => c.date === date)
+    const value = ci?.value || 1
+    const { level, statusText } = getHeatStatus({
+      isFuture,
+      isChecked,
+      isFrozen,
+      value,
+    })
 
-    let level = 0
-    if (!isFuture) {
-      if (isChecked) {
-        // Determine intensity: count check-in value
-        const ci = allCheckIns.value.find((c) => c.date === date)
-        const val = ci?.value || 1
-        if (val >= 3) level = 4
-        else if (val >= 2) level = 3
-        else level = 2
-      } else if (isFrozen) {
-        level = 1
-      }
-    }
-
-    currentWeek.push({ date, level, isToday: date === today })
+    currentWeek.push({
+      date,
+      level,
+      isToday: date === today,
+      statusText,
+      isRecentActive: isChecked && isRecentHeatDate(date, today),
+    })
 
     if (currentWeek.length === 7) {
-      weeks.push(currentWeek)
+      const monthLabel = getMonthLabel(currentWeek[0].date)
+      weeks.push({
+        key: currentWeek[0].date,
+        monthLabel: monthLabel !== previousMonthLabel ? monthLabel : '',
+        days: currentWeek,
+      })
+      previousMonthLabel = monthLabel
       currentWeek = []
     }
   }
   if (currentWeek.length > 0) {
-    weeks.push(currentWeek)
+    const monthLabel = getMonthLabel(currentWeek[0].date)
+    weeks.push({
+      key: currentWeek[0].date,
+      monthLabel: monthLabel !== previousMonthLabel ? monthLabel : '',
+      days: currentWeek,
+    })
   }
-  return weeks
+  return weeks.map((week, index) => ({
+    ...week,
+    label: index === weeks.length - 1 ? '本周' : `${weeks.length - 1 - index}周前`,
+  }))
 })
 
 // --- Heat color function ---
 
 function getHeatColor(level: number): string {
-  // 固定绿色活跃记录色
-  const opacities = [0.06, 0.2, 0.4, 0.65, 0.9]
-  return `rgba(34, 197, 94, ${opacities[level] ?? 0.06})`
+  const colors = [
+    'rgba(226, 232, 240, 0.62)',
+    'rgba(148, 163, 184, 0.30)',
+    'rgba(134, 239, 172, 0.46)',
+    'rgba(74, 222, 128, 0.64)',
+    'rgba(22, 163, 74, 0.84)',
+  ]
+  return colors[level] || colors[0]
+}
+
+function selectHeatDay(day: HeatDay) {
+  selectedHeatDay.value = day
+}
+
+function formatHeatDate(dateStr: string) {
+  const date = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return dateStr
+  return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
 // --- Computed: Weekly trend data ---
@@ -463,6 +635,7 @@ interface WeekData {
   label: string
   rate: number
   avgValue: number
+  count: number
 }
 
 const weeklyTrend = computed<WeekData[]>(() => {
@@ -481,9 +654,125 @@ const weeklyTrend = computed<WeekData[]>(() => {
     const avgValue = count > 0 ? Math.round(totalValue / count) : 0
 
     const label = w === 0 ? '本周' : `${w}周前`
-    weeks.push({ label, rate, avgValue })
+    weeks.push({ label, rate, avgValue, count })
   }
-  return weeks
+  return weeks.map((week, index) => ({
+    ...week,
+    label: index === weeks.length - 1 ? '本周' : `${weeks.length - 1 - index}周前`,
+  }))
+})
+
+const emptyWeekData: WeekData = {
+  label: '本周',
+  rate: 0,
+  avgValue: 0,
+  count: 0,
+}
+
+const currentWeekTrend = computed<WeekData>(() => {
+  return weeklyTrend.value[weeklyTrend.value.length - 1] || emptyWeekData
+})
+
+const previousWeekTrend = computed<WeekData | null>(() => {
+  return weeklyTrend.value.length > 1 ? weeklyTrend.value[weeklyTrend.value.length - 2] : null
+})
+
+const bestWeekTrend = computed<WeekData>(() => {
+  if (weeklyTrend.value.length === 0) return emptyWeekData
+  return weeklyTrend.value.reduce((best, week) => (week.rate > best.rate ? week : best), weeklyTrend.value[0])
+})
+
+const trendDelta = computed(() => {
+  if (!previousWeekTrend.value) return 0
+  return currentWeekTrend.value.rate - previousWeekTrend.value.rate
+})
+
+const trendDirection = computed<'up' | 'down' | 'flat'>(() => {
+  if (!previousWeekTrend.value) return 'flat'
+  if (trendDelta.value > 0) return 'up'
+  if (trendDelta.value < 0) return 'down'
+  return 'flat'
+})
+
+function formatTrendAverageValue(value: number) {
+  if (habit.value?.type === 'timer') {
+    return `${Math.max(0, Math.round(value / 60))} 分钟`
+  }
+  if (habit.value?.type === 'counter') {
+    return `${value}${habit.value?.unit || ''}`
+  }
+  return `${currentWeekTrend.value.count}/7 天`
+}
+
+const trendDeltaDisplay = computed(() => {
+  if (!previousWeekTrend.value) return '--'
+  return `${trendDelta.value > 0 ? '+' : ''}${trendDelta.value}`
+})
+
+const trendSummaryTitle = computed(() => {
+  if (currentWeekTrend.value.rate === 0) {
+    return '这周还没有形成记录，先把今天的一次稳稳完成。'
+  }
+  if (trendDirection.value === 'up') {
+    return `相比上周回升 ${Math.abs(trendDelta.value)} 个百分点，节奏在重新拉起。`
+  }
+  if (trendDirection.value === 'down') {
+    return `相比上周放缓 ${Math.abs(trendDelta.value)} 个百分点，适合先稳住连续性。`
+  }
+  if (currentWeekTrend.value.rate >= 85) {
+    return '这周的完成率已经处在很稳的区间，可以继续保持。'
+  }
+  return '本周节奏基本持平，继续维持现在的频率就可以。'
+})
+
+const trendInsightTitle = computed(() => {
+  if (currentWeekTrend.value.rate >= bestWeekTrend.value.rate) return '本周正在接近你的高点表现'
+  if (trendDirection.value === 'up') return '趋势在回暖，保持短周期稳定最关键'
+  if (trendDirection.value === 'down') return '节奏有点放缓，先把频率拉回来'
+  return '当前节律平稳，适合维持同样的出手频率'
+})
+
+const trendInsightBody = computed(() => {
+  const best = `${bestWeekTrend.value.label}达到 ${bestWeekTrend.value.rate}%`
+  if (habit.value?.type === 'boolean') {
+    return `本周已经完成 ${currentWeekTrend.value.count} 天，${best}。接下来优先守住固定时段，会比一次性补很多更有效。`
+  }
+  return `本周平均强度是 ${formatTrendAverageValue(currentWeekTrend.value.avgValue)}，${best}。优先让每次完成都更稳定，比偶发冲高更容易延续。`
+})
+
+const trendMetricCards = computed(() => {
+  const cards = [
+    {
+      label: '本周完成率',
+      value: `${currentWeekTrend.value.rate}%`,
+      meta: `${currentWeekTrend.value.count}/7 天达成`,
+      tone: 'primary',
+    },
+    {
+      label: '较上周',
+      value: previousWeekTrend.value ? `${trendDelta.value > 0 ? '+' : ''}${trendDelta.value}` : '--',
+      meta: previousWeekTrend.value ? '百分点' : '等待更多数据',
+      tone: trendDirection.value === 'up' ? 'up' : trendDirection.value === 'down' ? 'down' : 'neutral',
+    },
+  ]
+
+  if (habit.value?.type === 'boolean') {
+    cards.push({
+      label: '最佳一周',
+      value: `${bestWeekTrend.value.rate}%`,
+      meta: bestWeekTrend.value.label,
+      tone: 'neutral',
+    })
+  } else {
+    cards.push({
+      label: '平均强度',
+      value: formatTrendAverageValue(currentWeekTrend.value.avgValue),
+      meta: habit.value?.type === 'timer' ? '本周平均时长' : '本周平均每次',
+      tone: 'neutral',
+    })
+  }
+
+  return cards
 })
 
 // --- Chart ---
@@ -577,20 +866,77 @@ function goEdit() {
   nav.openModal(`/pages/sub/habit-create/index?id=${habitId.value}`)
 }
 
+function exitAfterDelete() {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    nav.navigateBack()
+    return
+  }
+  uni.switchTab({ url: '/pages/index/index' })
+}
+
+function confirmDeleteHabit() {
+  if (!habitId.value) return
+  uni.showModal({
+    title: '删除习惯',
+    content: '删除后会进入归档，你仍然可以在归档中恢复。',
+    confirmColor: '#1E1E2E',
+    success: async (res) => {
+      if (!res.confirm || !habitId.value) return
+      try {
+        await habitStore.deleteHabit(habitId.value)
+        uni.showToast({ title: '已移入归档', icon: 'success' })
+        setTimeout(() => {
+          exitAfterDelete()
+        }, 220)
+      } catch {
+        // store handles failure toast
+      }
+    },
+  })
+}
+
+function openHabitActions() {
+  if (!habitId.value) return
+  uni.showActionSheet({
+    itemList: ['编辑习惯', '删除习惯'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        goEdit()
+      } else if (res.tapIndex === 1) {
+        confirmDeleteHabit()
+      }
+    },
+  })
+}
+
 const showNotePrompt = ref(false)
 let notePromptTimer: any = null
 
 async function handleCheckIn() {
   if (!habitId.value || todayCheckedIn.value) return
-  try {
-    await habitStore.checkIn(habitId.value)
-    uni.showToast({ title: '打卡成功！', icon: 'success' })
-    showNotePrompt.value = true
-    if (notePromptTimer) clearTimeout(notePromptTimer)
-    notePromptTimer = setTimeout(() => { showNotePrompt.value = false }, 4000)
-  } catch {
-    // store handles toast
-  }
+  await withDetailCheckLock(async () => {
+    detailCheckingIn.value = true
+    try {
+      await habitStore.checkIn(habitId.value)
+      haptic.success()
+      detailCheckFlash.value = true
+      if (detailCheckFlashTimer) clearTimeout(detailCheckFlashTimer)
+      detailCheckFlashTimer = setTimeout(() => {
+        detailCheckFlash.value = false
+        detailCheckFlashTimer = null
+      }, appStore.reduceMotion ? 120 : 320)
+
+      uni.showToast({ title: '打卡成功', icon: 'success', duration: 900 })
+      showNotePrompt.value = true
+      if (notePromptTimer) clearTimeout(notePromptTimer)
+      notePromptTimer = setTimeout(() => { showNotePrompt.value = false }, 3200)
+    } catch {
+      haptic.warning()
+    } finally {
+      detailCheckingIn.value = false
+    }
+  })
 }
 
 function onNotePromptTap() {
@@ -622,6 +968,7 @@ async function loadData(id: string) {
 
     allCheckIns.value = checkIns
     frozenDates.value = new Set(freezeRecords.map((r) => r.date))
+    selectedHeatDay.value = null
   } catch {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -659,6 +1006,14 @@ onUnmounted(() => {
   if (chartInstance) {
     chartInstance.destroy?.()
     chartInstance = null
+  }
+  if (notePromptTimer) {
+    clearTimeout(notePromptTimer)
+    notePromptTimer = null
+  }
+  if (detailCheckFlashTimer) {
+    clearTimeout(detailCheckFlashTimer)
+    detailCheckFlashTimer = null
   }
 })
 
@@ -748,6 +1103,25 @@ function goBoard() {
     @include tap-active;
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+  }
+
+  &__more {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+  }
+
+  &__more-dot {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background: $neutral-600;
+  }
+
   &__title {
     font-size: $text-md;
     font-weight: $font-semibold;
@@ -755,7 +1129,7 @@ function goBoard() {
   }
 
   &__placeholder {
-    width: 72rpx;
+    width: 152rpx;
   }
 }
 
@@ -892,6 +1266,55 @@ function goBoard() {
 
 .hero-action {
   margin-top: auto;
+  transition: transform 180ms ease, opacity 180ms ease;
+
+  &--success {
+    transform: translateY(-2rpx);
+  }
+}
+
+.hero-manage-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  flex-wrap: wrap;
+}
+
+.hero-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 0;
+  padding: 14rpx 22rpx;
+  border-radius: $radius-full;
+  border: 1px solid $neutral-200;
+  background: rgba(255, 255, 255, 0.88);
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &--edit {
+    border-color: rgba(30, 30, 46, 0.12);
+  }
+
+  &--delete {
+    border-color: rgba(239, 68, 68, 0.18);
+    background: rgba(254, 242, 242, 0.92);
+
+    .hero-manage-btn__text {
+      color: #b91c1c;
+    }
+  }
+}
+
+.hero-manage-btn__text {
+  font-size: 24rpx;
+  font-weight: $font-medium;
+  color: $neutral-700;
+  white-space: nowrap;
 }
 
 .checked-badge {
@@ -901,6 +1324,10 @@ function goBoard() {
   padding: 12rpx 24rpx;
   border-radius: $radius-full;
   background: $neutral-100;
+
+  &--pulse {
+    animation: detailSuccessPulse 320ms $ease-spring both;
+  }
 }
 
 .checked-text {
@@ -1021,6 +1448,10 @@ function goBoard() {
   padding: 4rpx 0;
   width: 40rpx;
 
+  &__spacer {
+    height: 28rpx;
+  }
+
   .label {
     font-size: 20rpx;
     color: $neutral-500;
@@ -1039,21 +1470,85 @@ function goBoard() {
 }
 
 .heatmap-col {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6rpx;
+  padding-top: 28rpx;
+}
+
+.heatmap-month {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18rpx;
+  color: $neutral-400;
+  white-space: nowrap;
 }
 
 .heatmap-cell {
   width: 28rpx;
   height: 28rpx;
   border-radius: 6rpx;
-  transition: background 200ms ease;
+  position: relative;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
 
   &--today {
     outline: 2rpx solid $neutral-900;
     outline-offset: 2rpx;
+    box-shadow: 0 0 0 6rpx rgba(15, 23, 42, 0.06);
   }
+
+  &--selected {
+    transform: scale(1.08);
+    box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.12);
+  }
+
+  &--recent::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 70%);
+    animation: heatSweep 260ms ease-out both;
+    pointer-events: none;
+  }
+
+  &--freeze {
+    border: 1rpx solid rgba(148, 163, 184, 0.28);
+  }
+}
+
+.heatmap-tooltip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 18rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  opacity: 0;
+  transform: translateY(8rpx) scale(0.98);
+  transition: opacity 180ms ease, transform 180ms ease;
+
+  &--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.heatmap-tooltip__date {
+  font-size: 22rpx;
+  color: $neutral-600;
+}
+
+.heatmap-tooltip__status {
+  font-size: 24rpx;
+  color: $neutral-900;
+  font-weight: $font-medium;
 }
 
 .heatmap-legend {
@@ -1075,6 +1570,32 @@ function goBoard() {
   border-radius: 4rpx;
 }
 
+@keyframes detailSuccessPulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.72;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes heatSweep {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 // ===== 5. Trend Chart =====
 
 .trend-section {
@@ -1083,16 +1604,252 @@ function goBoard() {
   border-radius: 24rpx;
   padding: 36rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6rpx;
+    background: linear-gradient(90deg, var(--trend-accent, #8BA888), rgba(255, 255, 255, 0));
+  }
+
+  > .section-title {
+    display: none;
+  }
+}
+
+.trend-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
+}
+
+.trend-header__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.trend-header__title {
+  font-size: 32rpx;
+  font-weight: $font-semibold;
+  color: $neutral-900;
+}
+
+.trend-header__sub {
+  font-size: 24rpx;
+  color: $neutral-500;
+}
+
+.trend-hero {
+  display: flex;
+  align-items: stretch;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.trend-hero__body {
+  flex: 1;
+  min-width: 0;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 18rpx 36rpx rgba(15, 23, 42, 0.06);
+}
+
+.trend-hero__eyebrow {
+  display: block;
+  font-size: 22rpx;
+  color: var(--trend-accent, #8BA888);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.trend-hero__headline {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+.trend-hero__value {
+  font-size: 68rpx;
+  line-height: 1;
+  font-weight: 700;
+  color: $neutral-900;
+}
+
+.trend-hero__unit {
+  font-size: 24rpx;
+  color: $neutral-500;
+}
+
+.trend-hero__copy {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: $neutral-700;
+}
+
+.trend-hero__delta {
+  width: 164rpx;
+  flex-shrink: 0;
+  border-radius: 20rpx;
+  padding: 24rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+
+  &--up {
+    background: rgba(110, 231, 183, 0.16);
+    border-color: rgba(110, 231, 183, 0.28);
+  }
+
+  &--down {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: rgba(251, 191, 36, 0.26);
+  }
+}
+
+.trend-hero__delta-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  color: $neutral-900;
+}
+
+.trend-hero__delta-label {
+  font-size: 22rpx;
+  color: $neutral-500;
+}
+
+.trend-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.trend-metric {
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: $neutral-50;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+
+  &--primary {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.92));
+    border-color: rgba(110, 231, 183, 0.24);
+  }
+
+  &--up {
+    background: rgba(236, 253, 245, 0.92);
+  }
+
+  &--down {
+    background: rgba(255, 251, 235, 0.94);
+  }
+}
+
+.trend-metric__label {
+  display: block;
+  font-size: 22rpx;
+  color: $neutral-500;
+}
+
+.trend-metric__value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: $neutral-900;
+  line-height: 1.2;
+}
+
+.trend-metric__meta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: $neutral-500;
 }
 
 .chart-wrap {
   width: 100%;
   height: 300rpx;
+  margin-bottom: 20rpx;
+  padding: 18rpx 0 8rpx;
 }
 
 .chart-canvas {
   width: 100%;
   height: 100%;
+}
+
+.trend-week-strip {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 4rpx;
+  overflow-x: auto;
+  padding-bottom: 4rpx;
+}
+
+.trend-week-chip {
+  min-width: 120rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+
+  &--active {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.94));
+    border-color: rgba(110, 231, 183, 0.28);
+    box-shadow: 0 10rpx 24rpx rgba(110, 231, 183, 0.12);
+  }
+}
+
+.trend-week-chip__label {
+  font-size: 20rpx;
+  color: $neutral-500;
+}
+
+.trend-week-chip__value {
+  font-size: 26rpx;
+  color: $neutral-900;
+  font-weight: 700;
+}
+
+.trend-insight {
+  margin-top: 20rpx;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.trend-insight__title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: $neutral-900;
+}
+
+.trend-insight__body {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 23rpx;
+  line-height: 1.75;
+  color: $neutral-600;
 }
 
 // ===== 6. Linked Notes =====

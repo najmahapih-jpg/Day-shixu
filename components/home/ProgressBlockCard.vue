@@ -1,5 +1,5 @@
 <template>
-  <view class="matrix-widget" v-if="totalCount > 0" @tap.stop="stopEvent">
+  <view class="matrix-widget" v-if="totalCount > 0" :class="haptic.feedbackClass" @tap.stop="stopEvent">
     <!-- 装饰性点阵背景 (Canvas Feel) -->
     <view class="matrix-bg-pattern"></view>
     
@@ -60,11 +60,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref } from 'vue'
+import { computed, watch, ref, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useHabitStore } from '@/stores/habit'
 import { useAppStore } from '@/stores/app'
-import { useHaptic } from '@/composables/useHaptic'
+import { useHaptic } from '@/composables/motion'
 
 const habitStore = useHabitStore()
 const appStore = useAppStore()
@@ -88,18 +88,28 @@ const completionRate = computed(() => {
 
 // Animate the number counting up
 const animatedRate = ref(0)
+let rateTimer: ReturnType<typeof setInterval> | null = null
+
+function clearRateTimer() {
+  if (rateTimer) {
+    clearInterval(rateTimer)
+    rateTimer = null
+  }
+}
+
 watch(completionRate, (newVal) => {
   // Simple easing animation for the giant number
   const diff = newVal - animatedRate.value
   if (diff === 0) return
   
+  clearRateTimer()
   const step = diff > 0 ? 1 : -1
   const duration = 400 // ms
   const interval = Math.max(16, Math.floor(duration / Math.abs(diff)))
   
-  const timer = setInterval(() => {
+  rateTimer = setInterval(() => {
     if (animatedRate.value === newVal) {
-      clearInterval(timer)
+      clearRateTimer()
     } else {
       animatedRate.value += step
     }
@@ -140,6 +150,10 @@ watch(() => isAllCompleted.value, (newVal, oldVal) => {
   if (newVal && !oldVal) {
     haptic.success() // Double vibration
   }
+})
+
+onUnmounted(() => {
+  clearRateTimer()
 })
 </script>
 
@@ -389,7 +403,7 @@ watch(() => isAllCompleted.value, (newVal, oldVal) => {
   font-weight: 800; 
   color: $neutral-900; /* 默认纯黑 */
   font-variant-numeric: tabular-nums;
-  line-height: 0.8; 
+  line-height: 1;
   letter-spacing: -2rpx; 
   transition: color 0.4s ease;
   

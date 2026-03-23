@@ -1,5 +1,5 @@
 <template>
-  <HfPageBg variant="neutral" :showPattern="false" class="page page-transition" :class="{ 'page-entered': pageEntered, 'theme-neo': isNeoTheme }">
+  <HfPageBg variant="neutral" :showPattern="false" class="page page-transition" :class="[{ 'page-entered': pageEntered, 'theme-neo': isNeoTheme }, haptic.feedbackClass]">
     <!-- Custom navbar -->
     <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="navbar__inner">
@@ -14,11 +14,11 @@
 
     <!-- View Mode Switcher -->
     <view class="view-switcher">
-      <view class="switch-item" :class="{ active: viewMode === 'timeline' }" @tap="viewMode = 'timeline'">
+      <view class="switch-item press-light" :class="{ active: viewMode === 'timeline' }" @tap="switchToMode('timeline')">
         <HfIcon name="clock-circle-linear" size="sm" :color="viewMode === 'timeline' ? BRAND_PRIMARY : NEUTRAL_500" />
         <text class="switch-text">时间轴</text>
       </view>
-      <view class="switch-item" :class="{ active: viewMode === 'calendar' }" @tap="viewMode = 'calendar'">
+      <view class="switch-item press-light" :class="{ active: viewMode === 'calendar' }" @tap="switchToMode('calendar')">
         <HfIcon name="notebook-linear" size="sm" :color="viewMode === 'calendar' ? BRAND_PRIMARY : NEUTRAL_500" />
         <text class="switch-text">日历</text>
       </view>
@@ -27,13 +27,13 @@
     <!-- ===== TIMELINE MODE ===== -->
     <template v-if="viewMode === 'timeline'">
 
-    <!-- The Divine Zenith Spotlight Background -->
-    <view class="tl-abyss-bg">
+    <!-- The Divine Zenith Spotlight Background (parallax: slow layer) -->
+    <view class="tl-abyss-bg" :style="parallax.getLayerStyle('abyss')">
       <view class="tl-abyss-glow" />
       <view class="tl-abyss-watermark" />
     </view>
 
-    <!-- 1. Date strip -->
+    <!-- 1. Date strip (arc perspective) -->
     <view class="date-strip-wrap">
       <text class="month-badge">{{ monthDisplay }}</text>
       <scroll-view
@@ -43,9 +43,9 @@
         scroll-with-animation
         :show-scrollbar="false"
       >
-        <view class="date-strip__inner">
+        <view class="date-strip__inner date-strip__arc">
           <view
-            v-for="day in dateList"
+            v-for="(day, dayIdx) in dateList"
             :key="day.date"
             :id="'d-' + day.date"
             class="date-item"
@@ -53,7 +53,8 @@
               'is-today': day.isToday,
               'is-selected': day.date === selectedDate,
             }"
-            @tap="selectDate(day.date)"
+            :style="getDateArcStyle(dayIdx)"
+            @tap="onDateTap(day.date)"
           >
             <text class="date-item__weekday">{{ day.weekday }}</text>
             <view class="date-item__circle">
@@ -108,7 +109,7 @@
       <view v-else-if="hasNoBlocks && isPastDay" class="tl-empty tl-empty--past">
         <text class="tl-empty__date">{{ formattedSelectedDate }}</text>
         <text class="tl-empty__result">
-          习惯模块已清理
+          这一天没有习惯记录
         </text>
       </view>
 
@@ -125,7 +126,7 @@
         <!-- The Ultimate Timepiece: Astral Orchestra Chronograph -->
         <AstralClock ref="astralClockRef" />
 
-        <!-- ===== 散板区 Rubato — 无固定时间习惯 (Piano Keys) ===== -->
+        <!-- ===== 鏁ｆ澘鍖?Rubato 鈥?鏃犲浐瀹氭椂闂翠範鎯?(Piano Keys) ===== -->
         <view v-if="floatingHabits.length > 0" class="rubato-strip">
           <view class="rubato-strip__label">
             <text class="rubato-strip__label-text">Rubato</text>
@@ -136,7 +137,7 @@
               <view
                 v-for="(habit, idx) in floatingHabits"
                 :key="habit._id"
-                class="piano-key"
+                class="piano-key press-scale"
                 :class="{ 'piano-key--black': isHabitCompleted(habit), 'piano-key--pressing': pressingKeyId === habit._id }"
                 :style="{ '--key-delay': idx * 60 + 'ms' }"
                 @tap="onPianoKeyTap(habit)"
@@ -151,9 +152,9 @@
                   <view class="piano-key__note-head" />
                   <view class="piano-key__note-stem" />
                 </view>
-                <text v-if="isHabitCompleted(habit)" class="piano-key__done-mark">♪</text>
+                <text v-if="isHabitCompleted(habit)" class="piano-key__done-mark">✓</text>
                 
-                <!-- 琴键击弦水墨粒子 -->
+                <!-- 鐞撮敭鍑诲鸡姘村ⅷ绮掑瓙 -->
                 <view v-if="justCompletedId === habit._id" class="ink-particles">
                   <view class="ink-dot ink-1" />
                   <view class="ink-dot ink-2" />
@@ -164,7 +165,7 @@
           </scroll-view>
         </view>
 
-        <!-- 空状态 -->
+        <!-- 绌虹姸鎬?-->
         <view v-if="habitStore.todayHabits.length === 0" class="tl-habit-empty">
           <text class="tl-habit-empty__text">今天没有安排习惯</text>
           <view class="tl-habit-empty__btn" @tap="goCreate">
@@ -177,6 +178,11 @@
           :class="[dateSlideClass, { 'tl-fading': dateFading }]"
           :style="{ height: timelineRenderHeightRpx + 'rpx', '--hour-height': HOUR_HEIGHT + 'rpx' }"
         >
+        <!-- Sticky Period Label (floats when scrolling) -->
+        <view v-if="currentPeriodLabel" class="tl-sticky-period">
+          <text class="tl-sticky-period__text">{{ currentPeriodLabel }}</text>
+        </view>
+
         <!-- Hour rows (24h fixed range) -->
         <view
           v-for="hour in HOURS"
@@ -186,11 +192,19 @@
           :class="{
             'tl-row--major': hour % 3 === 0,
             'tl-row--now': isToday && isCurrentHour(hour),
+            'tl-row--period-start': PERIOD_LABELS[hour],
           }"
         >
+          <!-- Period divider label (inline) -->
+          <view v-if="PERIOD_LABELS[hour]" class="tl-period-divider">
+            <view class="tl-period-divider__line" />
+            <text class="tl-period-divider__label">{{ PERIOD_LABELS[hour] }}</text>
+            <view class="tl-period-divider__line" />
+          </view>
+
           <!-- Time Poker Card Anchor -->
           <view class="tl-row__label-col">
-            <view class="poker-time-card" :class="[getPokerColorClass(hour), { 'is-now': isToday && isCurrentHour(hour) }]">
+            <view class="poker-time-card press-scale" :class="[getPokerColorClass(hour), { 'is-now': isToday && isCurrentHour(hour) }]">
               <text class="poker-time-card__suit poker-time-card__suit--top">{{ getPokerSuit(hour) }}</text>
               <text class="poker-time-card__text">{{ padHour(hour) }}</text>
               <text class="poker-time-card__suit poker-time-card__suit--bottom">{{ getPokerSuit(hour) }}</text>
@@ -200,31 +214,33 @@
           <view class="tl-row__lane">
             <view class="tl-row__divider" :class="{ 'tl-row__divider--major': hour % 3 === 0 }" />
             <view class="tl-row__half" />
-            <!-- ===== 定速区 Giusto — 锚定习惯票卡 ===== -->
+            <!-- ===== 瀹氶€熷尯 Giusto 鈥?閿氬畾涔犳儻绁ㄥ崱 ===== -->
             <template v-for="(habit, hIdx) in getHabitsForHour(hour)" :key="habit._id">
-              <!-- 真实卡片：最多渲染前3张 -->
+              <!-- 鐪熷疄鍗＄墖锛氭渶澶氭覆鏌撳墠3寮?-->
               <view
                 v-if="hIdx < 3"
-                class="habit-ticket"
+                class="habit-ticket press-scale"
                 :class="{
                   'habit-ticket--done': isHabitCompleted(habit),
                   'habit-ticket--missed': isHabitMissed(habit),
                   'is-checking': isChecking === habit._id,
                   'is-fading': fadingHabitIds.includes(habit._id!)
                 }"
-                :style="{ 
-                  '--stack-offset': hIdx * 12 + 'rpx', 
+                :style="{
+                  ...ticketReveal.getRevealStyle(hour * 10 + hIdx),
+                  '--stack-offset': hIdx * 12 + 'rpx',
                   '--stack-y': hIdx * 8 + 'rpx',
                   '--ticket-delay': hIdx * 80 + 'ms',
-                  zIndex: 10 - hIdx 
+                  zIndex: 10 - hIdx
                 }"
+                :data-reveal-index="hour * 10 + hIdx"
                 @tap="onTicketTap(habit)"
                 @longpress="handleDelete(habit._id!)"
               >
                 <view class="habit-ticket__bg-watermark">𝄞</view>
                 <view class="habit-ticket__bracket" />
                 
-                <!-- 左侧 2/3 热区：进详情 -->
+                <!-- 宸︿晶 2/3 鐑尯锛氳繘璇︽儏 -->
                 <view class="habit-ticket__body" @tap.stop="goHabitDetail(habit)">
                   <view class="habit-ticket__icon">
                     <HfIcon v-if="habit.icon" :name="habit.icon" size="xs" color="currentColor" />
@@ -243,9 +259,9 @@
                   </view>
                 </view>
 
-                <!-- 右侧 1/3 热区：打卡按钮 (火漆封印) -->
+                <!-- 鍙充晶 1/3 鐑尯锛氭墦鍗℃寜閽?(鐏紗灏佸嵃) -->
                 <view class="habit-ticket__action">
-                  <!-- 打卡态/Loading态/火漆爆发圈 -->
+                  <!-- 鎵撳崱鎬?Loading鎬?鐏紗鐖嗗彂鍦?-->
                   <view class="wax-seal-btn" :class="{ 
                     'is-done': isHabitCompleted(habit),
                     'is-loading': isChecking === habit._id 
@@ -257,7 +273,7 @@
                 </view>
               </view>
 
-              <!-- 超出3张：底部阴影背纹牌堆 -->
+              <!-- 瓒呭嚭3寮狅細搴曢儴闃村奖鑳岀汗鐗屽爢 -->
               <view 
                 v-else-if="hIdx === 3" 
                 class="habit-ticket-dealer"
@@ -269,7 +285,7 @@
           </view>
         </view>
 
-        <!-- 巨大的 Silence 空白时段修饰水印 (当今天下午完全空白时给个意境) -->
+        <!-- 宸ㄥぇ鐨?Silence 绌虹櫧鏃舵淇グ姘村嵃 (褰撲粖澶╀笅鍗堝畬鍏ㄧ┖鐧芥椂缁欎釜鎰忓) -->
         <view v-if="habitStore.todayHabits.length && anchoredHabits.length === 0" class="ghost-silence-watermark">
           Silence
         </view>
@@ -285,24 +301,24 @@
           <view class="now-line__line" />
           <!-- Next habit bubble -->
           <view v-if="nextUpcomingHabit" class="now-line__next">
-            <text class="now-line__next-text">Next 𝄅 {{ nextUpcomingHabit.name }}</text>
+            <text class="now-line__next-text">接下来 · {{ nextUpcomingHabit.name }}</text>
           </view>
         </view>
 
-        <!-- ===== 书桌边沿 / Coda 选集卡片 ===== -->
+        <!-- ===== 涔︽杈规部 / Coda 閫夐泦鍗＄墖 ===== -->
         <view class="composer-desk">
           <view class="coda-card-container">
             <!-- Opus Brass Plate (Card Header) -->
             <view class="opus-plate">
               <text class="opus-plate__left">Opus. {{ userStore.stats?.joinedDays || 1 }}</text>
-              <view class="opus-plate__center-ornament">~ ✧ ~</view>
+              <view class="opus-plate__center-ornament">~ ✦ ~</view>
               <text class="opus-plate__right">Maestro. <text class="flower-sign">{{ userStore.nickName || 'User' }}</text></text>
               <view class="opus-plate__barlines">𝄂</view>
             </view>
 
             <view v-if="codaHabits.length > 0" class="coda-section">
               <view class="coda-section__header" @tap="toggleCoda">
-                <text class="coda-section__title">Anthology. · {{ codaHabits.length }}</text>
+                <text class="coda-section__title">Anthology · {{ codaHabits.length }}</text>
                 <view class="coda-section__arrow" :class="{ 'is-open': codaOpen }">
                   <HfIcon name="arrow-down-linear" size="xs" color="currentColor" />
                 </view>
@@ -316,7 +332,7 @@
               </view>
             </view>
             
-            <!-- 100% 完美全清彩蛋印章 -->
+            <!-- 100% 瀹岀編鍏ㄦ竻褰╄泲鍗扮珷 -->
             <view v-if="showBravura" class="bravura-seal">
               <image src="https://api.iconify.design/game-icons:wax-seal.svg?color=%23ba1a1a" class="bravura-seal__bg" />
               <text class="bravura-seal__text">Bravura!</text>
@@ -393,7 +409,7 @@
             </view>
           </view>
 
-          <!-- 日期票据详情 (Ticket Details) -->
+          <!-- 鏃ユ湡绁ㄦ嵁璇︽儏 (Ticket Details) -->
           <view v-if="calSelectedDate" class="ios-details-card">
             <view class="card-content">
               <!-- Header row with collapse toggle -->
@@ -413,7 +429,7 @@
 
               <!-- Collapsible body -->
               <view class="cal-habit-collapse" :class="{ 'cal-habit-collapse--open': calHabitsExpanded }">
-                <!-- 当日习惯列表（仅今天可交互） -->
+                <!-- 褰撴棩涔犳儻鍒楄〃锛堜粎浠婂ぉ鍙氦浜掞級 -->
                 <view v-if="calSelectedDate === todayStr && habitStore.todayHabits.length > 0" class="cal-habit-list">
                   <HabitListItem
                     v-for="(habit, idx) in habitStore.todayHabits"
@@ -426,7 +442,7 @@
                     @delete="handleDelete"
                   />
                 </view>
-                <!-- 非今天或无习惯 -->
+                <!-- 闈炰粖澶╂垨鏃犱範鎯?-->
                 <view v-else class="cal-habit-empty">
                   <text class="cal-habit-empty__text">
                     {{ calSelectedDate === todayStr ? '今天没有安排习惯' : '查看其他日期的打卡记录（即将开放）' }}
@@ -508,6 +524,7 @@ import HabitListItem from '@/components/habit/HabitListItem.vue'
 import AstralClock from '@/components/timeline/AstralClock.vue'
 import Grandorrery from '@/components/calendar/Grandorrery.vue'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useScrollReveal, useHaptic, useParallax } from '@/composables/motion'
 import {
   HABIT_CATEGORY_COLORS,
   RITUAL_TYPE_COLORS,
@@ -537,14 +554,14 @@ const TIMELINE_STATS_BAR_RPX = 96
 const TIMELINE_BOTTOM_GAP_RPX = 24
 const DEFAULT_DURATION = 30 // minutes
 const MAX_VISIBLE_COLUMNS = 3
-const DATE_RANGE = 7 // ±7 days
+const DATE_RANGE = 7 // +/- 7 days
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 const LABEL_COL_WIDTH_RPX = 80 // Width of the time label column (rpx)
 
 const PERIOD_LABELS: Record<number, string> = {
   0: '凌晨',
   3: '黎明',
-  6: '早晨',
+  6: '清晨',
   9: '上午',
   12: '午间',
   14: '下午',
@@ -554,13 +571,13 @@ const PERIOD_LABELS: Record<number, string> = {
 
 // --- Poker Suit Details ---
 function getPokerSuit(hour: number): string {
-  // Morning / Dawn (0-8) -> Clubs ♣ (Growth/Beginning)
+  // Morning / Dawn (0-8) -> Clubs (Growth/Beginning)
   if (hour < 8) return '♣'
-  // Day / Working hours (8-14) -> Diamonds ♦ (Value/Sunlight)
+  // Day / Working hours (8-14) -> Diamonds (Value/Sunlight)
   if (hour >= 8 && hour < 14) return '♦'
-  // Afternoon / Evening (14-20) -> Hearts ♥ (Passion/Rest)
+  // Afternoon / Evening (14-20) -> Hearts (Passion/Rest)
   if (hour >= 14 && hour < 20) return '♥'
-  // Night (20-24) -> Spades ♠ (Mystery/Sleep)
+  // Night (20-24) -> Spades (Mystery/Sleep)
   return '♠'
 }
 
@@ -643,6 +660,25 @@ const habitStore = useHabitStore()
 const ritualStore = useRitualStore()
 const { entered: pageEntered } = usePageTransition()
 const isNeoTheme = computed(() => isNeo.value)
+
+// --- Motion System ---
+const haptic = useHaptic()
+const parallax = useParallax([
+  { name: 'abyss', speed: 0.15 },    // 娣卞眰鑳屾櫙 (鏋佹參)
+  { name: 'content', speed: 1 },     // 涓诲唴瀹?(姝ｅ父)
+])
+const ticketReveal = useScrollReveal({
+  direction: 'up',
+  distance: 48,
+  duration: 500,
+  stagger: 80,
+  maxStagger: 800,
+})
+
+// --- Scroll-linked state ---
+const scrollProgress = ref(0)
+const scrollVelocity = ref(0)
+const currentPeriodLabel = ref('')
 
 // --- Habit fusion state ---
 const codaOpen = ref(false)
@@ -765,10 +801,10 @@ const nextUpcomingHabit = computed(() => {
 })
 
 function getHabitTypeLabel(habit: Habit): string {
-  if (habit.type === 'boolean') return 'Adagio'
-  if (habit.type === 'counter') return `𝄇 ×${habit.targetValue}${habit.unit || ''}`
+  if (habit.type === 'boolean') return '单次打卡'
+  if (habit.type === 'counter') return `${habit.targetValue}${habit.unit || '次'}`
   const minutes = Math.max(1, Math.round((habit.targetValue || 60) / 60))
-  return `♩ = ${minutes} min`
+  return `${minutes} 分钟`
 }
 
 // --- Habit interactions (no vibration) ---
@@ -818,6 +854,7 @@ function goHabitDetail(habit: Habit) {
 
 function onPianoKeyTap(habit: Habit) {
   if (!habit._id || isChecking.value) return
+  haptic.light()
   pressingKeyId.value = habit._id
   setTimeout(() => { pressingKeyId.value = null }, 300)
 
@@ -836,6 +873,7 @@ function onPianoKeyTap(habit: Habit) {
       return
     }
     justCompletedId.value = hid
+    haptic.success()
     setTimeout(() => {
       if (justCompletedId.value === hid) justCompletedId.value = null
     }, 800)
@@ -846,6 +884,7 @@ function onPianoKeyTap(habit: Habit) {
 function onTicketTap(habit: Habit) {
   if (!habit._id || isChecking.value) return
   if (isHabitCompleted(habit)) return // disabled uncheck
+  haptic.medium()
 
   const val = habit.type === 'boolean' ? 1 : Math.max(1, habit.targetValue || 1)
   
@@ -860,6 +899,7 @@ function onTicketTap(habit: Habit) {
       clearTicketTimers(hid)
       return
     }
+    haptic.success()
     scheduleTicketFadeOut(hid)
     checkBravura()
   }, 600)
@@ -869,11 +909,19 @@ function checkBravura() {
   if (!habitStore.todayHabits.length) return
   const allDone = habitStore.todayHabits.every(h => isHabitCompleted(h))
   if (allDone) {
+    haptic.celebration()
     showBravura.value = false // reset to re-trigger
     setTimeout(() => {
       showBravura.value = true
     }, 2500) // Delay bravura to match the new 2500ms unmount fade
   }
+}
+
+/** View mode switch with haptic */
+function switchToMode(mode: 'timeline' | 'calendar') {
+  if (viewMode.value === mode) return
+  haptic.light()
+  viewMode.value = mode
 }
 
 const astralClockRef = ref<any>(null)
@@ -937,7 +985,7 @@ const calDateDisplay = computed(() => {
   }
   const midStr = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-15`
   const solarTerm = getSolarTerm(midStr)
-  return solarTerm || `${calMonth.value}月`
+  return solarTerm || `${calMonth.value}月节律`
 })
 
 const heroThemeClass = computed(() => {
@@ -980,7 +1028,7 @@ const heroSlogan = computed(() => {
   
   if (total === 0) return '留白也是生活的一部分。'
   if (count === total) return '今日画卷已圆满绘就。'
-  return `画卷连载中，已绘制 ${count} / ${total} 笔。`
+  return `画卷连载中，已绘就 ${count} / ${total} 笔。`
 })
 
 function getCategoryIllustration(category: string): string {
@@ -1223,7 +1271,7 @@ function periodLabel(hour: number): string | null {
   return PERIOD_LABELS[hour] ?? null
 }
 
-// Coral for 早晨(6)/午间(12)/夜间(21), Moss for 上午(9)/下午(14)/傍晚(18), Lavender for 凌晨(0)/黎明(3)
+// Coral for 鏃╂櫒(6)/鍗堥棿(12)/澶滈棿(21), Moss for 涓婂崍(9)/涓嬪崍(14)/鍌嶆櫄(18), Lavender for 鍑屾櫒(0)/榛庢槑(3)
 function periodColorClass(hour: number): string {
   if (hour === 0 || hour === 3) return 'tl-period-label--lavender'
   const coralHours = [6, 12, 21]
@@ -1253,7 +1301,20 @@ const formattedSelectedDate = computed(() => {
 
 function triggerBlocksEntry() {
   blocksEntered.value = false
-  setTimeout(() => { blocksEntered.value = true }, 80)
+  ticketReveal.reset()
+  setTimeout(() => {
+    blocksEntered.value = true
+    // Progressively reveal tickets based on visible hours
+    const visibleHours = HOURS.filter(h => getHabitsForHour(h).length > 0)
+    visibleHours.forEach((hour, groupIdx) => {
+      const habits = getHabitsForHour(hour)
+      habits.forEach((_h, hIdx) => {
+        setTimeout(() => {
+          ticketReveal.reveal(hour * 10 + hIdx)
+        }, groupIdx * 120 + hIdx * 60)
+      })
+    })
+  }, 80)
 }
 
 // --- Statusbar ---
@@ -1332,6 +1393,41 @@ function selectDate(date: string) {
     dateFading.value = false
     triggerBlocksEntry()
   })
+}
+
+/** Date tap with haptic feedback */
+function onDateTap(date: string) {
+  haptic.light()
+  selectDate(date)
+}
+
+/**
+ * Arc perspective style for date strip items
+ * Selected item is centered & elevated, neighbors recede along a subtle arc
+ */
+function getDateArcStyle(dayIdx: number): Record<string, string> {
+  if (appStore.reduceMotion) return {}
+
+  const selectedIdx = dateList.value.findIndex((d: DateItem) => d.date === selectedDate.value)
+  if (selectedIdx < 0) return {}
+
+  const dist = dayIdx - selectedIdx
+  const absDist = Math.abs(dist)
+
+  // Scale: selected=1, neighbors shrink
+  const scale = Math.max(0.82, 1 - absDist * 0.06)
+  // Y offset: arc curve (quadratic) 鈥?center is highest
+  const translateY = absDist * absDist * 2
+  // Opacity: fade distant items
+  const opacity = Math.max(0.5, 1 - absDist * 0.12)
+  // Z-rotation: slight tilt toward center
+  const rotateZ = dist * -1.5
+
+  return {
+    transform: `scale(${scale.toFixed(2)}) translateY(${translateY}rpx) rotate(${rotateZ.toFixed(1)}deg)`,
+    opacity: opacity.toFixed(2),
+    transition: 'transform 350ms cubic-bezier(0.34, 1.3, 0.64, 1), opacity 250ms ease',
+  }
 }
 
 function goToday() {
@@ -1415,8 +1511,7 @@ const timedBlocks = computed(() =>
 
 const overlapGroups = computed<OverlapGroup[]>(() => [])
 
-// 响应式 activeIndex per group（用 Map 避免 overlapGroups 被依赖时每次重置 index）
-const groupActiveIndexMap = ref<Record<string, number>>({})
+// 鍝嶅簲寮?activeIndex per group锛堢敤 Map 閬垮厤 overlapGroups 琚緷璧栨椂姣忔閲嶇疆 index锛?const groupActiveIndexMap = ref<Record<string, number>>({})
 
 // Prune stale entries when groups change (e.g., habit deleted or time moved)
 watch(overlapGroups, (newGroups) => {
@@ -1501,10 +1596,10 @@ interface CardColors {
 type OverlapGroupType = 'single' | 'pair' | 'carousel'
 
 interface OverlapGroup {
-  id: string            // group key，取首块 habitId
+  id: string            // group key锛屽彇棣栧潡 habitId
   type: OverlapGroupType
-  blocks: any[]         // 该时段所有重叠块
-  topMinute: number     // 组内最早开始时间（分钟）
+  blocks: any[]         // 璇ユ椂娈垫墍鏈夐噸鍙犲潡
+  topMinute: number     // 缁勫唴鏈€鏃╁紑濮嬫椂闂达紙鍒嗛挓锛
 }
 
 function deriveCardColors(hex: string): CardColors {
@@ -1525,7 +1620,7 @@ function deriveCardColors(hex: string): CardColors {
 
 // --- Block styles ---
 
-// NOTE: Currently unused — template uses cardGroupStyle instead.
+// NOTE: Currently unused 鈥?template uses cardGroupStyle instead.
 // Kept for potential future direct-block usage.
 function blockStyle(block: TimeBlock): Record<string, string> {
   const minutesSinceStart = (block.startHour * 60 + block.startMinute) - START_HOUR * 60
@@ -1705,8 +1800,29 @@ function calcScrollHeight() {
   }
 }
 
-function onScroll() {
-  // keep for future scroll interactions
+function onScroll(e: any) {
+  const st = e.detail?.scrollTop ?? 0
+  const info = uni.getWindowInfo?.()
+  const windowWidth = info?.windowWidth ?? 375
+
+  // rpx 鈫?px conversion factor
+  const rpxRatio = windowWidth / 750
+
+  // Update parallax layers
+  parallax.update(st)
+
+  // Scroll progress (0鈫?)
+  const totalHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT * rpxRatio
+  scrollProgress.value = Math.min(1, st / Math.max(1, totalHeight - (scrollHeight.value || 500)))
+
+  // Determine current period label based on scroll position
+  const currentHour = START_HOUR + Math.floor((st / (HOUR_HEIGHT * rpxRatio)))
+  const periodHours = Object.keys(PERIOD_LABELS).map(Number).sort((a, b) => b - a)
+  const matchedHour = periodHours.find(h => currentHour >= h) ?? 0
+  currentPeriodLabel.value = PERIOD_LABELS[matchedHour] || ''
+
+  // Velocity tracking (for AstralClock gear spin)
+  scrollVelocity.value = e.detail?.scrollTop ?? 0
 }
 
 // --- Today summary ---
@@ -1727,7 +1843,7 @@ const dayCompletionRate = computed(() => {
 })
 const remainingText = computed(() => {
   const count = habitStore.pendingHabits.length
-  if (count === 0) return '今日习惯已全部完成 🎉'
+  if (count === 0) return '今日习惯已全部完成'
   return `还剩 ${count} 项待完成`
 })
 
@@ -1752,7 +1868,7 @@ async function loadDateData(isInitial = false, _forceRefreshHabits = false) {
     habits.value = habitStore.todayHabits
     dateCheckIns.value = new Map(habitStore.todayCheckIns)
   } catch {
-    // noop — error toasts handled in store
+    // noop 鈥?error toasts handled in store
   } finally {
     loading.value = false
   }
@@ -1972,6 +2088,15 @@ onPullDownRefresh(async () => {
   height: 100%;
   gap: $space-1;
   padding: 0 $page-padding;
+}
+
+// Arc perspective: items along a subtle curve
+.date-strip__arc {
+  perspective: 800px;
+  .date-item {
+    will-change: transform, opacity;
+    transform-origin: center bottom;
+  }
 }
 
 .date-item {
@@ -2381,9 +2506,62 @@ onPullDownRefresh(async () => {
   }
 }
 
+// --- Sticky Period Label ---
+.tl-sticky-period {
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  padding: 6rpx 24rpx;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+
+  &__text {
+    font-size: $text-xs;
+    font-weight: $font-bold;
+    letter-spacing: $letter-spacing-wider;
+    color: $neutral-500;
+    background: rgba($neutral-50, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 4rpx 24rpx;
+    border-radius: $radius-full;
+    text-transform: uppercase;
+    box-shadow: $shadow-xs;
+  }
+}
+
+// --- Period Divider (inline) ---
+.tl-period-divider {
+  position: absolute;
+  top: -4rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 0 24rpx;
+  z-index: 2;
+
+  &__line {
+    flex: 1;
+    height: 1rpx;
+    background: linear-gradient(to right, transparent, $neutral-300, transparent);
+  }
+
+  &__label {
+    font-size: $text-2xs;
+    font-weight: $font-semibold;
+    letter-spacing: $letter-spacing-widest;
+    color: $neutral-400;
+    white-space: nowrap;
+  }
+}
+
 // --- Hour rows ---
 
 .tl-row {
+  position: relative; // for period divider absolute positioning
+
   display: flex;
   align-items: flex-start;
   height: var(--hour-height, 120rpx);
@@ -3274,7 +3452,7 @@ onPullDownRefresh(async () => {
   }
 }
 
-// ─── RUBATO STRIP (Piano Keys — floating habits) ──────────────
+// 鈹€鈹€鈹€ RUBATO STRIP (Piano Keys 鈥?floating habits) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 $stave-bg-key: #E8ECEF;
 $ink-black-key: #0C0D0F;
@@ -3359,7 +3537,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
     .piano-key__fallback { color: rgba(255, 255, 255, 0.7); }
   }
 
-  // --- 击弦墨水飞溅粒子 ---
+  // --- 鍑诲鸡澧ㄦ按椋炴簠绮掑瓙 ---
   .ink-particles {
     position: absolute;
     top: 50%;
@@ -3494,7 +3672,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   100% { transform: translate(12rpx, 16rpx) scale(0); opacity: 0; }
 }
 
-// ─── EMBEDDED HABIT TICKET (Anchored in timeline lane) ────────
+// 鈹€鈹€鈹€ EMBEDDED HABIT TICKET (Anchored in timeline lane) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 .habit-ticket {
   position: relative;
@@ -3539,7 +3717,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
     .dark-mode & { color: rgba(255,255,255, 0.03); }
   }
 
-  // --- Bracket (大谱表花括号) ---
+  // --- Bracket (澶ц氨琛ㄨ姳鎷彿) ---
   &__bracket {
     width: 10rpx;
     flex-shrink: 0;
@@ -3794,7 +3972,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   .dark-mode & { color: rgba(255,255,255,0.02); }
 }
 
-// ─── NOW LINE NEXT HABIT BUBBLE ───────────────────────────────
+// 鈹€鈹€鈹€ NOW LINE NEXT HABIT BUBBLE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 .now-line__next {
   position: absolute;
@@ -3818,7 +3996,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   font-weight: 600;
 }
 
-// ─── CODA / FINE SECTION ──────────────────────────────────────
+// 鈹€鈹€鈹€ CODA / FINE SECTION 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 // Inlaid Gold Text Effect helper
 @mixin gold-foil-text {
@@ -4080,10 +4258,12 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
 
   &__name {
     flex: 1;
+    min-width: 0;
     font-family: $serif-stack-key;
     font-size: 26rpx;
     font-weight: 500;
     color: $neutral-700;
+    @include text-ellipsis(1);
 
     .dark-mode & { color: $dark-text-secondary; }
   }
@@ -4097,7 +4277,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   }
 }
 
-// ─── HABIT EMPTY STATE ────────────────────────────────────────
+// 鈹€鈹€鈹€ HABIT EMPTY STATE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 .tl-habit-empty {
   @include flex-col;
@@ -4125,7 +4305,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   }
 }
 
-// ─── CALENDAR HABIT LIST ──────────────────────────────────────
+// 鈹€鈹€鈹€ CALENDAR HABIT LIST 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 .cal-habit-list {
   margin-top: $space-3;
@@ -4191,7 +4371,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
 }
 
 // ==========================================
-// HOLIDAY ALMANAC — Festival Stamp Collection
+// HOLIDAY ALMANAC 鈥?Festival Stamp Collection
 // ==========================================
 
 .almanac-panel {
@@ -4330,7 +4510,7 @@ $serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
   animation-delay: var(--stamp-delay, 0ms);
   @include tap-active;
 
-  // Perforation stamp mask — full 4-edge perforations
+  // Perforation stamp mask 鈥?full 4-edge perforations
   -webkit-mask-image:
     radial-gradient(circle at 0 8rpx, transparent 4rpx, black 5rpx) repeat-y,
     radial-gradient(circle at 100% 8rpx, transparent 4rpx, black 5rpx) repeat-y,
@@ -4461,7 +4641,7 @@ $stamp-special: #00B894;
   animation: pulseGlow 2.5s ease-in-out infinite;
 }
 
-// ========== 1. 元旦 — Firework burst ==========
+// ========== 1. 鍏冩棪 鈥?Firework burst ==========
 .stamp-icon--firework .stamp-icon__shape {
   width: 8rpx;
   height: 8rpx;
@@ -4479,7 +4659,7 @@ $stamp-special: #00B894;
   animation: fireworkBurst 2s ease-in-out infinite;
 }
 
-// ========== 2. 劳动 — Hammer & wrench cross ==========
+// ========== 2. 鍔冲姩 鈥?Hammer & wrench cross ==========
 .stamp-icon--hammer .stamp-icon__shape {
   width: 6rpx;
   height: 36rpx;
@@ -4514,7 +4694,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 3. 国庆 — Flag ==========
+// ========== 3. 鍥藉簡 鈥?Flag ==========
 .stamp-icon--flag .stamp-icon__shape {
   width: 4rpx;
   height: 48rpx;
@@ -4535,7 +4715,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 4. 春节 — Fu seal ==========
+// ========== 4. 鏄ヨ妭 鈥?Fu seal ==========
 .stamp-icon--chunlian .stamp-icon__shape {
   width: 48rpx;
   height: 48rpx;
@@ -4547,7 +4727,7 @@ $stamp-special: #00B894;
   transform: rotate(-8deg);
 
   &::after {
-    content: '福';
+    content: '\798F';
     font-family: $serif-stack;
     font-size: 28rpx;
     font-weight: 900;
@@ -4556,7 +4736,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 5. 端午 — Dragon boat wave ==========
+// ========== 5. 绔崍 鈥?Dragon boat wave ==========
 .stamp-icon--dragonboat .stamp-icon__shape {
   width: 44rpx;
   height: 14rpx;
@@ -4591,7 +4771,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 6. 中秋 — Moon ==========
+// ========== 6. 涓 鈥?Moon ==========
 .stamp-icon--moon .stamp-icon__shape {
   width: 44rpx;
   height: 44rpx;
@@ -4623,7 +4803,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 7. 元宵 — Lantern ==========
+// ========== 7. 鍏冨 鈥?Lantern ==========
 .stamp-icon--lantern .stamp-icon__shape {
   width: 36rpx;
   height: 44rpx;
@@ -4657,7 +4837,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 8. 龙抬头 — Dragon horn ==========
+// ========== 8. 榫欐姮澶?鈥?Dragon horn ==========
 .stamp-icon--dragon .stamp-icon__shape {
   width: 20rpx;
   height: 36rpx;
@@ -4679,7 +4859,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 9. 上巳 — Water ripple ==========
+// ========== 9. 涓婂烦 鈥?Water ripple ==========
 .stamp-icon--ripple .stamp-icon__shape {
   width: 16rpx;
   height: 16rpx;
@@ -4691,7 +4871,7 @@ $stamp-special: #00B894;
   animation: rippleExpand 2s ease-out infinite;
 }
 
-// ========== 10. 七夕 — Two stars bridged ==========
+// ========== 10. 涓冨 鈥?Two stars bridged ==========
 .stamp-icon--magpie .stamp-icon__shape {
   width: 16rpx;
   height: 16rpx;
@@ -4723,7 +4903,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 11. 中元 — Lotus flame ==========
+// ========== 11. 涓厓 鈥?Lotus flame ==========
 .stamp-icon--lotus .stamp-icon__shape {
   width: 12rpx;
   height: 24rpx;
@@ -4756,7 +4936,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 12. 重阳 — Mountain peak ==========
+// ========== 12. 閲嶉槼 鈥?Mountain peak ==========
 .stamp-icon--mountain .stamp-icon__shape {
   width: 0;
   height: 0;
@@ -4778,7 +4958,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 13. 腊八 — Bowl with steam ==========
+// ========== 13. 鑵婂叓 鈥?Bowl with steam ==========
 .stamp-icon--bowl .stamp-icon__shape {
   width: 40rpx;
   height: 20rpx;
@@ -4811,7 +4991,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 14. 小年 — Broom ==========
+// ========== 14. 灏忓勾 鈥?Broom ==========
 .stamp-icon--broom .stamp-icon__shape {
   width: 4rpx;
   height: 40rpx;
@@ -4834,7 +5014,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 15. 除夕 — Firecracker ==========
+// ========== 15. 闄ゅ 鈥?Firecracker ==========
 .stamp-icon--firecracker .stamp-icon__shape {
   width: 16rpx;
   height: 32rpx;
@@ -4868,7 +5048,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 16. 清明 — Willow branch ==========
+// ========== 16. 娓呮槑 鈥?Willow branch ==========
 .stamp-icon--willow .stamp-icon__shape {
   width: 4rpx;
   height: 36rpx;
@@ -4905,7 +5085,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 17. 寒食 — Cold ember ==========
+// ========== 17. 瀵掗 鈥?Cold ember ==========
 .stamp-icon--ember .stamp-icon__shape {
   width: 32rpx;
   height: 32rpx;
@@ -4927,7 +5107,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 18. 情人 — Heart ==========
+// ========== 18. 鎯呬汉 鈥?Heart ==========
 .stamp-icon--heart .stamp-icon__shape {
   width: 36rpx;
   height: 32rpx;
@@ -4958,7 +5138,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 19. 妇女 — Flower ==========
+// ========== 19. 濡囧コ 鈥?Flower ==========
 .stamp-icon--flower .stamp-icon__shape {
   width: 12rpx;
   height: 12rpx;
@@ -4972,7 +5152,7 @@ $stamp-special: #00B894;
   animation: flowerBloom 2.5s ease-in-out infinite;
 }
 
-// ========== 20. 植树 — Seedling ==========
+// ========== 20. 妞嶆爲 鈥?Seedling ==========
 .stamp-icon--seedling .stamp-icon__shape {
   width: 4rpx;
   height: 24rpx;
@@ -5007,7 +5187,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 21. 青年 — Flame torch ==========
+// ========== 21. 闈掑勾 鈥?Flame torch ==========
 .stamp-icon--flame .stamp-icon__shape {
   width: 6rpx;
   height: 28rpx;
@@ -5028,7 +5208,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 22. 儿童 — Balloon ==========
+// ========== 22. 鍎跨 鈥?Balloon ==========
 .stamp-icon--balloon .stamp-icon__shape {
   width: 28rpx;
   height: 34rpx;
@@ -5060,7 +5240,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 23. 七一 — Star badge ==========
+// ========== 23. 涓冧竴 鈥?Star badge ==========
 .stamp-icon--badge .stamp-icon__shape {
   width: 40rpx;
   height: 40rpx;
@@ -5078,7 +5258,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 24. 八一 — Shield ==========
+// ========== 24. 鍏竴 鈥?Shield ==========
 .stamp-icon--shield .stamp-icon__shape {
   width: 32rpx;
   height: 38rpx;
@@ -5099,7 +5279,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 25. 教师 — Open book ==========
+// ========== 25. 鏁欏笀 鈥?Open book ==========
 .stamp-icon--book .stamp-icon__shape {
   width: 18rpx;
   height: 28rpx;
@@ -5121,7 +5301,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 26. 纪念 — Monument obelisk ==========
+// ========== 26. 绾康 鈥?Monument obelisk ==========
 .stamp-icon--monument .stamp-icon__shape {
   width: 12rpx;
   height: 40rpx;
@@ -5141,7 +5321,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 27. 双11 — Twin bars ==========
+// ========== 27. 鍙?1 鈥?Twin bars ==========
 .stamp-icon--bars .stamp-icon__shape {
   width: 10rpx;
   height: 36rpx;
@@ -5162,7 +5342,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 28. 平安 — Bell ==========
+// ========== 28. 骞冲畨 鈥?Bell ==========
 .stamp-icon--bell .stamp-icon__shape {
   width: 30rpx;
   height: 28rpx;
@@ -5196,7 +5376,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 29. 圣诞 — Christmas tree ==========
+// ========== 29. 鍦ｈ癁 鈥?Christmas tree ==========
 .stamp-icon--tree .stamp-icon__shape {
   width: 0;
   height: 0;
@@ -5244,7 +5424,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 30. 跨年 — Hourglass ==========
+// ========== 30. 璺ㄥ勾 鈥?Hourglass ==========
 .stamp-icon--hourglass .stamp-icon__shape {
   width: 28rpx;
   height: 40rpx;
@@ -5280,7 +5460,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 31. 母亲 — Carnation flower ==========
+// ========== 31. 姣嶄翰 鈥?Carnation flower ==========
 .stamp-icon--carnation .stamp-icon__shape {
   width: 4rpx;
   height: 20rpx;
@@ -5314,7 +5494,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 32. 父亲 — Crown ==========
+// ========== 32. 鐖朵翰 鈥?Crown ==========
 .stamp-icon--crown .stamp-icon__shape {
   width: 38rpx;
   height: 28rpx;
@@ -5323,7 +5503,7 @@ $stamp-special: #00B894;
   animation: crownShine 3s ease-in-out infinite;
 }
 
-// ========== 33. 感恩 — Maple leaf ==========
+// ========== 33. 鎰熸仼 鈥?Maple leaf ==========
 .stamp-icon--maple .stamp-icon__shape {
   width: 36rpx;
   height: 36rpx;
@@ -5436,33 +5616,33 @@ $stamp-special: #00B894;
   50% { transform: scale(1.15); opacity: 0.75; }
 }
 
-// 1. 元旦 — Firework
+// 1. 鍏冩棪 鈥?Firework
 @keyframes fireworkBurst {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.6; }
 }
 
-// 2. 劳动 — Hammer
+// 2. 鍔冲姩 鈥?Hammer
 @keyframes hammerSwing {
   0%, 100% { transform: rotate(-45deg); }
   50% { transform: rotate(-55deg); }
 }
 
-// 3. 国庆 — Flag
+// 3. 鍥藉簡 鈥?Flag
 @keyframes flagWave {
   0%, 100% { transform: scaleX(1) skewY(0deg); }
   25% { transform: scaleX(0.95) skewY(2deg); }
   75% { transform: scaleX(1.02) skewY(-1deg); }
 }
 
-// 4. 春节 — Fu seal stamp drop
+// 4. 鏄ヨ妭 鈥?Fu seal stamp drop
 @keyframes stampDrop {
   0% { transform: rotate(-8deg) scale(2) translateY(-20rpx); opacity: 0; }
   60% { transform: rotate(-8deg) scale(0.95); opacity: 1; }
   100% { transform: rotate(-8deg) scale(1); }
 }
 
-// 5. 端午 — Dragon boat rock
+// 5. 绔崍 鈥?Dragon boat rock
 @keyframes boatRock {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
@@ -5473,37 +5653,37 @@ $stamp-special: #00B894;
   50% { transform: scaleX(1.15); opacity: 0.7; }
 }
 
-// 6. 中秋 — Moon breathe
+// 6. 涓 鈥?Moon breathe
 @keyframes moonBreathe {
   0%, 100% { box-shadow: 0 0 16rpx rgba(255, 213, 79, 0.4), inset -6rpx -4rpx 10rpx rgba(180, 140, 20, 0.3); }
   50% { box-shadow: 0 0 28rpx rgba(255, 213, 79, 0.7), inset -6rpx -4rpx 10rpx rgba(180, 140, 20, 0.3); }
 }
 
-// 7. 元宵 — Lantern swing
+// 7. 鍏冨 鈥?Lantern swing
 @keyframes lanternSwing {
   0%, 100% { transform: rotate(-4deg); }
   50% { transform: rotate(4deg); }
 }
 
-// 8. 龙抬头 — Dragon rise
+// 8. 榫欐姮澶?鈥?Dragon rise
 @keyframes dragonRise {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6rpx); }
 }
 
-// 9. 上巳 — Water ripple expand
+// 9. 涓婂烦 鈥?Water ripple expand
 @keyframes rippleExpand {
   0% { box-shadow: 0 0 0 0 rgba($stamp-traditional, 0.3), 0 0 0 0 rgba($stamp-traditional, 0.2); }
   100% { box-shadow: 0 0 0 12rpx rgba($stamp-traditional, 0), 0 0 0 24rpx rgba($stamp-traditional, 0); }
 }
 
-// 10. 七夕 — Magpie glow
+// 10. 涓冨 鈥?Magpie glow
 @keyframes magpieGlow {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.1); }
 }
 
-// 11. 中元 — Flame flicker
+// 11. 涓厓 鈥?Flame flicker
 @keyframes flameFlicker {
   0%, 100% { transform: scaleY(1) scaleX(1); }
   25% { transform: scaleY(1.08) scaleX(0.95); }
@@ -5511,26 +5691,26 @@ $stamp-special: #00B894;
   75% { transform: scaleY(1.05) scaleX(0.98); }
 }
 
-// 12. 重阳 — Mountain float
+// 12. 閲嶉槼 鈥?Mountain float
 @keyframes mountainFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4rpx); }
 }
 
-// 13. 腊八 — Steam rise
+// 13. 鑵婂叓 鈥?Steam rise
 @keyframes steamRise {
   0% { transform: translateX(-50%) translateY(0); opacity: 0.4; }
   50% { transform: translateX(-50%) translateY(-6rpx); opacity: 0.8; }
   100% { transform: translateX(-50%) translateY(-12rpx); opacity: 0; }
 }
 
-// 14. 小年 — Broom sweep
+// 14. 灏忓勾 鈥?Broom sweep
 @keyframes broomSweep {
   0%, 100% { transform: rotate(-20deg); }
   50% { transform: rotate(-30deg); }
 }
 
-// 15. 除夕 — Firecracker shake
+// 15. 闄ゅ 鈥?Firecracker shake
 @keyframes firecrackerShake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-2rpx); }
@@ -5542,19 +5722,19 @@ $stamp-special: #00B894;
   50% { opacity: 0.2; transform: translateX(-50%) scale(0.5); }
 }
 
-// 16. 清明 — Willow sway
+// 16. 娓呮槑 鈥?Willow sway
 @keyframes willowSway {
   0%, 100% { transform: rotate(-30deg); }
   50% { transform: rotate(-20deg); }
 }
 
-// 17. 寒食 — Ember fade
+// 17. 瀵掗 鈥?Ember fade
 @keyframes emberFade {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
 
-// 18. 情人 — Heart beat
+// 18. 鎯呬汉 鈥?Heart beat
 @keyframes heartBeat {
   0%, 100% { transform: scale(1); }
   15% { transform: scale(1.15); }
@@ -5562,62 +5742,62 @@ $stamp-special: #00B894;
   45% { transform: scale(1.1); }
 }
 
-// 19. 妇女 — Flower bloom
+// 19. 濡囧コ 鈥?Flower bloom
 @keyframes flowerBloom {
   0%, 100% { transform: scale(1) rotate(0deg); }
   50% { transform: scale(1.1) rotate(15deg); }
 }
 
-// 20. 植树 — Seedling grow
+// 20. 妞嶆爲 鈥?Seedling grow
 @keyframes seedlingGrow {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(1.1); }
 }
 
-// 21. 青年 — Torch flicker
+// 21. 闈掑勾 鈥?Torch flicker
 @keyframes torchFlicker {
   0% { transform: translateX(-50%) scaleY(1) scaleX(1); }
   100% { transform: translateX(-50%) scaleY(1.15) scaleX(0.9); }
 }
 
-// 22. 儿童 — Balloon float
+// 22. 鍎跨 鈥?Balloon float
 @keyframes balloonFloat {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   33% { transform: translateY(-4rpx) rotate(2deg); }
   66% { transform: translateY(-2rpx) rotate(-2deg); }
 }
 
-// 23. 七一 — Badge spin
+// 23. 涓冧竴 鈥?Badge spin
 @keyframes badgeSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-// 24. 八一 — Shield pulse
+// 24. 鍏竴 鈥?Shield pulse
 @keyframes shieldPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.08); opacity: 0.85; }
 }
 
-// 25. 教师 — Book flip
+// 25. 鏁欏笀 鈥?Book flip
 @keyframes bookFlip {
   0%, 100% { transform: skewY(-3deg); }
   50% { transform: skewY(-6deg); }
 }
 
-// 26. 纪念 — Monument glow
+// 26. 绾康 鈥?Monument glow
 @keyframes monumentGlow {
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 }
 
-// 27. 双11 — Bars flash
+// 27. 鍙?1 鈥?Bars flash
 @keyframes barsFlash {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-// 28. 平安 — Bell ring
+// 28. 骞冲畨 鈥?Bell ring
 @keyframes bellRing {
   0%, 100% { transform: rotate(0deg); }
   20% { transform: rotate(8deg); }
@@ -5626,31 +5806,31 @@ $stamp-special: #00B894;
   80% { transform: rotate(-2deg); }
 }
 
-// 29. 圣诞 — Twinkle star
+// 29. 鍦ｈ癁 鈥?Twinkle star
 @keyframes twinkle {
   0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
   50% { opacity: 0.3; transform: translateX(-50%) scale(0.6); }
 }
 
-// 30. 跨年 — Hourglass flip
+// 30. 璺ㄥ勾 鈥?Hourglass flip
 @keyframes hourglassFlip {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(180deg); }
 }
 
-// 31. 母亲 — Carnation bloom
+// 31. 姣嶄翰 鈥?Carnation bloom
 @keyframes carnationBloom {
   0%, 100% { transform: translateX(-50%) scale(1); }
   50% { transform: translateX(-50%) scale(1.12); }
 }
 
-// 32. 父亲 — Crown shine
+// 32. 鐖朵翰 鈥?Crown shine
 @keyframes crownShine {
   0%, 100% { opacity: 1; filter: brightness(1); }
   50% { opacity: 0.85; filter: brightness(1.2); }
 }
 
-// 33. 感恩 — Maple leaf float
+// 33. 鎰熸仼 鈥?Maple leaf float
 @keyframes mapleFloat {
   0%, 100% { transform: rotate(0deg) translateY(0); }
   25% { transform: rotate(5deg) translateY(-3rpx); }

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { withDefaultPinia } from './pinia'
 import * as habitService from '@/services/habitService'
 import { getToday, getWeekday1to7FromDateStr, getBeijingIsoNow } from '@/services/cloud'
 import { getCache, setCache } from '@/utils/cache'
@@ -35,7 +36,7 @@ function shouldShowToday(habit: Habit): boolean {
   }
 }
 
-export const useHabitStore = defineStore('habit', () => {
+export const useHabitStore = withDefaultPinia(defineStore('habit', () => {
   // --- State ---
 
   const habits = ref<Habit[]>([])
@@ -436,4 +437,4 @@ export const useHabitStore = defineStore('habit', () => {
     refreshDateIfNeeded,
     $reset,
   }
-})
+}))

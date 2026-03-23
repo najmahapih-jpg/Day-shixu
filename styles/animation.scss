@@ -1,18 +1,54 @@
-﻿// ============================================
-// 星划pro Animations v2.0
+// ============================================
+// 星划Pro Animations v3.0 — MotionCore Aligned
+// Token-driven + Utility layer
 // ============================================
 @import './variables.scss';
 
-// --- Keyframes ---
+// ============================================
+// 1. MOTION TOKENS (mirrors MotionCore.ts)
+// ============================================
+
+// Duration tokens
+$motion-instant: 0ms;
+$motion-fast: 150ms;
+$motion-normal: 250ms;
+$motion-slow: 350ms;
+$motion-slower: 500ms;
+$motion-slowest: 700ms;
+$motion-spring: 600ms;
+$motion-reveal: 450ms;
+$motion-flip: 300ms;
+$motion-carousel: 400ms;
+
+// Easing tokens
+$ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+$ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+$ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+$ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+$ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-snap: cubic-bezier(0.2, 1, 0.3, 1);
+$ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-bounce: cubic-bezier(0.34, 1.8, 0.64, 1);
+
+// Depth tokens
+$depth-perspective: 1000px;
+$depth-tilt-max: 8deg;
+$depth-scale-press: 0.97;
+$depth-scale-focus: 1.03;
+$depth-scale-exit: 0.92;
+
+// ============================================
+// 2. KEYFRAMES
+// ============================================
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-  to {
-    opacity: 1;
-  }
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 @keyframes slideUp {
@@ -20,7 +56,6 @@
     opacity: 0;
     transform: translateY(24rpx);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -32,22 +67,53 @@
     opacity: 0;
     transform: translateY(-24rpx);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale($depth-scale-exit);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale($depth-scale-exit);
   }
 }
 
@@ -56,15 +122,12 @@
     opacity: 0;
     transform: scale(0.3);
   }
-
   50% {
     transform: scale(1.08);
   }
-
   70% {
     transform: scale(0.95);
   }
-
   100% {
     opacity: 1;
     transform: scale(1);
@@ -75,15 +138,12 @@
   0% {
     transform: scale(0);
   }
-
   50% {
     transform: scale(1.3);
   }
-
   75% {
     transform: scale(0.9);
   }
-
   100% {
     transform: scale(1);
   }
@@ -94,7 +154,6 @@
     opacity: 1;
     transform: translateY(0) rotate(0deg);
   }
-
   100% {
     opacity: 0;
     transform: translateY(200rpx) rotate(720deg);
@@ -102,55 +161,41 @@
 }
 
 @keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 @keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8rpx); }
+}
 
-  0%,
-  100% {
-    transform: translateY(0);
+// Enhanced float: breathe-like with subtle scale
+@keyframes breathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
   }
-
   50% {
-    transform: translateY(-8rpx);
+    transform: translateY(-6rpx) scale(1.02);
   }
 }
 
 @keyframes glow {
-
-  0%,
-  100% {
+  0%, 100% {
     box-shadow: 0 0 0 0 rgba($brand-primary, 0);
   }
-
   50% {
     box-shadow: 0 0 16rpx 4rpx rgba($brand-primary, 0.15);
   }
 }
 
 @keyframes progressFill {
-  from {
-    width: 0;
-  }
+  from { width: 0; }
 }
 
 @keyframes countUp {
@@ -158,39 +203,126 @@
     opacity: 0;
     transform: translateY(12rpx);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-// --- Utility Classes ---
+// --- New v3 Keyframes ---
 
+// Clip reveal — text/section reveal from bottom
+@keyframes clipRevealUp {
+  from {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+    transform: translateY(16rpx);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+
+// Elastic pop — stronger bounce for celebrations
+@keyframes elasticPop {
+  0% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1.15);
+  }
+  65% {
+    transform: scale(0.92);
+  }
+  85% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Rotate in — gear-like entrance
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+// Stagger grow — bar chart style
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom center;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom center;
+  }
+}
+
+// ============================================
+// 3. UTILITY CLASSES
+// ============================================
+
+// --- Entrance Animations ---
 .anim-fade-in {
-  animation: fadeIn $duration-normal $ease-out-soft both;
+  animation: fadeIn $motion-normal $ease-out-soft both;
 }
 
 .anim-slide-up {
-  animation: slideUp $duration-slow $ease-spring both;
+  animation: slideUp $motion-slow $ease-spring both;
 }
 
 .anim-slide-down {
-  animation: slideDown $duration-slow $ease-spring both;
+  animation: slideDown $motion-slow $ease-spring both;
+}
+
+.anim-slide-left {
+  animation: slideInLeft $motion-slow $ease-reveal both;
+}
+
+.anim-slide-right {
+  animation: slideInRight $motion-slow $ease-reveal both;
 }
 
 .anim-scale-in {
-  animation: scaleIn $duration-slow $ease-spring both;
+  animation: scaleIn $motion-slow $ease-spring both;
 }
 
 .anim-bounce-in {
-  animation: bounceIn $duration-slower $ease-out-back both;
+  animation: bounceIn $motion-slower $ease-out-back both;
 }
 
 .anim-check-pop {
-  animation: checkPop $duration-slow $ease-out-back both;
+  animation: checkPop $motion-slow $ease-out-back both;
 }
 
+.anim-elastic-pop {
+  animation: elasticPop $motion-spring $ease-spring both;
+}
+
+.anim-clip-reveal {
+  animation: clipRevealUp $motion-reveal $ease-reveal both;
+}
+
+.anim-rotate-in {
+  animation: rotateIn $motion-slower $ease-spring both;
+}
+
+.anim-grow-up {
+  animation: growUp $motion-slow $ease-reveal both;
+  transform-origin: bottom center;
+}
+
+// --- Loop Animations ---
 .anim-pulse {
   animation: pulse 1.5s $ease-in-out infinite;
 }
@@ -198,9 +330,9 @@
 .anim-shimmer {
   animation: shimmer 2s linear infinite;
   background: linear-gradient(90deg,
-      $neutral-100 25%,
-      $neutral-200 50%,
-      $neutral-100 75%);
+    $neutral-100 25%,
+    $neutral-200 50%,
+    $neutral-100 75%);
   background-size: 200% 100%;
 }
 
@@ -208,63 +340,273 @@
   animation: float 3s $ease-in-out infinite;
 }
 
+.anim-breathe {
+  animation: breathe 4s $ease-in-out infinite;
+}
+
 .anim-glow {
   animation: glow 2s $ease-in-out infinite;
 }
 
+// --- Data/Count ---
 .anim-count-up {
-  animation: countUp $duration-normal $ease-spring both;
+  animation: countUp $motion-normal $ease-spring both;
 }
 
-// Staggered delay helpers
-@for $i from 1 through 12 {
+// --- Staggered Delay Helpers ---
+@for $i from 1 through 20 {
   .anim-delay-#{$i} {
     animation-delay: #{$i * 50}ms;
   }
 }
 
-// --- Transitions ---
+// Reveal-specific stagger (longer intervals for scroll reveal)
+@for $i from 1 through 12 {
+  .reveal-delay-#{$i} {
+    animation-delay: #{$i * 80}ms;
+  }
+}
+
+// ============================================
+// 4. TRANSITION UTILITIES
+// ============================================
 
 .transition-all {
-  transition: all $duration-normal $ease-smooth;
+  transition: all $motion-normal $ease-smooth;
 }
 
 .transition-transform {
-  transition: transform $duration-normal $ease-spring;
+  transition: transform $motion-normal $ease-spring;
 }
 
 .transition-colors {
-  transition: color $duration-normal ease,
-    background-color $duration-normal ease,
-    border-color $duration-normal ease;
+  transition: color $motion-normal ease,
+    background-color $motion-normal ease,
+    border-color $motion-normal ease;
 }
 
-// --- Reduce Motion ---
-page[data-reduce-motion="true"] {
+.transition-opacity {
+  transition: opacity $motion-normal $ease-smooth;
+}
 
-  view,
-  text,
-  image,
-  button,
-  input,
-  textarea,
-  scroll-view,
-  swiper,
-  swiper-item,
-  navigator,
-  .anim-fade-in,
-  .anim-slide-up,
-  .anim-slide-down,
-  .anim-scale-in,
-  .anim-bounce-in,
-  .anim-check-pop,
-  .anim-float,
-  .anim-shimmer,
-  .anim-glow,
-  .anim-pulse {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0ms !important;
-    transition-duration: 0.01ms !important;
-    transition-delay: 0ms !important;
+// Spring transition — for interactive elements
+.transition-spring {
+  transition: transform $motion-spring $ease-spring,
+    opacity $motion-slow $ease-smooth;
+}
+
+// Snap transition — for carousel/snapping
+.transition-snap {
+  transition: transform $motion-carousel $ease-snap;
+}
+
+// FLIP transition — for layout changes
+.transition-flip {
+  transition: transform $motion-flip $ease-spring,
+    opacity $motion-flip ease;
+}
+
+// ============================================
+// 5. PRESS FEEDBACK (3-level system)
+// ============================================
+
+// L1 — Light: tap opacity flash
+.press-light {
+  &:active {
+    opacity: 0.7;
+    transition: opacity $motion-fast ease-out;
   }
 }
+
+// L2 — Medium: scale down with shadow
+.press-scale {
+  transition: transform $motion-fast $ease-spring,
+    box-shadow $motion-fast ease-out;
+  &:active {
+    transform: scale($depth-scale-press);
+    box-shadow: $shadow-sm;
+  }
+}
+
+// L3 — Heavy: deeper scale for destructive/long-press
+.press-heavy {
+  transition: transform 200ms ease-out,
+    filter 200ms ease-out;
+  &:active {
+    transform: scale(0.95);
+    filter: brightness(0.97);
+  }
+}
+
+// Focus scale — for active/selected items
+.press-focus {
+  transition: transform $motion-slow $ease-spring,
+    box-shadow $motion-slow ease;
+  &.is-focus, &.is-active {
+    transform: scale($depth-scale-focus);
+    box-shadow: $shadow-lg;
+  }
+}
+
+// ============================================
+// 6. SCROLL REVEAL UTILITIES
+// (Pairs with useScrollReveal composable)
+// ============================================
+
+// Initial hidden state
+.scroll-hidden {
+  opacity: 0;
+  transform: translateY(40rpx);
+}
+
+.scroll-hidden--scale {
+  opacity: 0;
+  transform: scale($depth-scale-exit);
+}
+
+.scroll-hidden--left {
+  opacity: 0;
+  transform: translateX(-40rpx);
+}
+
+.scroll-hidden--right {
+  opacity: 0;
+  transform: translateX(40rpx);
+}
+
+// Revealed state (add via JS when in viewport)
+.scroll-revealed {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+  transition: opacity $motion-reveal $ease-reveal,
+    transform $motion-reveal $ease-reveal;
+}
+
+// ============================================
+// 7. 3D / PERSPECTIVE UTILITIES
+// ============================================
+
+.perspective-container {
+  perspective: $depth-perspective;
+}
+
+.transform-gpu {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+// ============================================
+// 8. FLIP LAYOUT TRANSITION
+// (Pairs with useFLIP composable)
+// ============================================
+
+.flip-move {
+  transition: transform $motion-flip $ease-spring;
+}
+
+.flip-enter-active {
+  transition: opacity $motion-flip ease,
+    transform $motion-flip $ease-spring;
+}
+
+.flip-leave-active {
+  transition: opacity #{$motion-flip * 0.6} ease,
+    transform #{$motion-flip * 0.6} ease;
+  position: absolute !important;
+}
+
+.flip-enter-from {
+  opacity: 0;
+  transform: scale($depth-scale-exit) translateY(20rpx);
+}
+
+.flip-leave-to {
+  opacity: 0;
+  transform: scale($depth-scale-exit);
+}
+
+// ============================================
+// 9. HAPTIC VISUAL FEEDBACK (触觉视觉反馈)
+// ============================================
+
+// Light — 轻触缩放
+@keyframes hfLight {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+
+// Medium
+@keyframes hfMedium {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.97); }
+  60% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+
+// Heavy — 重按缩放 + 亮度变化
+@keyframes hfHeavy {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(0.95); filter: brightness(0.96); }
+  70% { transform: scale(1.01); filter: brightness(1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+// Success — 弹性回弹 + 庆祝感
+@keyframes hfSuccess {
+  0% { transform: scale(1); }
+  20% { transform: scale(0.97); }
+  45% { transform: scale(1.03); }
+  65% { transform: scale(0.99); }
+  80% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+// Celebration — 旋转弹跳组合
+@keyframes hfCelebration {
+  0% { transform: scale(1) rotate(0deg); }
+  12% { transform: scale(0.97) rotate(-0.5deg); }
+  24% { transform: scale(1.025) rotate(0.3deg); }
+  36% { transform: scale(0.985) rotate(-0.2deg); }
+  50% { transform: scale(1.02) rotate(0.2deg); }
+  65% { transform: scale(0.99) rotate(-0.1deg); }
+  80% { transform: scale(1.01) rotate(0deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+// Warning — 水平抖动
+@keyframes hfWarning {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6rpx); }
+  30% { transform: translateX(5rpx); }
+  45% { transform: translateX(-4rpx); }
+  60% { transform: translateX(3rpx); }
+  75% { transform: translateX(-2rpx); }
+  90% { transform: translateX(1rpx); }
+}
+
+// Feedback classes
+.hf-light {
+  animation: hfLight 180ms $ease-spring both;
+}
+
+.hf-medium {
+  animation: hfMedium 280ms $ease-spring both;
+}
+
+.hf-heavy {
+  animation: hfHeavy 350ms $ease-out-soft both;
+}
+
+.hf-success {
+  animation: hfSuccess 450ms $ease-spring both;
+}
+
+.hf-celebration {
+  animation: hfCelebration 700ms $ease-spring both;
+}
+
+.hf-warning {
+  animation: hfWarning 400ms $ease-out-soft both;
+}
+

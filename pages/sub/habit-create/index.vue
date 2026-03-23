@@ -179,7 +179,7 @@
         </view>
 
         <view class="section-card">
-          <text class="section-card__title">提醒时间（北京时间）</text>
+          <text class="section-card__title">提醒时间（北京时间 UTC+8）</text>
           <view class="reminder-visual" :class="{ 'reminder-visual--off': !form.reminderTime }">
             <text class="reminder-visual__label">提醒时刻</text>
             <text class="reminder-visual__time">{{ reminderDisplayTime }}</text>
@@ -535,7 +535,7 @@ function getReminderPeriodLabel(hour: number): string {
 const reminderPhaseText = computed(() => {
   if (!form.reminderTime) return '当前未开启提醒，可选择下方快捷时段'
   const [hour] = form.reminderTime.split(':').map(Number)
-  return `${getReminderPeriodLabel(hour || 0)}提醒 · 北京时间 UTC+8`
+  return `${getReminderPeriodLabel(hour || 0)}提醒 · 北京时间（UTC+8）`
 })
 
 watch(

@@ -24,14 +24,23 @@ const DEFAULT_HABIT: Omit<Habit, '_id' | '_openid' | 'createdAt' | 'updatedAt'> 
 const DEFAULT_NOTE: Omit<BoardNote, '_id' | '_openid' | 'createdAt' | 'updatedAt'> = {
     content: '',
     color: 'yellow',
-    size: 1,
+    size: 2,
     x: 0,
     y: 0,
     rotation: 0,
+    fontSize: 'md',
+    textAlign: 'left',
+    textVertical: 'top',
+    fontFamily: 'hand',
+    positionMode: 'auto',
+    noteShape: 'rect',
+    imageUrl: '',
     noteType: 'text',
     checkItems: [],
     groupId: '',
     linkedHabitId: '',
+    isPinned: false,
+    tags: [],
 }
 
 // --- Validators ---
@@ -83,11 +92,22 @@ export function safeNotes(raw: unknown): BoardNote[] {
         .map((item) => ({
             ...DEFAULT_NOTE,
             ...item,
-            size: Number(item.size) || 1,
+            size: Math.min(4, Math.max(1, Number(item.size) || 2)),
             x: Number(item.x) || 0,
             y: Number(item.y) || 0,
             rotation: Number(item.rotation) || 0,
+            fontSize: typeof item.fontSize === 'string' ? item.fontSize : 'md',
+            textAlign: typeof item.textAlign === 'string' ? item.textAlign : 'left',
+            textVertical: typeof item.textVertical === 'string' ? item.textVertical : 'top',
+            fontFamily: typeof item.fontFamily === 'string' ? item.fontFamily : 'hand',
+            positionMode: item.positionMode === 'manual' ? 'manual' : 'auto',
+            noteShape: typeof item.noteShape === 'string' ? item.noteShape : 'rect',
+            imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : '',
             checkItems: Array.isArray(item.checkItems) ? item.checkItems : [],
+            groupId: typeof item.groupId === 'string' ? item.groupId : '',
+            linkedHabitId: typeof item.linkedHabitId === 'string' ? item.linkedHabitId : '',
+            isPinned: Boolean(item.isPinned),
+            tags: Array.isArray(item.tags) ? item.tags : [],
         })) as BoardNote[]
 }
 

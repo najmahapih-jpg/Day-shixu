@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 
 interface TrendItem {
   label: string
@@ -90,6 +90,13 @@ function handleTap(index: number, item: TrendItem) {
     activeIndex.value = -1
   }, 2500)
 }
+
+onUnmounted(() => {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+})
 </script>
 
 <style lang="scss" scoped>

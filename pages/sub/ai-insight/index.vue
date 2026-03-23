@@ -2,7 +2,7 @@
   <HfPageBg
     variant="cool"
     class="ai-page page-transition"
-    :class="{ 'page-entered': pageEntered }"
+    :class="[{ 'page-entered': pageEntered }, haptic.feedbackClass]"
   >
     <!-- Navbar -->
     <view class="ai-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
@@ -49,7 +49,7 @@
           </view>
           <view class="hero-overlay">
             <text class="hero-watermark">ISSUE NO.01 / AI REPORT</text>
-            <text class="hero-slogan anim-slide-up-delay">{{ insightSlogan }}</text>
+            <text class="hero-slogan anim-slide-up-delay">{{ typewriterDone ? insightSlogan : typewriterText }}<text v-if="!typewriterDone" class="typewriter-cursor">|</text></text>
             <text class="hero-date">{{ reportDateRange }}</text>
           </view>
         </view>
@@ -171,10 +171,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, getCurrentInstance } from 'vue'
+import { ref, computed, watch, nextTick, getCurrentInstance, onUnmounted } from 'vue'
 import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useHabitStore } from '@/stores/habit'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { useHaptic } from '@/composables/motion'
 import HfPageBg from '@/components/base/HfPageBg.vue'
 import HfIcon from '@/components/base/HfIcon.vue'
 import HfButton from '@/components/base/HfButton.vue'
@@ -188,7 +189,58 @@ import type { HabitInsight } from '@/types'
 
 const habitStore = useHabitStore()
 const { entered: pageEntered } = usePageTransition()
+const haptic = useHaptic()
 const instance = getCurrentInstance()
+const timeoutHandles = new Set<ReturnType<typeof setTimeout>>()
+
+function scheduleTimeout(fn: () => void, delay: number) {
+  let timer: ReturnType<typeof setTimeout>
+  timer = setTimeout(() => {
+    timeoutHandles.delete(timer)
+    fn()
+  }, delay)
+  timeoutHandles.add(timer)
+  return timer
+}
+
+function clearScheduledTimeout(timer: ReturnType<typeof setTimeout> | null) {
+  if (!timer) return
+  clearTimeout(timer)
+  timeoutHandles.delete(timer)
+}
+
+function clearAllScheduledTimeouts() {
+  timeoutHandles.forEach((timer) => clearTimeout(timer))
+  timeoutHandles.clear()
+}
+
+// --- Typewriter effect ---
+const typewriterText = ref('')
+const typewriterDone = ref(false)
+let typewriterTimer: ReturnType<typeof setTimeout> | null = null
+
+function startTypewriter(text: string) {
+  clearScheduledTimeout(typewriterTimer)
+  typewriterText.value = ''
+  typewriterDone.value = false
+  let i = 0
+  const tick = () => {
+    if (i < text.length) {
+      typewriterText.value += text[i]
+      i++
+      typewriterTimer = scheduleTimeout(tick, 40 + Math.random() * 30)
+    } else {
+      typewriterTimer = null
+      typewriterDone.value = true
+    }
+  }
+  tick()
+}
+
+onUnmounted(() => {
+  clearScheduledTimeout(typewriterTimer)
+  clearAllScheduledTimeouts()
+})
 
 const AI_CACHE_KEY = 'hf_ai_insight_cache_v1'
 
@@ -368,6 +420,8 @@ async function generateInsight(force: boolean = false) {
       const cached = readAiCache()
       if (cached) {
         insight.value = cached
+        const slogan = cached?.slogans?.[0]
+        if (slogan) nextTick(() => startTypewriter(slogan))
         return
       }
     }
@@ -378,6 +432,12 @@ async function generateInsight(force: boolean = false) {
     })
     insight.value = result
     writeAiCache(result)
+    haptic.light()
+    // Trigger typewriter on slogan
+    const slogan = result?.slogans?.[0]
+    if (slogan) {
+      nextTick(() => startTypewriter(slogan))
+    }
   } catch {
     loadError.value = '分析生成失败，请稍后重试'
   } finally {
@@ -591,7 +651,7 @@ function drawRadarAnimated() {
     const eased = 1 - Math.pow(1 - progress, 3)
     drawRadar(eased)
     if (progress < 1) {
-      setTimeout(frame, 16)
+      scheduleTimeout(frame, 16)
     }
   }
   frame()
@@ -599,7 +659,7 @@ function drawRadarAnimated() {
 
 watch(radarDimensions, () => {
   nextTick(() => {
-    setTimeout(drawRadarAnimated, 300)
+    scheduleTimeout(drawRadarAnimated, 300)
   })
 })
 
@@ -615,7 +675,7 @@ onShow(() => {
     insight.value = readAiCache()
   }
   nextTick(() => {
-    setTimeout(drawRadarAnimated, 500)
+    scheduleTimeout(drawRadarAnimated, 500)
   })
 })
 
@@ -1184,5 +1244,17 @@ onPullDownRefresh(onRefresh)
 
 .anim-stagger-3 {
   animation: fadeIn 300ms $ease-out-soft 300ms both;
+}
+
+// --- Typewriter cursor ---
+.typewriter-cursor {
+  animation: cursorBlink 0.6s step-end infinite;
+  font-weight: 100;
+  color: #7A0016;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>
