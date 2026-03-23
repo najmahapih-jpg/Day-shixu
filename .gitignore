@@ -9,6 +9,8 @@ dist/
 .npm-cache/
 _mp_devtools/
 _mp_devtools_fresh_*/
+_mp_devtools_clean_*/
+.verify/
 .claude/
 backups/
 nul
