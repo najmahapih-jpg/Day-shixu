@@ -116,6 +116,27 @@ for (const rel of unusedStaticDirs) {
   }
 }
 
+// ── Patch _mp_devtools/project.config.json to disable compilation ──
+// miniprogram-ci reads settings from the project's own project.config.json,
+// sometimes ignoring the `setting` parameter passed to ci.upload().
+// HBuilderX already produces final output, so we must disable es6/es7/minify
+// to prevent miniprogram-ci from choking on ES2019+ syntax (??, ?.).
+
+const devtoolsConfigPath = path.join(devtoolsDir, 'project.config.json')
+if (fs.existsSync(devtoolsConfigPath)) {
+  const devtoolsConfig = JSON.parse(fs.readFileSync(devtoolsConfigPath, 'utf8'))
+  devtoolsConfig.setting = {
+    ...(devtoolsConfig.setting || {}),
+    es6: false,
+    es7: false,
+    minified: false,
+    minifyWXSS: false,
+    minifyWXML: false,
+  }
+  fs.writeFileSync(devtoolsConfigPath, JSON.stringify(devtoolsConfig, null, 2), 'utf8')
+  console.log('Patched _mp_devtools/project.config.json: disabled es6/es7/minify')
+}
+
 // ── Execute upload ──
 
 const project = new ci.Project({
@@ -126,11 +147,7 @@ const project = new ci.Project({
   ignores: ['node_modules/**/*'],
 })
 
-// Disable compilation — HBuilderX already produces final output.
-// miniprogram-ci's parser chokes on ES2019+ syntax (optional catch, ??, ?.) when es6/es7 is on,
-// and its less require is incompatible with less v4+.
 const uploadSetting = {
-  ...(projectConfig.setting || {}),
   es6: false,
   es7: false,
   minified: false,

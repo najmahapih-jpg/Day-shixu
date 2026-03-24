@@ -173,6 +173,16 @@ $cfg = Get-Content -Raw -Encoding UTF8 $targetConfig | ConvertFrom-Json
 $cfg.miniprogramRoot = ''
 $cfg.cloudfunctionRoot = 'cloudfunctions/'
 
+# Disable compilation - HBuilderX already produces final output.
+# miniprogram-ci chokes on ES2019+ syntax (??, ?.) when es6/es7 is enabled.
+if ($cfg.setting) {
+  $cfg.setting | Add-Member -NotePropertyName 'es6' -NotePropertyValue $false -Force
+  $cfg.setting | Add-Member -NotePropertyName 'es7' -NotePropertyValue $false -Force
+  $cfg.setting | Add-Member -NotePropertyName 'minified' -NotePropertyValue $false -Force
+  $cfg.setting | Add-Member -NotePropertyName 'minifyWXSS' -NotePropertyValue $false -Force
+  $cfg.setting | Add-Member -NotePropertyName 'minifyWXML' -NotePropertyValue $false -Force
+}
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 [System.IO.File]::WriteAllText($targetConfigPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
@@ -191,6 +201,12 @@ Disable-RuntimeSocketChannel -VendorPath (Join-Path $targetDir 'common\vendor.js
 Patch-RenderPropsNullFallback -VendorPath (Join-Path $sourceDir 'common\vendor.js')
 Patch-RenderPropsNullFallback -VendorPath (Join-Path $targetDir 'common\vendor.js')
 
+
+# Downgrade ?? (nullish coalescing) to ES5-compatible ternary expressions.
+# miniprogram-ci rejects ?? syntax even with es6/es7 disabled.
+$downgradeScript = Join-Path $scriptDirResolved 'downgrade-nullish-coalescing.js'
+node $downgradeScript $sourceDir
+node $downgradeScript $targetDir
 Write-Host "Prepared DevTools project at: $targetDir"
 if (-not $didFullRebuild) {
   Write-Host "Note: incremental overwrite mode was used because _mp_devtools was locked."
