@@ -33,7 +33,10 @@ function normalizeAvatarUrl(raw) {
   if (typeof raw !== 'string') return ''
   const val = raw.trim()
   if (!val) return ''
-  if (val.length > 2048) return ''
+  if (val.length > 2048) {
+    console.warn('[user] avatarUrl 超出长度限制 (2048):', val.length, '前50字符:', val.slice(0, 50))
+    return ''
+  }
   const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://', 'data:image/']
   if (!allowedPrefixes.some((prefix) => val.startsWith(prefix))) return ''
   return val
@@ -49,6 +52,24 @@ function toDateStr(d) {
   return `${y}-${m}-${day}`
 }
 
+// ── 内容安全检查 ────────────────────────────────────────
+
+async function checkText(content, openid, scene) {
+  if (!content || typeof content !== 'string' || !content.trim()) return true
+  try {
+    const res = await cloud.openapi.security.msgSecCheck({
+      content: content.trim().slice(0, 2500),
+      version: 2,
+      scene: scene || 1,
+      openid,
+    })
+    return res.result.suggest !== 'risky'
+  } catch (err) {
+    console.error('[内容安全检查失败]', err)
+    return true
+  }
+}
+
 // ── actions ──────────────────────────────────────────────
 
 async function login(openid) {
@@ -59,7 +80,16 @@ async function login(openid) {
     .get()
 
   if (existing.length > 0) {
-    return ok(existing[0])
+    const user = existing[0]
+    // 懒回填：存量用户无 profileMeta 时补写一次
+    if (!user.profileMeta) {
+      const meta = defaultProfileMeta()
+      await usersCol.doc(user._id).update({
+        data: { profileMeta: meta, updatedAt: db.serverDate() },
+      })
+      user.profileMeta = meta
+    }
+    return ok(user)
   }
 
   // 新用户 → 创建默认记录
@@ -67,7 +97,7 @@ async function login(openid) {
   const joinDateStr = toDateStr(new Date())
   const newUser = {
     _openid: openid,
-    nickName: '习惯者',
+    nickName: 'Voyager',
     avatarUrl: '',
     settings: {
       theme: 'neo',
@@ -173,6 +203,11 @@ async function updateNickName(openid, data) {
   const nickName = normalizeNickName(data.nickName)
   if (!nickName) return fail('昵称不合法（最多 20 个字符）')
 
+  // 内容安全检查
+  if (!(await checkText(nickName, openid, 1))) {
+    return fail('昵称包含违规内容，请修改后重试')
+  }
+
   const { data: existing } = await usersCol
     .where({ _openid: openid })
     .limit(1)
@@ -204,6 +239,9 @@ async function updateProfile(openid, data) {
   if (data.nickName !== undefined) {
     const nick = normalizeNickName(data.nickName)
     if (!nick) return fail('昵称不合法（最多 20 个字符）')
+    if (!(await checkText(nick, openid, 1))) {
+      return fail('昵称包含违规内容，请修改后重试')
+    }
     updateFields.nickName = nick
     hasChanges = true
   }

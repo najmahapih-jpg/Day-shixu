@@ -187,7 +187,7 @@ export const PUBLIC_COPY = {
     heroTitleBottom: 'PROFILE',
     heroStamp: 'ACTIVE',
     heroVersion: 'RHYTHM V1.0 / 星划 HabitFlow',
-    guestName: '访客 / Guest',
+    guestName: 'Voyager',
     nickNamePlaceholder: '输入昵称',
     editNickNameCta: '修改昵称',
     guestNickNameCta: '登录后设置昵称',

@@ -66,6 +66,24 @@ function sanitize(obj) {
   return cleaned
 }
 
+// ── 内容安全检查 ────────────────────────────────────────
+
+async function checkText(content, openid, scene) {
+  if (!content || typeof content !== 'string' || !content.trim()) return true
+  try {
+    const res = await cloud.openapi.security.msgSecCheck({
+      content: content.trim().slice(0, 2500),
+      version: 2,
+      scene: scene || 2,
+      openid,
+    })
+    return res.result.suggest !== 'risky'
+  } catch (err) {
+    console.error('[内容安全检查失败]', err)
+    return true
+  }
+}
+
 // ── actions ──────────────────────────────────────────────
 
 const TYPE_ORDER = { morning: 0, afternoon: 1, evening: 2, custom: 3 }
@@ -114,6 +132,11 @@ async function create(openid, event) {
   if (!ritual) return fail('缺少数据')
   if (!ritual.name) return fail('仪式名称必填')
 
+  // 内容安全检查
+  if (!(await checkText(ritual.name, openid, 2))) {
+    return fail('仪式名称包含违规内容，请修改后重试')
+  }
+
   const now = db.serverDate()
   const record = {
     ...sanitize(ritual),
@@ -131,6 +154,12 @@ async function update(openid, event) {
   if (!event.id) return fail('缺少仪式 ID')
   const { data: existing } = await ritualsCol.doc(event.id).get()
   if (existing._openid !== openid) return fail('无权操作')
+
+  // 内容安全检查
+  const ritual = event.ritual || {}
+  if (ritual.name && !(await checkText(ritual.name, openid, 2))) {
+    return fail('仪式名称包含违规内容，请修改后重试')
+  }
 
   const fields = sanitize(event.ritual || {})
   fields.updatedAt = db.serverDate()

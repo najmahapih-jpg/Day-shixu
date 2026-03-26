@@ -14,7 +14,11 @@
     "deploy:cloud:all": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloud-all.ps1",
     "cf:deploy:user": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy user",
     "wx:upload": "node scripts/upload-miniprogram.js",
-    "release:wechat": "powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1"
+    "release:wechat": "powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1",
+    "test": "jest --roots cloudfunctions",
+    "test:habit": "jest cloudfunctions/habit",
+    "test:user": "jest cloudfunctions/user",
+    "test:ritual": "jest cloudfunctions/ritual"
   },
   "dependencies": {
     "@qiun/ucharts": "^2.5.0-20230101",
@@ -24,6 +28,7 @@
   "devDependencies": {
     "@cloudbase/cli": "^2.12.4",
     "@phosphor-icons/core": "^2.1.1",
+    "jest": "^30.3.0",
     "less": "^3.13.1",
     "miniprogram-ci": "^1.9.0",
     "sass": "^1.97.3",

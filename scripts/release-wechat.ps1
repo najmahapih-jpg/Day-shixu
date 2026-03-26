@@ -33,26 +33,33 @@ Please build in HBuilderX first (Run > Build > mp-weixin).
 }
 Write-Host "[1/5] mp-weixin build verified." -ForegroundColor Green
 
-# ── Step 2: Install user cloud function dependencies ──
-$userCfDir = Join-Path $projectRoot 'cloudfunctions\user'
-Write-Host "[2/5] Installing user cloud function dependencies..."
-Push-Location $userCfDir
-try {
-  npm install --omit=dev --no-audit --no-fund 2>&1 | ForEach-Object { Write-Host "  $_" }
-  if ($LASTEXITCODE -ne 0) { throw "npm install failed in cloudfunctions/user" }
-} finally {
-  Pop-Location
+# ── Step 2: Install ALL cloud function dependencies ──
+$cfNames = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey')
+Write-Host "[2/6] Installing cloud function dependencies..."
+foreach ($cfName in $cfNames) {
+  $cfDir = Join-Path $projectRoot "cloudfunctions\$cfName"
+  $cfPkg = Join-Path $cfDir 'package.json'
+  if (Test-Path $cfPkg) {
+    Write-Host "  -> $cfName" -ForegroundColor DarkGray
+    Push-Location $cfDir
+    try {
+      npm install --omit=dev --no-audit --no-fund 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "npm install failed in cloudfunctions/$cfName" }
+    } finally {
+      Pop-Location
+    }
+  }
 }
-Write-Host "[2/5] Dependencies installed." -ForegroundColor Green
+Write-Host "[2/6] All dependencies installed." -ForegroundColor Green
 
-# ── Step 3: Deploy user cloud function ──
-Write-Host "[3/5] Deploying user cloud function..."
+# ── Step 3: Deploy ALL cloud functions ──
+Write-Host "[3/6] Deploying all cloud functions..."
 $cfScript = Join-Path $scriptDirResolved 'cloudbase-fn.ps1'
-& $cfScript deploy user
-Write-Host "[3/5] User cloud function deployed." -ForegroundColor Green
+& $cfScript deployAll
+Write-Host "[3/6] All cloud functions deployed." -ForegroundColor Green
 
 # ── Step 4: Prepare WeChat DevTools project ──
-Write-Host "[4/5] Running prepare:wechat..."
+Write-Host "[4/6] Running prepare:wechat..."
 Push-Location $projectRoot
 try {
   npm run prepare:wechat 2>&1 | ForEach-Object { Write-Host "  $_" }
@@ -60,10 +67,19 @@ try {
 } finally {
   Pop-Location
 }
-Write-Host "[4/5] DevTools project prepared." -ForegroundColor Green
+Write-Host "[4/6] DevTools project prepared." -ForegroundColor Green
 
-# ── Step 5: Upload mini program ──
-Write-Host "[5/5] Uploading mini program..."
+# ── Step 5: Pre-flight checks ──
+Write-Host "[5/6] Running pre-flight checks..."
+$preflightScript = Join-Path $scriptDirResolved 'preflight-check.ps1'
+if (Test-Path $preflightScript) {
+  & $preflightScript
+  if ($LASTEXITCODE -ne 0) { throw "Pre-flight checks failed" }
+}
+Write-Host "[5/6] Pre-flight checks passed." -ForegroundColor Green
+
+# ── Step 6: Upload mini program ──
+Write-Host "[6/6] Uploading mini program..."
 $uploadScript = Join-Path $scriptDirResolved 'upload-miniprogram.js'
 $uploadArgs = @('--version', $Version, '--robot', $Robot)
 if (-not [string]::IsNullOrWhiteSpace($Desc)) {
@@ -71,7 +87,7 @@ if (-not [string]::IsNullOrWhiteSpace($Desc)) {
 }
 node $uploadScript @uploadArgs
 if ($LASTEXITCODE -ne 0) { throw "Mini program upload failed" }
-Write-Host "[5/5] Mini program uploaded." -ForegroundColor Green
+Write-Host "[6/6] Mini program uploaded." -ForegroundColor Green
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  Release complete!" -ForegroundColor Cyan

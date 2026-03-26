@@ -1,7 +1,7 @@
 {
     "name": "HabitFlow",
     "appid": "__UNI__1F1B3B1",
-    "description": "",
+    "description": "星划 — 习惯追踪与成长工具，支持打卡、仪式、旅程、灵感笔记",
     "versionName": "1.0.0",
     "versionCode": "100",
     "transformPx": false,
@@ -52,6 +52,7 @@
     "mp-weixin": {
         "appid": "wx538aff9186f53281",
         "cloudfunctionRoot": "cloudfunctions/",
+        "__usePrivacyCheck__": true,
         "setting": {
             "urlCheck": false,
             "es6": true,

@@ -50,15 +50,19 @@
                 <text v-else class="hero-bar__name" @tap="startNickNameEdit">{{ nickName }}</text>
               </view>
               <view
-                v-if="!isEditingNickName"
-                class="hero-bar__edit-btn"
-                :class="{ 'is-guest': !userStore.isLoggedIn }"
+                v-if="!isEditingNickName && userStore.isLoggedIn"
+                class="hero-bar__wx-btn"
+                @tap.stop="toggleWxSync"
+              >
+                <text class="hero-bar__wx-label">微信导入</text>
+              </view>
+              <view
+                v-else-if="!isEditingNickName"
+                class="hero-bar__edit-btn is-guest"
                 @tap.stop="startNickNameEdit"
               >
                 <HfIcon name="pen-2-linear" size="xs" color="#0B0B0C" plain />
-                <text class="hero-bar__edit-label">
-                  {{ userStore.isLoggedIn ? profileCopy.editNickNameCta : profileCopy.guestNickNameCta }}
-                </text>
+                <text class="hero-bar__edit-label">{{ profileCopy.guestNickNameCta }}</text>
               </view>
               <view
                 v-else
@@ -77,8 +81,8 @@
           </view>
           <view class="hero-zone__bottom">
             <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
-            <view v-if="userStore.isLoggedIn" class="hero-zone__wx-sync" @tap="toggleWxSync">
-              <text class="wx-sync__label">从微信导入</text>
+            <view v-if="userStore.isLoggedIn" class="hero-zone__edit-link" @tap="startNickNameEdit">
+              <text class="edit-link__label">编辑资料</text>
             </view>
           </view>
         </view>
@@ -379,17 +383,13 @@ function onNickNameInput(e: any) {
 
 async function submitNickName() {
   const draftValue = editNickNameValue.value
-  const validationMessage = getNickNameValidationMessage(draftValue)
-  if (validationMessage) {
-    uni.showToast({ title: validationMessage, icon: 'none' })
-    return false
-  }
-
   const nickName = normalizeNickName(draftValue)
   const currentNickName = normalizeNickName(userStore.userInfo?.nickName || '')
 
+  // 空值或未改动——静默恢复编辑状态，不弹错误
   if (!nickName) {
-    uni.showToast({ title: '昵称不能为空', icon: 'none' })
+    syncNickNameDrafts(userStore.userInfo?.nickName || '')
+    isEditingNickName.value = false
     return false
   }
 
@@ -959,13 +959,13 @@ $nb-red: #FF4444;
       overflow: hidden;
     }
 
-    .hero-bar__edit-btn {
+    .hero-bar__wx-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8rpx;
       padding: 10rpx 18rpx 10rpx 14rpx;
-      background: $nb-yellow;
+      background: #07C160;
       border: 2px solid $ink-black;
       border-radius: 4rpx;
       box-shadow: 4rpx 4rpx 0 $ink-black;
@@ -973,9 +973,34 @@ $nb-red: #FF4444;
       min-height: 56rpx;
       max-width: 320rpx;
 
-      &.is-guest {
-        background: #FFFFFF;
+      &:active {
+        box-shadow: none;
+        transform: translate(4rpx, 4rpx);
       }
+    }
+
+    .hero-bar__wx-label {
+      font-size: 22rpx;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1;
+      letter-spacing: 0.5rpx;
+      white-space: nowrap;
+    }
+
+    .hero-bar__edit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8rpx;
+      padding: 10rpx 18rpx 10rpx 14rpx;
+      background: #FFFFFF;
+      border: 2px solid $ink-black;
+      border-radius: 4rpx;
+      box-shadow: 4rpx 4rpx 0 $ink-black;
+      flex-shrink: 0;
+      min-height: 56rpx;
+      max-width: 320rpx;
 
       &:active {
         box-shadow: none;
@@ -1096,7 +1121,7 @@ $nb-red: #FF4444;
     text-overflow: ellipsis;
   }
 
-  &__wx-sync {
+  &__edit-link {
     display: flex;
     align-items: center;
     gap: 4rpx;
@@ -1104,7 +1129,7 @@ $nb-red: #FF4444;
     border-radius: 4rpx;
     background: rgba(255,255,255,0.1);
 
-    .wx-sync__label {
+    .edit-link__label {
       font-family: monospace;
       font-size: 16rpx;
       font-weight: 700;

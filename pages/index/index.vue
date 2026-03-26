@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <HfPageBg
     variant="warm"
     class="home-page page-transition"
@@ -7,7 +7,7 @@
     <view class="home-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="home-nav__left">
         <text class="home-nav__title">星划</text>
-        <text v-if="userStore.userInfo" class="home-nav__sub">{{ userStore.userInfo.nickName }}，{{ todayFormatted }}</text>
+        <text v-if="userStore.userInfo" class="home-nav__sub">{{ userStore.userInfo.nickName || 'Voyager' }}，{{ todayFormatted }}</text>
         <text v-else class="home-nav__sub">{{ todayFormatted }}</text>
       </view>
     </view>
@@ -388,8 +388,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, provide } from 'vue'
-import { onShow, onHide, onPageScroll } from '@dcloudio/uni-app'
+import { ref, computed, provide, watch } from 'vue'
+import { onShow, onHide, onPageScroll, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import { useHabitStore } from '@/stores/habit'
@@ -444,6 +444,17 @@ function getStatusBarHeight() {
 
 const statusBarHeight = ref(getStatusBarHeight())
 const wxProfilePromptVisible = ref(false)
+
+// 首登提醒：login 异步完成后才能拿到 profileMeta，用 watch 等待
+watch(
+  () => userStore.shouldShowWechatPrompt,
+  (should) => {
+    if (should && !wxProfilePromptVisible.value) {
+      wxProfilePromptVisible.value = true
+    }
+  },
+  { immediate: true },
+)
 
 const greetingText = computed(() => {
   const hour = getBeijingDateParts().hour
@@ -1279,6 +1290,16 @@ function clearHeroIllustration() {
   uni.showToast({ title: '已恢复默认插画', icon: 'none' })
 }
 
+// ── 分享能力 ──
+onShareAppMessage(() => ({
+  title: '星划 — 让好习惯自然发生',
+  path: '/pages/index/index',
+}))
+
+onShareTimeline(() => ({
+  title: '星划 — 让好习惯自然发生',
+}))
+
 onShow(() => {
   appStore.switchTab('index')
   if (redirectToOnboardingIfNeeded()) return
@@ -1294,10 +1315,7 @@ onShow(() => {
     // ignore
   })
 
-  // 首登提醒：登录后检查是否需要弹出微信资料同步
-  if (userStore.isLoggedIn && userStore.shouldShowWechatPrompt) {
-    wxProfilePromptVisible.value = true
-  }
+  // 首登提醒移至 watch，确保 login 完成后再检查
 })
 
 onHide(() => {

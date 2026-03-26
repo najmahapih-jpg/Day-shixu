@@ -2,43 +2,67 @@
   <view v-if="visible" class="wx-sync-overlay" @tap.self="handleClose()">
     <view class="wx-sync-panel brutal-card">
       <text class="wx-sync-panel__title">同步微信资料</text>
-      <button
-        class="wx-sync-avatar-btn brutal-card"
-        open-type="chooseAvatar"
-        :disabled="avatarSyncing || nickSaving"
-        @chooseavatar="onWxChooseAvatar"
-      >
-        <HfIcon name="camera-bold" size="sm" color="#0B0B0C" plain />
-        <text>{{ avatarSyncing ? '同步中...' : '使用微信头像' }}</text>
-      </button>
-      <view
-        class="wx-sync-nick-row brutal-card"
-        :class="{ 'is-saving': nickSaving }"
-      >
-        <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
-        <input
-          class="wx-sync-nick-input"
-          type="nickname"
-          :value="nickValue"
-          :disabled="nickSaving || avatarSyncing"
-          placeholder="点击获取微信昵称"
-          confirm-type="done"
-          @input="onNickInput"
-          @change="onNickChange"
-        />
+      <text class="wx-sync-desc">一键导入你的微信头像和昵称</text>
+
+      <!-- 隐藏的昵称 input，头像选完后自动 focus 触发微信弹窗 -->
+      <input
+        class="wx-sync-nick-hidden"
+        type="nickname"
+        :value="pendingNickname"
+        :focus="nickFocused"
+        :disabled="isBusy"
+        @input="onNickInput"
+        @confirm="onNickConfirm"
+        @blur="onNickBlur"
+      />
+
+      <!-- 状态显示区 -->
+      <view v-if="avatarReady || nickReady" class="wx-sync-result brutal-card">
+        <view v-if="avatarReady" class="wx-sync-result__item">
+          <HfIcon name="camera-bold" size="sm" color="#0B0B0C" plain />
+          <text>头像已选择</text>
+          <text class="wx-sync-check">✓</text>
+        </view>
+        <view v-if="nickReady" class="wx-sync-result__item">
+          <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
+          <text>{{ pendingNickname }}</text>
+          <text class="wx-sync-check">✓</text>
+        </view>
       </view>
-      <text class="wx-sync-tip">{{ nickSaving ? '微信昵称同步中...' : '点击输入框拉起微信昵称，完成后自动同步' }}</text>
+
+      <!-- 主按钮：一键触发 chooseAvatar → 自动昵称 → 自动保存 -->
+      <button
+        class="wx-sync-main-btn brutal-card"
+        open-type="chooseAvatar"
+        :disabled="isBusy"
+        @chooseavatar="onAvatarChosen"
+      >
+        <text>{{ buttonText }}</text>
+      </button>
+
+      <!-- 昵称弹窗未自动出现时的手动 fallback -->
+      <view
+        v-if="avatarReady && !nickReady && !nickFocused"
+        class="wx-sync-fallback"
+        @tap="retryNickFocus"
+      >
+        <text>昵称未弹出？点此重试</text>
+      </view>
+
+      <text class="wx-sync-tip">{{ statusTip }}</text>
+
+      <!-- 底部操作 -->
       <view class="wx-sync-actions">
         <view
           class="wx-sync-skip"
-          :class="{ 'is-disabled': avatarSyncing || nickSaving }"
+          :class="{ 'is-disabled': isBusy }"
           @tap="handleSkip()"
         >
           <text>跳过</text>
         </view>
         <view
           class="wx-sync-close"
-          :class="{ 'is-disabled': avatarSyncing || nickSaving }"
+          :class="{ 'is-disabled': isBusy }"
           @tap="handleClose()"
         >
           <text>关闭</text>
@@ -49,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useHaptic } from '@/composables/motion'
 import { getNickNameValidationMessage, normalizeNickName } from '@/utils/nickName'
@@ -69,48 +93,88 @@ const emit = defineEmits<{
 const userStore = useUserStore()
 const haptic = useHaptic()
 
+// ── State ──
 const avatarSyncing = ref(false)
-const nickValue = ref('')
-const nickSaving = ref(false)
+const isSaving = ref(false)
+const pendingAvatarCloudId = ref('')
+const pendingNickname = ref('')
+const nickFocused = ref(false)
+let nickConfirmed = false
 
-function close() {
-  if (avatarSyncing.value || nickSaving.value) return
-  emit('update:visible', false)
-  nickValue.value = ''
+let autoCloseTimer: ReturnType<typeof setTimeout> | null = null
+let focusTimer: ReturnType<typeof setTimeout> | null = null
+
+const isBusy = computed(() => avatarSyncing.value || isSaving.value)
+const avatarReady = computed(() => !!pendingAvatarCloudId.value)
+const nickReady = computed(() => !!normalizeNickName(pendingNickname.value.trim()))
+const hasAnything = computed(() => avatarReady.value || nickReady.value)
+
+const buttonText = computed(() => {
+  if (avatarSyncing.value) return '上传中...'
+  if (isSaving.value) return '同步中...'
+  if (avatarReady.value && nickReady.value) return '已完成 ✓'
+  return '一键同步微信资料'
+})
+
+const statusTip = computed(() => {
+  if (avatarSyncing.value) return '头像上传中…'
+  if (isSaving.value) return '保存中…'
+  if (avatarReady.value && nickReady.value) return '同步完成'
+  if (avatarReady.value) return '头像已就绪，正在获取昵称…'
+  return '点击按钮，自动导入微信头像和昵称'
+})
+
+// ── Cleanup ──
+function clearTimers() {
+  if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null }
+  if (focusTimer) { clearTimeout(focusTimer); focusTimer = null }
 }
 
-function handleClose() {
-  close()
-}
+onBeforeUnmount(clearTimers)
 
-async function handleSkip() {
-  if (avatarSyncing.value || nickSaving.value) return
-  await userStore.dismissWechatProfilePrompt()
-  emit('update:visible', false)
-  nickValue.value = ''
-}
+// ── Reset on open ──
+watch(
+  () => props.visible,
+  (isVisible) => {
+    if (isVisible) {
+      avatarSyncing.value = false
+      isSaving.value = false
+      pendingAvatarCloudId.value = ''
+      pendingNickname.value = ''
+      nickFocused.value = false
+      nickConfirmed = false
+      clearTimers()
+    }
+  },
+)
 
-async function onWxChooseAvatar(e: any) {
+// ── Avatar → auto nickname ──
+async function onAvatarChosen(e: any) {
   const tempUrl = e.detail?.avatarUrl
   if (!tempUrl || typeof tempUrl !== 'string') return
-  if (avatarSyncing.value || nickSaving.value) return
+  if (isBusy.value) return
   avatarSyncing.value = true
+  nickConfirmed = false
 
   let loadingShown = false
   try {
     const normalizedPath = await normalizeAvatarTempFile(tempUrl, 0)
-    uni.showLoading({ title: '头像同步中', mask: true })
+    uni.showLoading({ title: '处理中', mask: true })
     loadingShown = true
 
     const cloudFileId = await uploadAvatarToCloud(normalizedPath)
-    await userStore.updateProfile({ avatarUrl: cloudFileId }, 'wechat')
+    if (!cloudFileId) throw new Error('上传结果异常')
+
+    pendingAvatarCloudId.value = cloudFileId
     haptic.success()
-    uni.showToast({ title: '微信头像已同步', icon: 'success' })
-    emit('synced')
+
+    // 头像上传成功 → 自动触发昵称选择
+    if (loadingShown) { uni.hideLoading(); loadingShown = false }
+    await triggerNickFocus()
   } catch (err: any) {
     if (!isUserCancelError(err)) {
       haptic.warning()
-      uni.showToast({ title: err?.message || '头像同步失败', icon: 'none' })
+      uni.showToast({ title: err?.message || '头像上传失败', icon: 'none' })
     }
   } finally {
     avatarSyncing.value = false
@@ -118,41 +182,128 @@ async function onWxChooseAvatar(e: any) {
   }
 }
 
-function onNickInput(e: any) {
-  nickValue.value = (e.detail?.value || '').trim()
+// ── Nickname ──
+async function triggerNickFocus() {
+  nickFocused.value = false
+  await nextTick()
+  focusTimer = setTimeout(() => {
+    focusTimer = null
+    nickFocused.value = true
+  }, 300)
 }
 
-async function onNickChange(e: any) {
-  const nextValue = (e.detail?.value || '').trim()
-  nickValue.value = nextValue
-  if (nickSaving.value || avatarSyncing.value) return
+function retryNickFocus() {
+  if (isBusy.value) return
+  nickFocused.value = false
+  nextTick(() => { nickFocused.value = true })
+}
 
-  const validationMsg = getNickNameValidationMessage(nextValue)
-  if (validationMsg) {
-    uni.showToast({ title: validationMsg, icon: 'none' })
-    return
+function onNickInput(e: any) {
+  pendingNickname.value = e.detail?.value || ''
+}
+
+function onNickConfirm(e: any) {
+  const val = (e.detail?.value || '').trim()
+  if (val) pendingNickname.value = val
+  nickConfirmed = true
+  // 昵称确认后自动保存
+  handleSync()
+}
+
+function onNickBlur(e: any) {
+  if (nickConfirmed) return  // confirm 已处理，忽略 blur
+  const val = (e.detail?.value || '').trim()
+  if (!val) return
+  pendingNickname.value = val
+  // blur 有值时也自动保存（用户可能点了确定但触发的是 blur）
+  if (avatarReady.value) {
+    handleSync()
+  }
+}
+
+// ── 同步保存 ──
+async function handleSync(): Promise<boolean> {
+  if (isSaving.value) return false
+  if (!hasAnything.value) return false
+
+  const profile: Record<string, string> = {}
+
+  if (pendingAvatarCloudId.value) {
+    profile.avatarUrl = pendingAvatarCloudId.value
   }
 
-  const normalized = normalizeNickName(nextValue)
-  if (!normalized) {
-    uni.showToast({ title: '昵称不能为空', icon: 'none' })
-    return
+  const nick = normalizeNickName(pendingNickname.value.trim())
+  if (nick) {
+    const validationMsg = getNickNameValidationMessage(pendingNickname.value.trim())
+    if (validationMsg) {
+      uni.showToast({ title: validationMsg, icon: 'none' })
+      return false
+    }
+    const currentNick = normalizeNickName(userStore.userInfo?.nickName || '')
+    if (nick !== currentNick) {
+      profile.nickName = nick
+    }
   }
 
-  const current = normalizeNickName(userStore.userInfo?.nickName || '')
-  if (normalized === current) return
+  if (Object.keys(profile).length === 0) {
+    // 数据未变更，视为成功
+    return true
+  }
 
-  nickSaving.value = true
+  isSaving.value = true
   try {
-    await userStore.updateProfile({ nickName: normalized }, 'wechat')
+    await userStore.updateProfile(profile, 'wechat')
     haptic.success()
-    uni.showToast({ title: '微信昵称已同步', icon: 'success' })
     emit('synced')
+    uni.showToast({ title: '微信资料已同步', icon: 'success' })
+    clearTimers()
+    autoCloseTimer = setTimeout(() => {
+      autoCloseTimer = null
+      emit('update:visible', false)
+    }, 800)
+    return true
   } catch {
     haptic.warning()
+    uni.showToast({ title: '同步失败，请重试', icon: 'none' })
+    return false
   } finally {
-    nickSaving.value = false
+    isSaving.value = false
   }
+}
+
+// ── Close ──
+async function handleClose() {
+  if (avatarSyncing.value) {
+    uni.showToast({ title: '头像上传中，请稍候', icon: 'none' })
+    return
+  }
+  if (isSaving.value) {
+    uni.showToast({ title: '保存中，请稍候', icon: 'none' })
+    return
+  }
+  clearTimers()
+
+  // 有待保存数据 → 先保存再关
+  if (hasAnything.value) {
+    const saved = await handleSync()
+    if (!saved) return
+  }
+
+  emit('update:visible', false)
+}
+
+// ── Skip ──
+async function handleSkip() {
+  if (isBusy.value) {
+    uni.showToast({ title: '正在同步中，请稍候', icon: 'none' })
+    return
+  }
+  // 已选头像则先保存
+  if (pendingAvatarCloudId.value) {
+    await handleSync()
+  }
+  await userStore.dismissWechatProfilePrompt()
+  emit('update:visible', false)
 }
 </script>
 
@@ -192,7 +343,7 @@ $nb-mint: #A8F0D4;
   box-shadow: 8rpx 8rpx 0 $ink-black;
   display: flex;
   flex-direction: column;
-  gap: $space-4;
+  gap: $space-3;
 
   &__title {
     font-size: 32rpx;
@@ -202,19 +353,58 @@ $nb-mint: #A8F0D4;
   }
 }
 
-.wx-sync-avatar-btn {
+.wx-sync-desc {
+  font-size: 24rpx;
+  color: $ink-light;
+  text-align: center;
+}
+
+// 隐藏的昵称 input — 视觉不可见但可聚焦
+.wx-sync-nick-hidden {
+  position: absolute;
+  left: -9999rpx;
+  width: 1rpx;
+  height: 1rpx;
+  opacity: 0;
+}
+
+.wx-sync-result {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   gap: 12rpx;
   padding: 20rpx 24rpx;
   background: $nb-mint;
   border: $brutal-border;
   border-radius: $brutal-radius;
   box-shadow: 4rpx 4rpx 0 $ink-black;
-  font-size: 28rpx;
-  font-weight: 800;
-  color: $ink-black;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    font-size: 26rpx;
+    font-weight: 700;
+    color: $ink-black;
+  }
+}
+
+.wx-sync-check {
+  margin-left: auto;
+  font-weight: 900;
+}
+
+.wx-sync-main-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  background: $ink-black;
+  border: $brutal-border;
+  border-radius: $brutal-radius;
+  box-shadow: 4rpx 4rpx 0 $ink-black;
+  font-size: 30rpx;
+  font-weight: 900;
+  color: $paper-white;
   line-height: 1;
 
   &::after { display: none; }
@@ -225,31 +415,24 @@ $nb-mint: #A8F0D4;
   }
 
   &[disabled] {
-    opacity: 0.6;
+    opacity: 0.4;
   }
 }
 
-.wx-sync-nick-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 16rpx 24rpx;
-  background: $nb-yellow;
-  border: $brutal-border;
-  border-radius: $brutal-radius;
-  box-shadow: 4rpx 4rpx 0 $ink-black;
+.wx-sync-fallback {
+  text-align: center;
+  padding: 8rpx;
 
-  &.is-saving {
-    opacity: 0.72;
+  text {
+    font-size: 24rpx;
+    font-weight: 700;
+    color: $ink-light;
+    text-decoration: underline;
   }
-}
 
-.wx-sync-nick-input {
-  flex: 1;
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $ink-black;
-  background: transparent;
+  &:active text {
+    color: $ink-black;
+  }
 }
 
 .wx-sync-tip {

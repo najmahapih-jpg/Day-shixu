@@ -39,6 +39,25 @@ onLaunch(() => {
     // ignore storage read failure
   }
 
+  // 版本更新检测
+  // #ifdef MP-WEIXIN
+  const updateManager = uni.getUpdateManager()
+  updateManager.onUpdateReady(() => {
+    uni.showModal({
+      title: '更新提示',
+      content: '新版本已准备好，是否重启应用？',
+      success: (res) => {
+        if (res.confirm) {
+          updateManager.applyUpdate()
+        }
+      },
+    })
+  })
+  updateManager.onUpdateFailed(() => {
+    uni.showToast({ title: '更新下载失败，请稍后重试', icon: 'none' })
+  })
+  // #endif
+
   // 静默登录，确保 userInfo 尽早就绪
   const userStore = useUserStore()
   userStore.login().catch(() => {})

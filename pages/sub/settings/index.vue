@@ -98,6 +98,11 @@
           <text class="setting-row__label">开发者</text>
           <text class="setting-row__value">{{ settingsAboutCopy.developerValue }}</text>
         </view>
+
+        <view class="setting-row">
+          <text class="setting-row__label">意见反馈</text>
+          <button class="feedback-btn" open-type="feedback" size="mini">反馈</button>
+        </view>
       </HfCard>
     </view>
 
@@ -406,6 +411,28 @@ onMounted(() => {
   &--active &__text {
     color: $color-white;
     font-weight: $font-medium;
+  }
+}
+
+// ===== Feedback Button =====
+
+.feedback-btn {
+  font-size: $text-xs;
+  color: $neutral-700;
+  background: $neutral-100;
+  border: 1rpx solid $neutral-300;
+  border-radius: $radius-md;
+  padding: $space-1 $space-3;
+  line-height: 1.4;
+
+  &::after {
+    border: none;
+  }
+
+  .dark-mode & {
+    color: $dark-text-secondary;
+    background: rgba($color-white, 0.06);
+    border-color: $dark-border;
   }
 }
 </style>

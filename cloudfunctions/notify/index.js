@@ -106,8 +106,8 @@ async function scheduledRemind() {
       habitNames.length > 18 ? habitNames.slice(0, 18) + '...' : habitNames
 
     try {
-      // TODO: 替换为小程序后台「订阅消息」中申请的真实模板 ID
-      const TEMPLATE_ID = 'REPLACE_WITH_REAL_TEMPLATE_ID'
+      // Keep in sync with SUBSCRIBE_TEMPLATE_IDS.DAILY_CHECK_IN in utils/constants.ts
+      const TEMPLATE_ID = 'vRh8S5mGFwJRclVVnG8pqK4l1wT1kXtjNzfp0xt20K0'
       await cloud.openapi.subscribeMessage.send({
         touser: openid,
         templateId: TEMPLATE_ID,

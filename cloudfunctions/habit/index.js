@@ -87,6 +87,31 @@ function sanitize(obj) {
   return cleaned
 }
 
+// ── 内容安全检查 ────────────────────────────────────────
+
+/**
+ * 文本内容安全检查 (微信审核必需)
+ * @param {string} content - 待检查文本
+ * @param {string} openid - 用户 openid
+ * @param {number} scene - 场景值: 1=资料, 2=评论, 3=论坛, 4=社交日志
+ * @returns {Promise<boolean>} true=通过, false=违规
+ */
+async function checkText(content, openid, scene) {
+  if (!content || typeof content !== 'string' || !content.trim()) return true
+  try {
+    const res = await cloud.openapi.security.msgSecCheck({
+      content: content.trim().slice(0, 2500),
+      version: 2,
+      scene: scene || 2,
+      openid,
+    })
+    return res.result.suggest !== 'risky'
+  } catch (err) {
+    console.error('[内容安全检查失败]', err)
+    return true // fail-open，避免安全API故障时阻塞用户
+  }
+}
+
 // ── actions ──────────────────────────────────────────────
 
 async function list(openid) {
@@ -108,6 +133,15 @@ async function get(openid, data) {
 
 async function create(openid, data) {
   if (!data) return fail('缺少数据')
+
+  // 内容安全检查
+  if (data.name && !(await checkText(data.name, openid, 2))) {
+    return fail('习惯名称包含违规内容，请修改后重试')
+  }
+  if (data.description && !(await checkText(data.description, openid, 2))) {
+    return fail('习惯描述包含违规内容，请修改后重试')
+  }
+
   const now = db.serverDate()
 
   // 查当前用户未归档习惯数量作为 order
@@ -132,6 +166,15 @@ async function create(openid, data) {
 
 async function update(openid, data) {
   if (!data || !data.id) return fail('缺少习惯 ID')
+
+  // 内容安全检查
+  if (data.name && !(await checkText(data.name, openid, 2))) {
+    return fail('习惯名称包含违规内容，请修改后重试')
+  }
+  if (data.description && !(await checkText(data.description, openid, 2))) {
+    return fail('习惯描述包含违规内容，请修改后重试')
+  }
+
   const { id } = data
   const fields = sanitize(data)
 
@@ -527,6 +570,12 @@ async function boardList(openid) {
 
 async function boardCreate(openid, data) {
   if (!data) return fail('缺少便签数据')
+
+  // 内容安全检查
+  if (data.content && !(await checkText(data.content, openid, 4))) {
+    return fail('便签内容包含违规内容，请修改后重试')
+  }
+
   const now = toIsoStr()
   const positionMode = data.positionMode === 'manual' ? 'manual' : 'auto'
   if (Array.isArray(data.checkItems) && data.checkItems.length > BOARD_MAX_CHECK_ITEMS) {
@@ -545,6 +594,14 @@ async function boardCreate(openid, data) {
     return fail('清单至少需要 1 项')
   }
   if (!finalContent) return fail('便签内容不能为空')
+
+  // 清单项内容安全检查
+  if (noteType === 'checklist' && checkItems.length > 0) {
+    const combinedText = checkItems.map(i => i.text).join('\n')
+    if (!(await checkText(combinedText, openid, 4))) {
+      return fail('清单内容包含违规内容，请修改后重试')
+    }
+  }
 
   const noteData = {
     content: finalContent,
@@ -581,6 +638,11 @@ async function boardUpdate(openid, data) {
   if (!data || !data.id) return fail('缺少便签 ID')
   const { data: note } = await boardCol.doc(data.id).get()
   if (note._openid !== openid) return fail('无权操作')
+
+  // 内容安全检查
+  if (data.updates && data.updates.content && !(await checkText(data.updates.content, openid, 4))) {
+    return fail('便签内容包含违规内容，请修改后重试')
+  }
 
   const incoming = data.updates && typeof data.updates === 'object'
     ? data.updates
@@ -691,15 +753,31 @@ async function boardDelete(openid, data) {
   return ok({ _id: data.id })
 }
 
+// 批量更新仅允许布局/样式字段，禁止通过此入口修改内容
+const BATCH_ALLOWED_FIELDS = new Set([
+  'x', 'y', 'rotation', 'positionMode', 'isPinned',
+  'size', 'color', 'fontSize', 'textAlign', 'textVertical', 'fontFamily', 'noteShape',
+])
+
 async function boardBatchUpdate(openid, data) {
   if (!data || !Array.isArray(data.updates)) return fail('缺少 updates 数组')
   if (data.updates.length > 50) return fail('批量更新过多')
   const now = toIsoStr()
-  const tasks = data.updates.map(u =>
-    boardCol
+  const tasks = data.updates.map(u => {
+    // 过滤字段：只允许布局/样式属性，内容变更须走 boardUpdate
+    const safeFields = {}
+    if (u.fields && typeof u.fields === 'object') {
+      for (const key of Object.keys(u.fields)) {
+        if (BATCH_ALLOWED_FIELDS.has(key)) {
+          safeFields[key] = u.fields[key]
+        }
+      }
+    }
+    safeFields.updatedAt = now
+    return boardCol
       .where({ _id: u.id, _openid: openid })
-      .update({ data: { ...u.fields, updatedAt: now } })
-  )
+      .update({ data: safeFields })
+  })
   await Promise.all(tasks)
   return ok(true)
 }

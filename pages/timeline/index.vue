@@ -312,7 +312,7 @@
             <view class="opus-plate">
               <text class="opus-plate__left">Opus. {{ userStore.stats?.joinedDays || 1 }}</text>
               <view class="opus-plate__center-ornament">~ ✦ ~</view>
-              <text class="opus-plate__right">Maestro. <text class="flower-sign">{{ userStore.nickName || 'User' }}</text></text>
+              <text class="opus-plate__right">Maestro. <text class="flower-sign">{{ userStore.nickName || 'Voyager' }}</text></text>
               <view class="opus-plate__barlines">𝄂</view>
             </view>
 

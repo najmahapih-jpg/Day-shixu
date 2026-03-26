@@ -86,7 +86,8 @@ function getFileExtFromPath(path: string): string {
 // ── Core avatar operations ──
 
 export async function normalizeAvatarTempFile(path: string, size: number): Promise<string> {
-  if (size > MAX_AVATAR_FILE_SIZE) throw new Error('图片需小于 5MB')
+  // size=0 来自微信 chooseAvatar（不返回文件大小），跳过 size 检查
+  if (size > 0 && size > MAX_AVATAR_FILE_SIZE) throw new Error('图片需小于 5MB')
 
   const info = await getImageInfo(path)
   const minEdge = Math.min(info.width || 0, info.height || 0)
@@ -96,7 +97,7 @@ export async function normalizeAvatarTempFile(path: string, size: number): Promi
   }
 
   const shouldCompress =
-    size >= COMPRESS_TRIGGER_SIZE || maxEdge >= COMPRESS_TRIGGER_EDGE
+    (size > 0 && size >= COMPRESS_TRIGGER_SIZE) || maxEdge >= COMPRESS_TRIGGER_EDGE
   if (!shouldCompress || typeof uni.compressImage !== 'function') {
     return path
   }
@@ -108,6 +109,16 @@ export async function normalizeAvatarTempFile(path: string, size: number): Promi
   }
 }
 
+const UPLOAD_TIMEOUT_MS = 30_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer!))
+}
+
 export async function uploadAvatarToCloud(filePath: string): Promise<string> {
   // #ifdef MP-WEIXIN
   const userStore = useUserStore()
@@ -115,10 +126,11 @@ export async function uploadAvatarToCloud(filePath: string): Promise<string> {
   const random = Math.random().toString(36).slice(2, 8)
   const ext = getFileExtFromPath(filePath)
   const cloudPath = `avatars/${userId}/${Date.now()}_${random}.${ext}`
-  const res = await wx.cloud.uploadFile({
-    cloudPath,
-    filePath,
-  })
+  const res = await withTimeout(
+    wx.cloud.uploadFile({ cloudPath, filePath }),
+    UPLOAD_TIMEOUT_MS,
+    '头像上传超时，请检查网络后重试',
+  )
   if (!res?.fileID) throw new Error('头像上传失败，请重试')
   return res.fileID
   // #endif
