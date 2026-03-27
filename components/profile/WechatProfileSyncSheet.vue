@@ -212,7 +212,9 @@ function onNickConfirm(e: any) {
 
 function onNickBlur(e: any) {
   if (nickConfirmed) return  // confirm 已处理，忽略 blur
-  const val = (e.detail?.value || '').trim()
+  // 微信昵称选择器关闭时 blur 的 e.detail.value 通常为空；
+  // 优先使用 @input 已捕获的 pendingNickname，避免遗漏
+  const val = (pendingNickname.value || e.detail?.value || '').trim()
   if (!val) return
   pendingNickname.value = val
   // blur 有值时也自动保存（用户可能点了确定但触发的是 blur）
@@ -359,13 +361,16 @@ $nb-mint: #A8F0D4;
   text-align: center;
 }
 
-// 隐藏的昵称 input — 视觉不可见但可聚焦
+// 隐藏的昵称 input — 视觉不可见但必须在视口内，否则部分微信版本不弹昵称选择器
 .wx-sync-nick-hidden {
   position: absolute;
-  left: -9999rpx;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 1rpx;
   height: 1rpx;
   opacity: 0;
+  pointer-events: none;
 }
 
 .wx-sync-result {
