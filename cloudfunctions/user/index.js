@@ -34,7 +34,7 @@ function normalizeAvatarUrl(raw) {
   const val = raw.trim()
   if (!val) return ''
   if (val.length > 2048) {
-    console.warn('[user] avatarUrl 超出长度限制 (2048):', val.length, '前50字符:', val.slice(0, 50))
+    // avatarUrl exceeds 2048 char limit
     return ''
   }
   const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://', 'data:image/']

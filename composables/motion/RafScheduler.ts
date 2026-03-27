@@ -92,7 +92,7 @@ export function getRafScheduler(): RafSchedulerInstance {
       try {
         task.callback(dt, elapsed)
       } catch (err) {
-        console.warn(`[RafScheduler] Task ${task.id} error:`, err)
+        if (process.env.NODE_ENV !== 'production') console.warn(`[RafScheduler] Task ${task.id} error:`, err)
       }
 
       task.lastRun = now

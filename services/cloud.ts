@@ -160,13 +160,9 @@ export async function callCloud<T>(
       }
     })()
 
-    console.error('[云函数调用失败]', {
-      functionName: name,
-      action,
-      errMsg,
-      errCode,
-      raw: err,
-    })
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[云函数调用失败]', { functionName: name, action, errMsg, errCode })
+    }
 
     if (errMsg.includes('timeout') || errMsg.includes('ETIMEOUT')) {
       throw new CloudError(-2, '请求超时，请稍后重试')

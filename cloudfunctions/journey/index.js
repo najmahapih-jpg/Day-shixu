@@ -149,7 +149,7 @@ async function ensureCollectionReady(collectionName) {
 
   try {
     await db.createCollection(collectionName)
-    console.log('[journey/bootstrap] created collection:', collectionName)
+    // collection created successfully
   } catch (createErr) {
     const lower = getErrorMessage(createErr).toLowerCase()
     if (

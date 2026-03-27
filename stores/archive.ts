@@ -27,6 +27,7 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
   const fetchedUntil = ref('')
 
   async function fetchArchive(days: number = 30) {
+    if (loading.value) return
     loading.value = true
     try {
       // 1. Ensure board notes are loaded (they load all by default in this app)
@@ -91,7 +92,7 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
 
     } catch (err) {
       uni.showToast({ title: '加载档案失败', icon: 'none' })
-      console.error(err)
+      if (process.env.NODE_ENV !== 'production') console.error(err)
     } finally {
       loading.value = false
     }

@@ -23,7 +23,7 @@ export function usePageError() {
         try {
             await fn()
         } catch (err) {
-            console.error('[页面初始化失败]', err)
+            if (process.env.NODE_ENV !== 'production') console.error('[页面初始化失败]', err)
             pageError.value = true
         }
     }
