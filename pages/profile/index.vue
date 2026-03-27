@@ -33,45 +33,22 @@
           <view class="hero-zone__bar">
             <view class="hero-bar__main">
               <view class="hero-bar__name-wrap">
-                <input
-                  v-if="isEditingNickName"
-                  class="hero-bar__name-input"
-                  type="text"
-                  :value="editNickNameValue"
-                  :focus="isEditingNickName && !nickNameSaving"
-                  :disabled="nickNameSaving"
-                  :placeholder="profileCopy.nickNamePlaceholder"
-                  confirm-type="done"
-                  @input="onNickNameInput"
-                  @change="onNickNameInput"
-                  @confirm="confirmNickName"
-                  @blur="confirmNickName"
-                />
-                <text v-else class="hero-bar__name" @tap="startNickNameEdit">{{ nickName }}</text>
+                <text class="hero-bar__name" @tap="toggleWxSync">{{ nickName }}</text>
               </view>
               <view
-                v-if="!isEditingNickName && userStore.isLoggedIn"
+                v-if="userStore.isLoggedIn"
                 class="hero-bar__wx-btn"
                 @tap.stop="toggleWxSync"
               >
                 <text class="hero-bar__wx-label">微信导入</text>
               </view>
               <view
-                v-else-if="!isEditingNickName"
+                v-else-if="!userStore.isLoggedIn"
                 class="hero-bar__edit-btn is-guest"
-                @tap.stop="startNickNameEdit"
+                @tap.stop="toggleWxSync"
               >
                 <HfIcon name="pen-2-linear" size="xs" color="#0B0B0C" plain />
                 <text class="hero-bar__edit-label">{{ profileCopy.guestNickNameCta }}</text>
-              </view>
-              <view
-                v-else
-                class="hero-bar__edit-state"
-                :class="{ 'is-saving': nickNameSaving }"
-              >
-                <text class="hero-bar__edit-state-text">
-                  {{ nickNameSaving ? '保存中...' : '手动修改昵称，回车或失焦保存' }}
-                </text>
               </view>
             </view>
             <view class="hero-bar__meta">
@@ -81,8 +58,8 @@
           </view>
           <view class="hero-zone__bottom">
             <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
-            <view v-if="userStore.isLoggedIn" class="hero-zone__edit-link" @tap="startNickNameEdit">
-              <text class="edit-link__label">编辑资料</text>
+            <view v-if="userStore.isLoggedIn" class="hero-zone__edit-link" @tap="toggleWxSync">
+              <text class="edit-link__label">微信同步</text>
             </view>
           </view>
         </view>
@@ -235,7 +212,6 @@ import {
   uploadAvatarToCloud,
   isUserCancelError,
 } from '@/composables/useAvatarUpload'
-import { getNickNameValidationMessage, normalizeNickName } from '@/utils/nickName'
 import { PUBLIC_COPY } from '@/utils/publicCopy'
 
 const appStore = useAppStore()
@@ -315,28 +291,17 @@ watch(
 const nickName = computed(() => (userStore.isLoggedIn ? userStore.userInfo!.nickName : profileCopy.guestName))
 const userIdSuffix = computed(() => userStore.userInfo?._id?.slice(-8).toUpperCase() || 'XXXXXXXX')
 
-// ── Nickname Editing ──
-const isEditingNickName = ref(false)
-const editNickNameValue = ref('')
-const nickNameSaving = ref(false)
-
 // ── WeChat Sync Panel ──
 const wxSyncVisible = ref(false)
 
 function onWxSynced() {
   // Avatar watcher will auto-resolve the new URL
-  syncNickNameDrafts(userStore.userInfo?.nickName || '')
 }
 
 type AvatarPreviewSnapshot = {
   version: number
   resolvedUrl: string
   loadFailed: boolean
-}
-
-function syncNickNameDrafts(value: string) {
-  const next = (value || '').trim()
-  editNickNameValue.value = next
 }
 
 function applyAvatarLocalPreview(path: string): AvatarPreviewSnapshot {
@@ -366,74 +331,15 @@ async function ensureLoggedIn(): Promise<boolean> {
   }
 }
 
-async function startNickNameEdit() {
-  haptic.light()
-  if (nickNameSaving.value) return
-  const loggedIn = await ensureLoggedIn()
-  if (!loggedIn) return
-  if (isEditingNickName.value) return
-  wxSyncVisible.value = false
-  syncNickNameDrafts(userStore.userInfo?.nickName || '')
-  isEditingNickName.value = true
-}
-
-function onNickNameInput(e: any) {
-  syncNickNameDrafts(e.detail?.value || '')
-}
-
-async function submitNickName() {
-  const draftValue = editNickNameValue.value
-  const nickName = normalizeNickName(draftValue)
-  const currentNickName = normalizeNickName(userStore.userInfo?.nickName || '')
-
-  // 空值或未改动——静默恢复编辑状态，不弹错误
-  if (!nickName) {
-    syncNickNameDrafts(userStore.userInfo?.nickName || '')
-    isEditingNickName.value = false
-    return false
-  }
-
-  if (nickName === currentNickName) {
-    syncNickNameDrafts(nickName)
-    isEditingNickName.value = false
-    return true
-  }
-
-  if (nickNameSaving.value) return false
-  nickNameSaving.value = true
-
-  try {
-    await userStore.updateProfile({ nickName }, 'manual')
-    syncNickNameDrafts(userStore.userInfo?.nickName || nickName)
-    isEditingNickName.value = false
-    uni.hideKeyboard()
-    haptic.success()
-    uni.showToast({ title: '昵称已更新', icon: 'success' })
-    return true
-  } catch {
-    haptic.warning()
-    return false
-  } finally {
-    nickNameSaving.value = false
-  }
-}
-
-async function confirmNickName() {
-  if (!isEditingNickName.value || nickNameSaving.value) return
-  await submitNickName()
-}
-
 async function toggleWxSync() {
   haptic.light()
-  if (avatarUploading.value || nickNameSaving.value) return
+  if (avatarUploading.value) return
   if (wxSyncVisible.value) {
     wxSyncVisible.value = false
     return
   }
   const loggedIn = await ensureLoggedIn()
   if (!loggedIn) return
-  isEditingNickName.value = false
-  syncNickNameDrafts(userStore.userInfo?.nickName || '')
   wxSyncVisible.value = true
 }
 
@@ -467,15 +373,6 @@ const profileSlogan = computed(() => {
   return '把注意力放在今天最重要的一件事上。别让噪音干扰你。'
 })
 
-watch(
-  () => userStore.userInfo?.nickName || '',
-  (value) => {
-    if (!isEditingNickName.value && !nickNameSaving.value) {
-      syncNickNameDrafts(value)
-    }
-  },
-  { immediate: true },
-)
 
 const { displayValue: animHabitCount } = useCountUp(totalHabits)
 const { displayValue: animTotalCheckIns } = useCountUp(totalCheckIns)

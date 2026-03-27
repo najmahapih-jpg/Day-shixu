@@ -4,17 +4,20 @@
       <text class="wx-sync-panel__title">同步微信资料</text>
       <text class="wx-sync-desc">一键导入你的微信头像和昵称</text>
 
-      <!-- 隐藏的昵称 input，头像选完后自动 focus 触发微信弹窗 -->
-      <input
-        class="wx-sync-nick-hidden"
-        type="nickname"
-        :value="pendingNickname"
-        :focus="nickFocused"
-        :disabled="isBusy"
-        @input="onNickInput"
-        @confirm="onNickConfirm"
-        @blur="onNickBlur"
-      />
+      <!-- 头像就绪后显示昵称输入行，用户手动点击触发微信昵称选择器 -->
+      <view v-if="avatarReady && !nickReady" class="wx-sync-nick-row">
+        <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
+        <input
+          class="wx-sync-nick-input"
+          type="nickname"
+          :value="pendingNickname"
+          placeholder="点此同步微信昵称"
+          :disabled="isBusy"
+          @input="onNickInput"
+          @confirm="onNickConfirm"
+          @blur="onNickBlur"
+        />
+      </view>
 
       <!-- 状态显示区 -->
       <view v-if="avatarReady || nickReady" class="wx-sync-result brutal-card">
@@ -40,15 +43,6 @@
         <text>{{ buttonText }}</text>
       </button>
 
-      <!-- 昵称弹窗未自动出现时的手动 fallback -->
-      <view
-        v-if="avatarReady && !nickReady && !nickFocused"
-        class="wx-sync-fallback"
-        @tap="retryNickFocus"
-      >
-        <text>昵称未弹出？点此重试</text>
-      </view>
-
       <text class="wx-sync-tip">{{ statusTip }}</text>
 
       <!-- 底部操作 -->
@@ -73,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useHaptic } from '@/composables/motion'
 import { getNickNameValidationMessage, normalizeNickName } from '@/utils/nickName'
@@ -98,11 +92,9 @@ const avatarSyncing = ref(false)
 const isSaving = ref(false)
 const pendingAvatarCloudId = ref('')
 const pendingNickname = ref('')
-const nickFocused = ref(false)
 let nickConfirmed = false
 
 let autoCloseTimer: ReturnType<typeof setTimeout> | null = null
-let focusTimer: ReturnType<typeof setTimeout> | null = null
 
 const isBusy = computed(() => avatarSyncing.value || isSaving.value)
 const avatarReady = computed(() => !!pendingAvatarCloudId.value)
@@ -120,14 +112,13 @@ const statusTip = computed(() => {
   if (avatarSyncing.value) return '头像上传中…'
   if (isSaving.value) return '保存中…'
   if (avatarReady.value && nickReady.value) return '同步完成'
-  if (avatarReady.value) return '头像已就绪，正在获取昵称…'
-  return '点击按钮，自动导入微信头像和昵称'
+  if (avatarReady.value) return '头像已就绪，请点击上方输入框同步昵称'
+  return '点击按钮，导入微信头像；头像完成后再同步昵称'
 })
 
 // ── Cleanup ──
 function clearTimers() {
   if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null }
-  if (focusTimer) { clearTimeout(focusTimer); focusTimer = null }
 }
 
 onBeforeUnmount(clearTimers)
@@ -141,7 +132,6 @@ watch(
       isSaving.value = false
       pendingAvatarCloudId.value = ''
       pendingNickname.value = ''
-      nickFocused.value = false
       nickConfirmed = false
       clearTimers()
     }
@@ -167,10 +157,7 @@ async function onAvatarChosen(e: any) {
 
     pendingAvatarCloudId.value = cloudFileId
     haptic.success()
-
-    // 头像上传成功 → 自动触发昵称选择
     if (loadingShown) { uni.hideLoading(); loadingShown = false }
-    await triggerNickFocus()
   } catch (err: any) {
     if (!isUserCancelError(err)) {
       haptic.warning()
@@ -183,21 +170,6 @@ async function onAvatarChosen(e: any) {
 }
 
 // ── Nickname ──
-async function triggerNickFocus() {
-  nickFocused.value = false
-  await nextTick()
-  focusTimer = setTimeout(() => {
-    focusTimer = null
-    nickFocused.value = true
-  }, 300)
-}
-
-function retryNickFocus() {
-  if (isBusy.value) return
-  nickFocused.value = false
-  nextTick(() => { nickFocused.value = true })
-}
-
 function onNickInput(e: any) {
   pendingNickname.value = e.detail?.value || ''
 }
@@ -361,16 +333,23 @@ $nb-mint: #A8F0D4;
   text-align: center;
 }
 
-// 隐藏的昵称 input — 视觉不可见但必须在视口内，否则部分微信版本不弹昵称选择器
-.wx-sync-nick-hidden {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1rpx;
-  height: 1rpx;
-  opacity: 0;
-  pointer-events: none;
+.wx-sync-nick-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+  background: $nb-yellow;
+  border: $brutal-border;
+  border-radius: $brutal-radius;
+  box-shadow: 4rpx 4rpx 0 $ink-black;
+}
+
+.wx-sync-nick-input {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: $ink-black;
+  background: transparent;
 }
 
 .wx-sync-result {
