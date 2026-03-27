@@ -145,6 +145,11 @@ async function getProfile(openid) {
   return ok(user)
 }
 
+const ALLOWED_SETTINGS_KEYS = new Set([
+  'reduceMotion', 'weekStartsOn', 'defaultView', 'notifyEnabled',
+  'language', 'fontSize', 'colorScheme', 'soundEnabled', 'vibrationEnabled',
+])
+
 async function updateSettings(openid, data) {
   if (!data || !data.settings) return fail('缺少 settings 数据')
 
@@ -157,14 +162,16 @@ async function updateSettings(openid, data) {
 
   const user = existing[0]
 
-  // 构建局部更新对象
+  // 构建局部更新对象（白名单过滤，防止任意 key 注入）
   const updateFields = {}
   Object.keys(data.settings).forEach(key => {
     if (key === 'theme') {
       updateFields['settings.theme'] = 'neo'
       return
     }
-    updateFields[`settings.${key}`] = data.settings[key]
+    if (ALLOWED_SETTINGS_KEYS.has(key)) {
+      updateFields[`settings.${key}`] = data.settings[key]
+    }
   })
   updateFields.updatedAt = db.serverDate()
 
@@ -310,10 +317,10 @@ exports.main = async (event, context) => {
       case 'updateNickName': return await updateNickName(OPENID, data)
       case 'updateProfile': return await updateProfile(OPENID, data)
       case 'dismissWechatProfilePrompt': return await dismissWechatProfilePrompt(OPENID)
-      default: return fail('未知操作: ' + action)
+      default: return fail('未知操作')
     }
   } catch (err) {
     console.error('[' + action + ']', err)
-    return fail(err.message || '服务器错误')
+    return fail('服务器错误，请稍后重试')
   }
 }
