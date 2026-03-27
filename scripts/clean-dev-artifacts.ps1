@@ -1,6 +1,8 @@
 <#
 .SYNOPSIS
   Clean local development artifacts that are safe to delete before release.
+  _mp_devtools is intentionally preserved here because prepare:wechat already
+  handles refresh + locked-directory fallback for that path.
 
 .PARAMETER IncludeBuildOutput
   When specified, also removes unpackage/ (HBuilderX build output).
@@ -28,8 +30,7 @@ Write-Host "`n[clean:dev-artifacts]" -ForegroundColor Cyan
 
 # ── Directories to always clean (safe: ignored, rebuildable) ──
 $targets = @(
-  '.verify',
-  '_mp_devtools'
+  '.verify'
 )
 
 # Glob: _mp_devtools_clean_* patterns
@@ -52,6 +53,8 @@ foreach ($full in $dynamicTargets) {
   Write-Host "  [CLEAN] $rel" -ForegroundColor Green
 }
 
+Write-Host "  [KEEP]  _mp_devtools/ (prepare-devtools-project.ps1 owns refresh and lock fallback)" -ForegroundColor DarkGray
+
 # ── Optional: build output ──
 if ($IncludeBuildOutput) {
   $unpackage = Join-Path $projectRoot 'unpackage'
@@ -71,5 +74,6 @@ if ($IncludeBuildOutput) {
 # .claude/                      Claude Code session data
 # node_modules/                 package dependencies
 # cloudfunctions/*/node_modules cloud function dependencies
+# _mp_devtools/                 prepare-devtools-project.ps1 refreshes this and handles lock fallback
 
 Write-Host "`n  Done.`n" -ForegroundColor Cyan
