@@ -1,102 +1,85 @@
 <template>
-  <view v-if="visible" class="wx-sync-overlay" @tap.self="handleClose()">
+  <view v-if="visible" class="wx-sync-overlay" @tap.self="handleClose">
     <view class="wx-sync-panel brutal-card">
+
       <text class="wx-sync-panel__title">同步微信资料</text>
-      <text class="wx-sync-desc">仅支持通过微信同步头像和昵称</text>
+      <text class="wx-sync-desc">通过微信原生能力导入头像和昵称</text>
 
-      <text v-if="isDevtools" class="wx-sync-devtools-tip">
-        开发者工具无法完整模拟微信头像昵称同步，请在真机预览。
-      </text>
+      <!-- Devtools 提示 -->
+      <view v-if="sync.isDevtools" class="wx-sync-notice wx-sync-notice--warn">
+        <text>开发者工具不支持微信头像昵称选择，请在真机预览</text>
+      </view>
 
-      <view class="wx-sync-action-card brutal-card">
-        <view class="wx-sync-action-head">
-          <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
-          <text class="wx-sync-action-title">微信昵称</text>
+      <!-- 错误提示 -->
+      <view v-else-if="sync.phase.value === 'error'" class="wx-sync-notice wx-sync-notice--error">
+        <text>{{ sync.errorMessage.value }}</text>
+      </view>
+
+      <!-- ── 昵称卡 ── -->
+      <view class="wx-sync-card" :class="{ 'is-ready': sync.nickReady.value }">
+        <view class="wx-sync-card__head">
+          <text class="wx-sync-card__label">微信昵称</text>
+          <text v-if="sync.nickReady.value" class="wx-sync-card__check">✓</text>
         </view>
         <input
-          class="wx-sync-nick-input"
+          class="wx-sync-card__input"
           type="nickname"
-          :value="pendingNickname"
+          :value="sync.pendingNickname.value"
           placeholder="点此导入微信昵称"
-          :disabled="isBusy || isDevtools"
-          @input="onNickInput"
-          @confirm="onNickConfirm"
-          @blur="onNickBlur"
+          :disabled="sync.isBusy.value || sync.isDevtools"
+          @input="sync.onNickInput"
         />
       </view>
 
+      <!-- ── 头像按钮 ── -->
       <button
-        v-if="!isDevtools"
+        v-if="!sync.isDevtools"
         class="wx-sync-avatar-btn brutal-card"
+        :class="{ 'is-uploading': sync.phase.value === 'uploading-avatar' }"
         open-type="chooseAvatar"
-        :disabled="isBusy"
-        @chooseavatar="onAvatarChosen"
+        :disabled="sync.isBusy.value"
+        @chooseavatar="sync.onAvatarChosen"
       >
-        <text>导入微信头像</text>
+        <text>{{ sync.phase.value === 'uploading-avatar' ? '上传中...' : sync.avatarReady.value ? '重新导入微信头像' : '导入微信头像' }}</text>
       </button>
-      <button
-        v-else
-        class="wx-sync-avatar-btn brutal-card is-disabled"
-        :disabled="isBusy"
-        @tap="showRealDeviceTip"
-      >
-        <text>请在真机导入微信头像</text>
-      </button>
-
-      <view v-if="avatarReady || nickReady" class="wx-sync-result brutal-card">
-        <view v-if="avatarReady" class="wx-sync-result__item">
-          <HfIcon name="camera-bold" size="sm" color="#0B0B0C" plain />
-          <text>微信头像已导入</text>
-          <text class="wx-sync-check">✓</text>
-        </view>
-        <view v-if="nickReady" class="wx-sync-result__item">
-          <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
-          <text>{{ pendingNickname }}</text>
-          <text class="wx-sync-check">✓</text>
-        </view>
+      <view v-else class="wx-sync-avatar-btn wx-sync-avatar-btn--disabled brutal-card">
+        <text>头像导入需真机</text>
       </view>
 
+      <!-- ── 已就绪状态 ── -->
+      <view v-if="sync.avatarReady.value" class="wx-sync-ready-item">
+        <text class="wx-sync-ready-item__label">微信头像</text>
+        <text class="wx-sync-ready-item__check">✓ 已导入</text>
+      </view>
+
+      <!-- ── 保存按钮 ── -->
       <button
-        class="wx-sync-main-btn brutal-card"
-        :disabled="isBusy || !hasAnything"
-        @tap="handleSync"
+        class="wx-sync-save-btn brutal-card"
+        :disabled="sync.isBusy.value || !sync.hasAnything.value"
+        @tap="handleSave"
       >
-        <text>{{ buttonText }}</text>
+        <text>{{ saveButtonText }}</text>
       </button>
 
       <text class="wx-sync-tip">{{ statusTip }}</text>
 
+      <!-- ── 底部操作 ── -->
       <view class="wx-sync-actions">
-        <view
-          class="wx-sync-skip"
-          :class="{ 'is-disabled': isBusy }"
-          @tap="handleSkip()"
-        >
+        <view class="wx-sync-action-btn" :class="{ 'is-disabled': sync.isBusy.value }" @tap="handleSkip">
           <text>跳过</text>
         </view>
-        <view
-          class="wx-sync-close"
-          :class="{ 'is-disabled': isBusy }"
-          @tap="handleClose()"
-        >
+        <view class="wx-sync-action-btn" :class="{ 'is-disabled': sync.isBusy.value }" @tap="handleClose">
           <text>关闭</text>
         </view>
       </view>
+
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { useUserStore } from '@/stores/user'
-import { useHaptic } from '@/composables/motion'
-import { getNickNameValidationMessage, normalizeNickName } from '@/utils/nickName'
-import {
-  normalizeAvatarTempFile,
-  uploadAvatarToCloud,
-  isUserCancelError,
-} from '@/composables/useAvatarUpload'
-import HfIcon from '@/components/base/HfIcon.vue'
+import { computed, watch } from 'vue'
+import { useWechatProfileSync } from '@/composables/useWechatProfileSync'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{
@@ -104,226 +87,61 @@ const emit = defineEmits<{
   (e: 'synced'): void
 }>()
 
-const userStore = useUserStore()
-const haptic = useHaptic()
+const sync = useWechatProfileSync()
 
-function detectDevtools(): boolean {
-  try {
-    // #ifdef MP-WEIXIN
-    return uni.getSystemInfoSync().platform === 'devtools'
-    // #endif
-  } catch {
-    // ignore
-  }
-  return false
-}
+// 面板打开时重置状态
+watch(
+  () => props.visible,
+  (isVisible) => { if (isVisible) sync.reset() },
+)
 
-const isDevtools = detectDevtools()
-
-// ── State ──
-const avatarSyncing = ref(false)
-const isSaving = ref(false)
-const pendingAvatarCloudId = ref('')
-const pendingNickname = ref('')
-let nickConfirmed = false
-
-let autoCloseTimer: ReturnType<typeof setTimeout> | null = null
-
-const isBusy = computed(() => avatarSyncing.value || isSaving.value)
-const avatarReady = computed(() => !!pendingAvatarCloudId.value)
-const nickReady = computed(() => !!normalizeNickName(pendingNickname.value.trim()))
-const hasAnything = computed(() => avatarReady.value || nickReady.value)
-
-const buttonText = computed(() => {
-  if (avatarSyncing.value) return '上传中...'
-  if (isSaving.value) return '保存中...'
-  if (avatarReady.value && nickReady.value) return '保存微信头像和昵称'
-  if (avatarReady.value) return '保存微信头像'
-  if (nickReady.value) return '保存微信昵称'
-  return '同步微信资料'
+const saveButtonText = computed(() => {
+  if (sync.phase.value === 'saving') return '保存中...'
+  if (sync.phase.value === 'done') return '已同步 ✓'
+  if (sync.avatarReady.value && sync.nickReady.value) return '保存头像和昵称'
+  if (sync.avatarReady.value) return '保存微信头像'
+  if (sync.nickReady.value) return '保存微信昵称'
+  return '请先导入资料'
 })
 
 const statusTip = computed(() => {
-  if (avatarSyncing.value) return '微信头像上传中…'
-  if (isSaving.value) return '微信资料保存中…'
-  if (avatarReady.value && nickReady.value) return '微信头像和昵称已就绪，点击保存即可同步'
-  if (avatarReady.value) return '微信头像已就绪，可继续导入微信昵称后一起保存'
-  if (nickReady.value) return '微信昵称已就绪，可继续导入微信头像或直接保存'
-  if (isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
-  return '请使用微信原生能力导入头像和昵称'
+  if (sync.isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
+  if (sync.phase.value === 'uploading-avatar') return '头像上传中，请稍候…'
+  if (sync.phase.value === 'saving') return '正在保存…'
+  if (sync.phase.value === 'done') return '微信资料已同步'
+  if (sync.phase.value === 'error') return '出错了，请重试'
+  if (sync.avatarReady.value && sync.nickReady.value) return '头像和昵称已就绪，点击保存'
+  if (sync.avatarReady.value) return '头像已就绪，还可导入昵称后一起保存'
+  if (sync.nickReady.value) return '昵称已就绪，还可导入头像后一起保存'
+  return '点击输入框导入昵称，点击按钮导入头像'
 })
 
-// ── Cleanup ──
-function clearTimers() {
-  if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null }
-}
-
-onBeforeUnmount(clearTimers)
-
-// ── Reset on open ──
-watch(
-  () => props.visible,
-  (isVisible) => {
-    if (isVisible) {
-      avatarSyncing.value = false
-      isSaving.value = false
-      pendingAvatarCloudId.value = ''
-      pendingNickname.value = ''
-      nickConfirmed = false
-      clearTimers()
-    }
-  },
-)
-
-// ── Avatar → auto nickname ──
-async function onAvatarChosen(e: any) {
-  const tempUrl = e.detail?.avatarUrl
-  if (!tempUrl || typeof tempUrl !== 'string') return
-  if (isBusy.value) return
-  avatarSyncing.value = true
-  nickConfirmed = false
-
-  let loadingShown = false
-  try {
-    const normalizedPath = await normalizeAvatarTempFile(tempUrl, 0)
-    uni.showLoading({ title: '处理中', mask: true })
-    loadingShown = true
-
-    const cloudFileId = await uploadAvatarToCloud(normalizedPath)
-    if (!cloudFileId) throw new Error('上传结果异常')
-
-    pendingAvatarCloudId.value = cloudFileId
-    haptic.success()
-    if (loadingShown) { uni.hideLoading(); loadingShown = false }
-  } catch (err: any) {
-    if (!isUserCancelError(err)) {
-      haptic.warning()
-      uni.showToast({ title: err?.message || '头像上传失败', icon: 'none' })
-    }
-  } finally {
-    avatarSyncing.value = false
-    if (loadingShown) uni.hideLoading()
-  }
-}
-
-// ── Nickname ──
-function onNickInput(e: any) {
-  pendingNickname.value = normalizeNickName(e.detail?.value || '')
-}
-
-function onNickConfirm(e: any) {
-  const val = normalizeNickName(e.detail?.value || '')
-  if (val) pendingNickname.value = val
-  nickConfirmed = true
-}
-
-function onNickBlur(e: any) {
-  if (nickConfirmed) {
-    nickConfirmed = false
-    return
-  }
-  const val = normalizeNickName(e.detail?.value || pendingNickname.value || '')
-  if (!val) return
-  pendingNickname.value = val
-}
-
-// ── 同步保存 ──
-async function handleSync(): Promise<boolean> {
-  if (isSaving.value) return false
-  if (!hasAnything.value) {
-    if (isDevtools) {
-      showRealDeviceTip()
-      return false
-    }
-    uni.showToast({ title: '请先导入微信头像或昵称', icon: 'none' })
-    return false
-  }
-
-  const profile: Record<string, string> = {}
-
-  if (pendingAvatarCloudId.value) {
-    profile.avatarUrl = pendingAvatarCloudId.value
-  }
-
-  const nick = normalizeNickName(pendingNickname.value.trim())
-  if (nick) {
-    const validationMsg = getNickNameValidationMessage(pendingNickname.value.trim())
-    if (validationMsg) {
-      uni.showToast({ title: validationMsg, icon: 'none' })
-      return false
-    }
-    const currentNick = normalizeNickName(userStore.userInfo?.nickName || '')
-    if (nick !== currentNick) {
-      profile.nickName = nick
-    }
-  }
-
-  if (Object.keys(profile).length === 0) {
-    // 数据未变更，视为成功
-    return true
-  }
-
-  isSaving.value = true
-  try {
-    await userStore.updateProfile(profile, 'wechat')
-    haptic.success()
+async function handleSave() {
+  const ok = await sync.save()
+  if (ok) {
     emit('synced')
-    uni.showToast({ title: '微信资料已同步', icon: 'success' })
-    clearTimers()
-    autoCloseTimer = setTimeout(() => {
-      autoCloseTimer = null
-      emit('update:visible', false)
-    }, 800)
-    return true
-  } catch {
-    haptic.warning()
-    uni.showToast({ title: '同步失败，请重试', icon: 'none' })
-    return false
-  } finally {
-    isSaving.value = false
+    setTimeout(() => emit('update:visible', false), 800)
   }
 }
 
-// ── Close ──
 async function handleClose() {
-  if (avatarSyncing.value) {
-    uni.showToast({ title: '头像上传中，请稍候', icon: 'none' })
-    return
+  if (sync.isBusy.value) return
+  if (sync.hasAnything.value) {
+    const ok = await sync.save()
+    if (!ok) return
+    emit('synced')
   }
-  if (isSaving.value) {
-    uni.showToast({ title: '保存中，请稍候', icon: 'none' })
-    return
-  }
-  clearTimers()
-
-  // 有待保存数据 → 先保存再关
-  if (hasAnything.value) {
-    const saved = await handleSync()
-    if (!saved) return
-  }
-
   emit('update:visible', false)
 }
 
-// ── Skip ──
 async function handleSkip() {
-  if (isBusy.value) {
-    uni.showToast({ title: '正在同步中，请稍候', icon: 'none' })
-    return
+  if (sync.isBusy.value) return
+  if (sync.hasAnything.value) {
+    await sync.save()
+    emit('synced')
   }
-  // 已选头像则先保存
-  if (pendingAvatarCloudId.value) {
-    await handleSync()
-  }
-  await userStore.dismissWechatProfilePrompt()
+  await sync.dismiss()
   emit('update:visible', false)
-}
-
-function showRealDeviceTip() {
-  uni.showToast({
-    title: '请在真机导入微信头像和昵称',
-    icon: 'none',
-  })
 }
 </script>
 
@@ -331,22 +149,19 @@ function showRealDeviceTip() {
 @import '@/styles/variables.scss';
 @import '@/styles/mixins.scss';
 
-$ink-black: #0B0B0C;
+$ink: #0B0B0C;
 $ink-light: #3A3A3A;
-$paper-white: #F5F3EE;
-$brutal-border: 3px solid $ink-black;
-$border-heavy: 4px solid $ink-black;
-$brutal-radius: 8rpx;
-
-$nb-yellow: #FFE566;
-$nb-mint: #A8F0D4;
+$paper: #F5F3EE;
+$border: 3px solid $ink;
+$border-heavy: 4px solid $ink;
+$radius: 8rpx;
+$yellow: #FFE566;
+$mint: #A8F0D4;
+$red: #FF6B6B;
 
 .wx-sync-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -357,10 +172,10 @@ $nb-mint: #A8F0D4;
 .wx-sync-panel {
   width: 560rpx;
   padding: $space-5;
-  background: $paper-white;
+  background: $paper;
   border: $border-heavy;
-  border-radius: $brutal-radius;
-  box-shadow: 8rpx 8rpx 0 $ink-black;
+  border-radius: $radius;
+  box-shadow: 8rpx 8rpx 0 $ink;
   display: flex;
   flex-direction: column;
   gap: $space-3;
@@ -368,7 +183,7 @@ $nb-mint: #A8F0D4;
   &__title {
     font-size: 32rpx;
     font-weight: 900;
-    color: $ink-black;
+    color: $ink;
     text-align: center;
   }
 }
@@ -379,42 +194,69 @@ $nb-mint: #A8F0D4;
   text-align: center;
 }
 
-.wx-sync-devtools-tip {
+.wx-sync-notice {
+  padding: 16rpx 20rpx;
+  border-radius: $radius;
   font-size: 22rpx;
   line-height: 1.5;
-  color: rgba($ink-black, 0.72);
+  font-weight: 600;
   text-align: center;
+
+  &--warn {
+    background: rgba($yellow, 0.5);
+    border: $border;
+    color: $ink;
+  }
+
+  &--error {
+    background: rgba($red, 0.12);
+    border: 2px solid $red;
+    color: darken($red, 15%);
+  }
 }
 
-.wx-sync-action-card {
+.wx-sync-card {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
   padding: 20rpx 24rpx;
-  background: $nb-yellow;
-  border: $brutal-border;
-  border-radius: $brutal-radius;
-  box-shadow: 4rpx 4rpx 0 $ink-black;
-}
+  background: $yellow;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: 4rpx 4rpx 0 $ink;
+  transition: background 0.15s;
 
-.wx-sync-action-head {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
+  &.is-ready {
+    background: $mint;
+  }
 
-.wx-sync-action-title {
-  font-size: 24rpx;
-  font-weight: 900;
-  color: $ink-black;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-.wx-sync-nick-input {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $ink-black;
-  background: transparent;
-  min-height: 48rpx;
+  &__label {
+    font-size: 22rpx;
+    font-weight: 900;
+    color: $ink;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__check {
+    font-size: 22rpx;
+    font-weight: 900;
+    color: $ink;
+  }
+
+  &__input {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: $ink;
+    background: transparent;
+    min-height: 56rpx;
+  }
 }
 
 .wx-sync-avatar-btn {
@@ -422,76 +264,80 @@ $nb-mint: #A8F0D4;
   align-items: center;
   justify-content: center;
   padding: 24rpx;
-  background: $nb-yellow;
-  border: $brutal-border;
-  border-radius: $brutal-radius;
-  box-shadow: 4rpx 4rpx 0 $ink-black;
+  background: $ink;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: 4rpx 4rpx 0 $ink;
   font-size: 28rpx;
   font-weight: 900;
-  color: $ink-black;
+  color: $paper;
   line-height: 1;
 
   &::after { display: none; }
 
-  &:active {
-    box-shadow: 2rpx 2rpx 0 $ink-black;
+  &:active:not([disabled]) {
+    box-shadow: 2rpx 2rpx 0 $ink;
     transform: translate(2rpx, 2rpx);
   }
 
-  &.is-disabled,
-  &[disabled] {
-    opacity: 0.55;
+  &[disabled],
+  &.is-uploading {
+    opacity: 0.5;
+  }
+
+  &--disabled {
+    background: rgba($ink, 0.2);
+    color: $ink-light;
+    cursor: default;
   }
 }
 
-.wx-sync-result {
+.wx-sync-ready-item {
   display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  padding: 20rpx 24rpx;
-  background: $nb-mint;
-  border: $brutal-border;
-  border-radius: $brutal-radius;
-  box-shadow: 4rpx 4rpx 0 $ink-black;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  background: $mint;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: 3rpx 3rpx 0 $ink;
 
-  &__item {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
+  &__label {
     font-size: 26rpx;
     font-weight: 700;
-    color: $ink-black;
+    color: $ink;
+  }
+
+  &__check {
+    font-size: 22rpx;
+    font-weight: 900;
+    color: $ink;
   }
 }
 
-.wx-sync-check {
-  margin-left: auto;
-  font-weight: 900;
-}
-
-.wx-sync-main-btn {
+.wx-sync-save-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24rpx;
-  background: $ink-black;
-  border: $brutal-border;
-  border-radius: $brutal-radius;
-  box-shadow: 4rpx 4rpx 0 $ink-black;
+  background: $ink;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: 4rpx 4rpx 0 $ink;
   font-size: 30rpx;
   font-weight: 900;
-  color: $paper-white;
+  color: $paper;
   line-height: 1;
 
   &::after { display: none; }
 
-  &:active {
-    box-shadow: 2rpx 2rpx 0 $ink-black;
+  &:active:not([disabled]) {
+    box-shadow: 2rpx 2rpx 0 $ink;
     transform: translate(2rpx, 2rpx);
   }
 
   &[disabled] {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 
@@ -509,22 +355,14 @@ $nb-mint: #A8F0D4;
   gap: $space-4;
 }
 
-.wx-sync-skip,
-.wx-sync-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12rpx;
+.wx-sync-action-btn {
+  padding: 12rpx 24rpx;
   font-size: 24rpx;
   font-weight: 700;
   color: $ink-light;
 
-  &:active {
-    color: $ink-black;
-  }
+  &:active { color: $ink; }
 
-  &.is-disabled {
-    opacity: 0.45;
-  }
+  &.is-disabled { opacity: 0.4; pointer-events: none; }
 }
 </style>

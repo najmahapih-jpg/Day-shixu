@@ -182,52 +182,6 @@ async function updateSettings(openid, data) {
   return ok(merged)
 }
 
-async function updateAvatar(openid, data) {
-  if (!data || typeof data.avatarUrl !== 'string') return fail('缺少 avatarUrl 数据')
-  const avatarUrl = normalizeAvatarUrl(data.avatarUrl)
-  if (!avatarUrl) return fail('头像地址不合法')
-
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
-
-  if (existing.length === 0) return fail('用户不存在')
-  const user = existing[0]
-
-  await usersCol.doc(user._id).update({
-    data: {
-      avatarUrl,
-      updatedAt: db.serverDate(),
-    },
-  })
-
-  return ok(avatarUrl)
-}
-
-async function updateNickName(openid, data) {
-  if (!data || typeof data.nickName !== 'string') return fail('缺少 nickName 数据')
-  const nickName = normalizeNickName(data.nickName)
-  if (!nickName) return fail('昵称不合法（最多 20 个字符）')
-
-  // 内容安全检查
-  if (!(await checkText(nickName, openid, 1))) {
-    return fail('昵称包含违规内容，请修改后重试')
-  }
-
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
-
-  if (existing.length === 0) return fail('用户不存在')
-
-  await usersCol.doc(existing[0]._id).update({
-    data: { nickName, updatedAt: db.serverDate() },
-  })
-
-  return ok(nickName)
-}
 
 async function updateProfile(openid, data) {
   if (!data) return fail('缺少 data')
@@ -313,9 +267,7 @@ exports.main = async (event, context) => {
       case 'login': return await login(OPENID)
       case 'getProfile': return await getProfile(OPENID)
       case 'updateSettings': return await updateSettings(OPENID, data)
-      case 'updateAvatar': return await updateAvatar(OPENID, data)
-      case 'updateNickName': return await updateNickName(OPENID, data)
-      case 'updateProfile': return await updateProfile(OPENID, data)
+case 'updateProfile': return await updateProfile(OPENID, data)
       case 'dismissWechatProfilePrompt': return await dismissWechatProfilePrompt(OPENID)
       default: return fail('未知操作')
     }

@@ -52,36 +52,7 @@ export const useUserStore = withDefaultPinia(defineStore('user', () => {
     }
   }
 
-  async function updateAvatar(avatarUrl: string) {
-    if (!userInfo.value) throw new Error('用户未登录')
-
-    const prev = userInfo.value
-    userInfo.value = { ...prev, avatarUrl }
-
-    try {
-      const updated = await userService.updateAvatar(avatarUrl)
-      userInfo.value = { ...userInfo.value!, avatarUrl: updated }
-    } catch (err) {
-      userInfo.value = prev
-      throw err
-    }
-  }
-
-  async function updateNickName(nickName: string) {
-    if (!userInfo.value) throw new Error('用户未登录')
-    const prev = userInfo.value
-    userInfo.value = { ...prev, nickName }
-    try {
-      const confirmed = await userService.updateNickName(nickName)
-      userInfo.value = { ...userInfo.value!, nickName: confirmed }
-    } catch (err) {
-      userInfo.value = prev
-      uni.showToast({ title: '昵称更新失败', icon: 'none' })
-      throw err
-    }
-  }
-
-  async function updateProfile(
+async function updateProfile(
     profile: { nickName?: string; avatarUrl?: string },
     source: ProfileSource = 'manual',
   ) {
@@ -134,8 +105,6 @@ export const useUserStore = withDefaultPinia(defineStore('user', () => {
     login,
     fetchProfile,
     updateSettings,
-    updateAvatar,
-    updateNickName,
     updateProfile,
     dismissWechatProfilePrompt,
     logout,

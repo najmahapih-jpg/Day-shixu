@@ -17,13 +17,6 @@ export async function updateSettings(
   return callCloud<UserSettings>(FN, 'updateSettings', { settings })
 }
 
-export async function updateAvatar(avatarUrl: string): Promise<string> {
-  return callCloud<string>(FN, 'updateAvatar', { avatarUrl })
-}
-
-export async function updateNickName(nickName: string): Promise<string> {
-  return callCloud<string>(FN, 'updateNickName', { nickName })
-}
 
 export async function updateProfile(
   profile: { nickName?: string; avatarUrl?: string; source?: ProfileSource },

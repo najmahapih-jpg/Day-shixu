@@ -53,47 +53,6 @@ describe('login', () => {
   })
 })
 
-// ── updateNickName ──────────────────────────────────────
-
-describe('updateNickName', () => {
-  beforeEach(async () => {
-    await main({ action: 'login' })
-  })
-
-  test('calls msgSecCheck on nickname', async () => {
-    cloud.openapi.security.msgSecCheck.mockClear()
-    await main({ action: 'updateNickName', data: { nickName: '新昵称' } })
-    expect(cloud.openapi.security.msgSecCheck).toHaveBeenCalledWith(
-      expect.objectContaining({ content: '新昵称', scene: 1 }),
-    )
-  })
-
-  test('rejects risky nickname', async () => {
-    cloud.__setMsgSecCheckResult({ result: { suggest: 'risky', label: 100 } })
-    const res = await main({ action: 'updateNickName', data: { nickName: '违规昵称' } })
-    expect(res.code).toBe(-1)
-    expect(res.message).toContain('违规')
-  })
-
-  test('allows nickname when msgSecCheck API fails (fail-open)', async () => {
-    cloud.openapi.security.msgSecCheck.mockRejectedValue(new Error('API timeout'))
-    const res = await main({ action: 'updateNickName', data: { nickName: '好名字' } })
-    expect(res.code).toBe(0)
-  })
-
-  test('rejects nickname exceeding 20 graphemes', async () => {
-    const longName = '一二三四五六七八九十一二三四五六七八九十额外'
-    const res = await main({ action: 'updateNickName', data: { nickName: longName } })
-    expect(res.code).toBe(-1)
-    expect(res.message).toContain('不合法')
-  })
-
-  test('rejects empty nickname', async () => {
-    const res = await main({ action: 'updateNickName', data: { nickName: '' } })
-    expect(res.code).toBe(-1)
-  })
-})
-
 // ── updateProfile ───────────────────────────────────────
 
 describe('updateProfile', () => {
@@ -145,48 +104,6 @@ describe('updateProfile', () => {
     expect(res.code).toBe(0)
     expect(res.data.profileMeta.source).toBe('manual')
     expect(res.data.profileMeta.manualEditAt).toBeTruthy()
-  })
-})
-
-// ── updateAvatar ────────────────────────────────────────
-
-describe('updateAvatar', () => {
-  beforeEach(async () => {
-    await main({ action: 'login' })
-  })
-
-  test('accepts valid cloud:// URL', async () => {
-    const res = await main({
-      action: 'updateAvatar',
-      data: { avatarUrl: 'cloud://env.xxx/avatar.jpg' },
-    })
-    expect(res.code).toBe(0)
-  })
-
-  test('accepts valid https URL', async () => {
-    const res = await main({
-      action: 'updateAvatar',
-      data: { avatarUrl: 'https://example.com/avatar.jpg' },
-    })
-    expect(res.code).toBe(0)
-  })
-
-  test('rejects invalid URL protocol', async () => {
-    const res = await main({
-      action: 'updateAvatar',
-      data: { avatarUrl: 'ftp://evil.com/malware' },
-    })
-    expect(res.code).toBe(-1)
-    expect(res.message).toContain('不合法')
-  })
-
-  test('rejects URL exceeding 2048 chars', async () => {
-    const longUrl = 'https://example.com/' + 'a'.repeat(2030)
-    const res = await main({
-      action: 'updateAvatar',
-      data: { avatarUrl: longUrl },
-    })
-    expect(res.code).toBe(-1)
   })
 })
 
