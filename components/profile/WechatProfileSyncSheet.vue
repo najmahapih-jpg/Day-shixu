@@ -6,48 +6,48 @@
       <text class="wx-sync-desc">通过微信原生能力导入头像和昵称</text>
 
       <!-- Devtools 提示 -->
-      <view v-if="sync.isDevtools" class="wx-sync-notice wx-sync-notice--warn">
+      <view v-if="isDevtools" class="wx-sync-notice wx-sync-notice--warn">
         <text>开发者工具不支持微信头像昵称选择，请在真机预览</text>
       </view>
 
       <!-- 错误提示 -->
-      <view v-else-if="sync.phase.value === 'error'" class="wx-sync-notice wx-sync-notice--error">
-        <text>{{ sync.errorMessage.value }}</text>
+      <view v-else-if="phase === 'error'" class="wx-sync-notice wx-sync-notice--error">
+        <text>{{ errorMessage }}</text>
       </view>
 
       <!-- ── 昵称卡 ── -->
-      <view class="wx-sync-card" :class="{ 'is-ready': sync.nickReady.value }">
+      <view class="wx-sync-card" :class="{ 'is-ready': nickReady }">
         <view class="wx-sync-card__head">
           <text class="wx-sync-card__label">微信昵称</text>
-          <text v-if="sync.nickReady.value" class="wx-sync-card__check">✓</text>
+          <text v-if="nickReady" class="wx-sync-card__check">✓</text>
         </view>
         <input
           class="wx-sync-card__input"
           type="nickname"
-          :value="sync.pendingNickname.value"
+          :value="pendingNickname"
           placeholder="点此导入微信昵称"
-          :disabled="sync.isBusy.value || sync.isDevtools"
-          @input="sync.onNickInput"
+          :disabled="isBusy || isDevtools"
+          @input="onNickInput"
         />
       </view>
 
       <!-- ── 头像按钮 ── -->
       <button
-        v-if="!sync.isDevtools"
+        v-if="!isDevtools"
         class="wx-sync-avatar-btn brutal-card"
-        :class="{ 'is-uploading': sync.phase.value === 'uploading-avatar' }"
+        :class="{ 'is-uploading': phase === 'uploading-avatar' }"
         open-type="chooseAvatar"
-        :disabled="sync.isBusy.value"
-        @chooseavatar="sync.onAvatarChosen"
+        :disabled="isBusy"
+        @chooseavatar="onAvatarChosen"
       >
-        <text>{{ sync.phase.value === 'uploading-avatar' ? '上传中...' : sync.avatarReady.value ? '重新导入微信头像' : '导入微信头像' }}</text>
+        <text>{{ phase === 'uploading-avatar' ? '上传中...' : avatarReady ? '重新导入微信头像' : '导入微信头像' }}</text>
       </button>
       <view v-else class="wx-sync-avatar-btn wx-sync-avatar-btn--disabled brutal-card">
         <text>头像导入需真机</text>
       </view>
 
       <!-- ── 已就绪状态 ── -->
-      <view v-if="sync.avatarReady.value" class="wx-sync-ready-item">
+      <view v-if="avatarReady" class="wx-sync-ready-item">
         <text class="wx-sync-ready-item__label">微信头像</text>
         <text class="wx-sync-ready-item__check">✓ 已导入</text>
       </view>
@@ -55,7 +55,7 @@
       <!-- ── 保存按钮 ── -->
       <button
         class="wx-sync-save-btn brutal-card"
-        :disabled="sync.isBusy.value || !sync.hasAnything.value"
+        :disabled="isBusy || !hasAnything"
         @tap="handleSave"
       >
         <text>{{ saveButtonText }}</text>
@@ -65,10 +65,10 @@
 
       <!-- ── 底部操作 ── -->
       <view class="wx-sync-actions">
-        <view class="wx-sync-action-btn" :class="{ 'is-disabled': sync.isBusy.value }" @tap="handleSkip">
+        <view class="wx-sync-action-btn" :class="{ 'is-disabled': isBusy }" @tap="handleSkip">
           <text>跳过</text>
         </view>
-        <view class="wx-sync-action-btn" :class="{ 'is-disabled': sync.isBusy.value }" @tap="handleClose">
+        <view class="wx-sync-action-btn" :class="{ 'is-disabled': isBusy }" @tap="handleClose">
           <text>关闭</text>
         </view>
       </view>
@@ -87,37 +87,48 @@ const emit = defineEmits<{
   (e: 'synced'): void
 }>()
 
-const sync = useWechatProfileSync()
+// 解构到顶层，Vue template 自动 unwrap ref（无需 .value）
+const {
+  phase,
+  pendingNickname,
+  avatarReady,
+  nickReady,
+  isBusy,
+  hasAnything,
+  errorMessage,
+  isDevtools,
+  reset,
+  onNickInput,
+  onAvatarChosen,
+  save,
+  dismiss,
+} = useWechatProfileSync()
 
-// 面板打开时重置状态
-watch(
-  () => props.visible,
-  (isVisible) => { if (isVisible) sync.reset() },
-)
+watch(() => props.visible, (isVisible) => { if (isVisible) reset() })
 
 const saveButtonText = computed(() => {
-  if (sync.phase.value === 'saving') return '保存中...'
-  if (sync.phase.value === 'done') return '已同步 ✓'
-  if (sync.avatarReady.value && sync.nickReady.value) return '保存头像和昵称'
-  if (sync.avatarReady.value) return '保存微信头像'
-  if (sync.nickReady.value) return '保存微信昵称'
+  if (phase.value === 'saving') return '保存中...'
+  if (phase.value === 'done') return '已同步 ✓'
+  if (avatarReady.value && nickReady.value) return '保存头像和昵称'
+  if (avatarReady.value) return '保存微信头像'
+  if (nickReady.value) return '保存微信昵称'
   return '请先导入资料'
 })
 
 const statusTip = computed(() => {
-  if (sync.isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
-  if (sync.phase.value === 'uploading-avatar') return '头像上传中，请稍候…'
-  if (sync.phase.value === 'saving') return '正在保存…'
-  if (sync.phase.value === 'done') return '微信资料已同步'
-  if (sync.phase.value === 'error') return '出错了，请重试'
-  if (sync.avatarReady.value && sync.nickReady.value) return '头像和昵称已就绪，点击保存'
-  if (sync.avatarReady.value) return '头像已就绪，还可导入昵称后一起保存'
-  if (sync.nickReady.value) return '昵称已就绪，还可导入头像后一起保存'
+  if (isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
+  if (phase.value === 'uploading-avatar') return '头像上传中，请稍候…'
+  if (phase.value === 'saving') return '正在保存…'
+  if (phase.value === 'done') return '微信资料已同步'
+  if (phase.value === 'error') return '出错了，请重试'
+  if (avatarReady.value && nickReady.value) return '头像和昵称已就绪，点击保存'
+  if (avatarReady.value) return '头像已就绪，还可导入昵称后一起保存'
+  if (nickReady.value) return '昵称已就绪，还可导入头像后一起保存'
   return '点击输入框导入昵称，点击按钮导入头像'
 })
 
 async function handleSave() {
-  const ok = await sync.save()
+  const ok = await save()
   if (ok) {
     emit('synced')
     setTimeout(() => emit('update:visible', false), 800)
@@ -125,9 +136,9 @@ async function handleSave() {
 }
 
 async function handleClose() {
-  if (sync.isBusy.value) return
-  if (sync.hasAnything.value) {
-    const ok = await sync.save()
+  if (isBusy.value) return
+  if (hasAnything.value) {
+    const ok = await save()
     if (!ok) return
     emit('synced')
   }
@@ -135,12 +146,12 @@ async function handleClose() {
 }
 
 async function handleSkip() {
-  if (sync.isBusy.value) return
-  if (sync.hasAnything.value) {
-    await sync.save()
+  if (isBusy.value) return
+  if (hasAnything.value) {
+    await save()
     emit('synced')
   }
-  await sync.dismiss()
+  await dismiss()
   emit('update:visible', false)
 }
 </script>
