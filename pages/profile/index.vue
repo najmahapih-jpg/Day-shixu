@@ -13,7 +13,7 @@
               <text class="hero-zone__t1">{{ profileCopy.heroTitleTop }}</text>
               <text class="hero-zone__t2">{{ profileCopy.heroTitleBottom }}</text>
             </view>
-            <view class="hero-zone__avatar" @tap="handleAvatarTap">
+            <view class="hero-zone__avatar" @tap="toggleWxSync">
               <image
                 v-if="displayAvatarUrl"
                 class="avatar-img"
@@ -23,9 +23,6 @@
               />
               <view v-else class="avatar-img avatar-img--default">
                 <HfIllustration name="custom/illustrations/profile-character" width="200rpx" height="220rpx" />
-              </view>
-              <view class="avatar-action" :class="{ 'is-uploading': avatarUploading }" @tap.stop="pickAvatarBgImage">
-                <HfIcon name="camera-bold" size="xs" color="#0B0B0C" plain />
               </view>
               <view v-if="userStore.isLoggedIn" class="hero-stamp">{{ profileCopy.heroStamp }}</view>
             </view>
@@ -40,7 +37,7 @@
                 class="hero-bar__wx-btn"
                 @tap.stop="toggleWxSync"
               >
-                <text class="hero-bar__wx-label">微信导入</text>
+                <text class="hero-bar__wx-label">导入微信资料</text>
               </view>
               <view
                 v-else-if="!userStore.isLoggedIn"
@@ -59,14 +56,14 @@
           <view class="hero-zone__bottom">
             <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
             <view v-if="userStore.isLoggedIn" class="hero-zone__edit-link" @tap="toggleWxSync">
-              <text class="edit-link__label">微信同步</text>
+              <text class="edit-link__label">同步微信资料</text>
             </view>
           </view>
         </view>
 
         <!-- ========== 2. Slogan Tape (Full-bleed) ========== -->
         <view class="slogan-tape anim-stagger-up" style="--stagger-idx: 1;">
-          <text class="slogan-tape__text">{{ profileSlogan || '保持稳定的节奏，比偶发冲刺更重要。' }} ▶</text>
+          <text class="slogan-tape__text">{{ profileSlogan || '头像和昵称仅支持通过微信同步，今日进度也会同步展示在这里。' }} ▶</text>
           <view v-if="currentStreak > 0" class="slogan-tape__streak">{{ profileCopy.streakDayPrefix }} {{ currentStreak }}</view>
         </view>
 
@@ -207,12 +204,9 @@ import { useHaptic } from '@/composables/motion'
 import {
   isCloudFileId,
   getTempFileUrl,
-  chooseAvatarImage,
-  normalizeAvatarTempFile,
-  uploadAvatarToCloud,
-  isUserCancelError,
 } from '@/composables/useAvatarUpload'
 import { PUBLIC_COPY } from '@/utils/publicCopy'
+import { getDisplayNickName } from '@/utils/nickName'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -245,7 +239,6 @@ function getNavBarBottom(): number {
 
 const navBarBottom = ref(getNavBarBottom())
 
-const avatarUploading = ref(false)
 const avatarLoadFailed = ref(false)
 const avatarResolvedUrl = ref('')
 let avatarResolveVersion = 0
@@ -288,7 +281,11 @@ watch(
   },
   { immediate: true },
 )
-const nickName = computed(() => (userStore.isLoggedIn ? userStore.userInfo!.nickName : profileCopy.guestName))
+const nickName = computed(() => (
+  userStore.isLoggedIn
+    ? getDisplayNickName(userStore.userInfo?.nickName, profileCopy.guestName)
+    : profileCopy.guestName
+))
 const userIdSuffix = computed(() => userStore.userInfo?._id?.slice(-8).toUpperCase() || 'XXXXXXXX')
 
 // ── WeChat Sync Panel ──
@@ -296,29 +293,6 @@ const wxSyncVisible = ref(false)
 
 function onWxSynced() {
   // Avatar watcher will auto-resolve the new URL
-}
-
-type AvatarPreviewSnapshot = {
-  version: number
-  resolvedUrl: string
-  loadFailed: boolean
-}
-
-function applyAvatarLocalPreview(path: string): AvatarPreviewSnapshot {
-  const snapshot: AvatarPreviewSnapshot = {
-    version: ++avatarResolveVersion,
-    resolvedUrl: avatarResolvedUrl.value,
-    loadFailed: avatarLoadFailed.value,
-  }
-  avatarResolvedUrl.value = path
-  avatarLoadFailed.value = false
-  return snapshot
-}
-
-function restoreAvatarPreview(snapshot: AvatarPreviewSnapshot | null) {
-  if (!snapshot || snapshot.version !== avatarResolveVersion) return
-  avatarResolvedUrl.value = snapshot.resolvedUrl
-  avatarLoadFailed.value = snapshot.loadFailed
 }
 
 async function ensureLoggedIn(): Promise<boolean> {
@@ -333,7 +307,6 @@ async function ensureLoggedIn(): Promise<boolean> {
 
 async function toggleWxSync() {
   haptic.light()
-  if (avatarUploading.value) return
   if (wxSyncVisible.value) {
     wxSyncVisible.value = false
     return
@@ -365,12 +338,12 @@ const myFocusText = computed(() => {
 })
 
 const profileSlogan = computed(() => {
-  if (!userStore.isLoggedIn) return '种下一棵树最好的时间是十年前，其次是现在。点击登录开启旅程。'
-  if (totalHabits.value === 0) return '万物皆有裂痕，那是光照进来的地方。创建你的第一个习惯。'
-  if (currentStreak.value >= 21) return '你的长期习惯开始形成复利引擎。保持敬畏。'
-  if (currentStreak.value >= 7) return '稳住当前的步伐，你正在进入深水区。'
-  if (pendingCount.value === 0 && totalHabits.value > 0) return '今日计划已悉数达成。休息是为了走更远的路。'
-  return '把注意力放在今天最重要的一件事上。别让噪音干扰你。'
+  if (!userStore.isLoggedIn) return '登录后可同步微信头像昵称，并查看你的习惯记录。'
+  if (totalHabits.value === 0) return '资料已准备好，现在可以开始创建你的第一个习惯。'
+  if (currentStreak.value >= 21) return '你的近期记录保持稳定，继续按当前安排进行即可。'
+  if (currentStreak.value >= 7) return '本周记录持续更新中，当前进度表现不错。'
+  if (pendingCount.value === 0 && totalHabits.value > 0) return '今天的习惯已全部完成，记录已同步更新。'
+  return '头像和昵称仅支持通过微信同步，今日进度也会同步展示在这里。'
 })
 
 
@@ -484,12 +457,6 @@ const achievements = computed<Achievement[]>(() => {
 const unlockedCount = computed(() => achievements.value.filter((a) => a.unlocked).length)
 
 
-function handleAvatarTap() {
-  haptic.light()
-  if (userStore.isLoggedIn) return
-  userStore.login().catch(() => {})
-}
-
 function handleAvatarLoadError() {
   if (isCloudFileId(rawAvatarUrl.value)) {
     const currentVersion = ++avatarResolveVersion
@@ -512,40 +479,6 @@ function handleAvatarLoadError() {
     return
   }
   avatarLoadFailed.value = true
-}
-
-
-async function pickAvatarBgImage() {
-  if (!userStore.isLoggedIn) {
-    uni.showToast({ title: '请先登录', icon: 'none' })
-    return
-  }
-  if (avatarUploading.value) return
-  avatarUploading.value = true
-
-  let loadingShown = false
-  let avatarPreview: AvatarPreviewSnapshot | null = null
-  try {
-    const chosen = await chooseAvatarImage()
-    const normalizedPath = await normalizeAvatarTempFile(chosen.path, chosen.size)
-    avatarPreview = applyAvatarLocalPreview(normalizedPath)
-
-    uni.showLoading({ title: '头像上传中', mask: true })
-    loadingShown = true
-
-    const avatarUrl = await uploadAvatarToCloud(normalizedPath)
-    await userStore.updateProfile({ avatarUrl }, 'manual')
-    avatarLoadFailed.value = false
-    uni.showToast({ title: '头像已更新', icon: 'success' })
-  } catch (err: any) {
-    restoreAvatarPreview(avatarPreview)
-    if (!isUserCancelError(err)) {
-      uni.showToast({ title: err?.message || '头像上传失败', icon: 'none' })
-    }
-  } finally {
-    avatarUploading.value = false
-    if (loadingShown) uni.hideLoading()
-  }
 }
 
 // Navigational Throttle
@@ -792,23 +725,6 @@ $nb-red: #FF4444;
       &--default {
         background: #F0F0F0;
         @include flex-center;
-      }
-    }
-
-    .avatar-action {
-      position: absolute;
-      right: -14rpx; bottom: -14rpx;
-      width: 52rpx; height: 52rpx;
-      background: #FFFFFF;
-      border: 3px solid $ink-black;
-      border-radius: 4rpx;
-      @include flex-center;
-      box-shadow: 4rpx 4rpx 0 $ink-black;
-      z-index: 3;
-
-      &.is-uploading {
-        opacity: 0.6;
-        pointer-events: none;
       }
     }
 

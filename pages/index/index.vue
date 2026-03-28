@@ -7,7 +7,7 @@
     <view class="home-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="home-nav__left">
         <text class="home-nav__title">星划</text>
-        <text v-if="userStore.userInfo" class="home-nav__sub">{{ userStore.userInfo.nickName || 'Voyager' }}，{{ todayFormatted }}</text>
+        <text v-if="userStore.userInfo" class="home-nav__sub">{{ displayNickName }}，{{ todayFormatted }}</text>
         <text v-else class="home-nav__sub">{{ todayFormatted }}</text>
       </view>
     </view>
@@ -415,6 +415,7 @@ import * as habitService from '@/services/habitService'
 import { getToday, getBeijingDateParts, getWeekdayFromDateStr } from '@/services/cloud'
 import type { HabitInsight } from '@/types'
 import { PUBLIC_COPY } from '@/utils/publicCopy'
+import { getDisplayNickName } from '@/utils/nickName'
 
 const appStore = useAppStore()
 const { isNeo } = storeToRefs(appStore)
@@ -426,6 +427,7 @@ const journeyStore = useJourneyStore()
 const { pageError, runSafe, retry } = usePageError()
 const isNeoTheme = computed(() => isNeo.value)
 const starMapCopy = PUBLIC_COPY.homeStarMap
+const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '用户'))
 
 // --- Motion System ---
 const haptic = useHaptic()

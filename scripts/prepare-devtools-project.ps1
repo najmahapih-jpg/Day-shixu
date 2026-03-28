@@ -11,6 +11,7 @@ if (-not $scriptDir) {
 $scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
 $repoRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
 $sourceDir = Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin'
+$sourceConfig = Join-Path $sourceDir 'project.config.json'
 $targetDir = Join-Path $repoRoot '_mp_devtools'
 $targetConfig = Join-Path $targetDir 'project.config.json'
 $targetAppJson = Join-Path $targetDir 'app.json'
@@ -165,6 +166,16 @@ if (Test-Path $targetDir) {
 New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
 Copy-Item -Path (Join-Path $sourceDir '*') -Destination $targetDir -Recurse -Force
 
+if (-not (Test-Path $sourceConfig)) {
+  throw "project.config.json missing in source: $sourceConfig"
+}
+
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$sourceCfg = Get-Content -Raw -Encoding UTF8 $sourceConfig | ConvertFrom-Json
+$sourceCfg.miniprogramRoot = ''
+$sourceCfgPath = (Get-Item -LiteralPath $sourceConfig).FullName
+[System.IO.File]::WriteAllText($sourceCfgPath, ($sourceCfg | ConvertTo-Json -Depth 64), $utf8NoBom)
+
 if (-not (Test-Path $targetConfig)) {
   throw "project.config.json missing in target: $targetConfig"
 }
@@ -173,7 +184,6 @@ $cfg = Get-Content -Raw -Encoding UTF8 $targetConfig | ConvertFrom-Json
 $cfg.miniprogramRoot = ''
 $cfg.cloudfunctionRoot = 'cloudfunctions/'
 
-$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 [System.IO.File]::WriteAllText($targetConfigPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
 

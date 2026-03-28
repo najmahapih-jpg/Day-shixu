@@ -97,7 +97,7 @@ async function login(openid) {
   const joinDateStr = toDateStr(new Date())
   const newUser = {
     _openid: openid,
-    nickName: 'Voyager',
+    nickName: '用户',
     avatarUrl: '',
     settings: {
       theme: 'neo',

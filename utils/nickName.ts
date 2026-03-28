@@ -1,6 +1,7 @@
 const CONTROL_CHAR_REGEX = /[\x00-\x1f]/g
 
 export const MAX_NICK_NAME_GRAPHEMES = 20
+const LEGACY_PLACEHOLDER_NICK_NAMES = new Set(['习惯者', 'Voyager'])
 
 function nextCodePointIndex(value: string, index: number): number {
   const first = value.charCodeAt(index)
@@ -125,6 +126,19 @@ export function normalizeNickName(raw: unknown): string {
   const value = sanitizeNickName(raw)
   if (!value) return ''
   if (countNickNameGraphemes(value) > MAX_NICK_NAME_GRAPHEMES) return ''
+  return value
+}
+
+export function isLegacyPlaceholderNickName(raw: unknown): boolean {
+  const value = normalizeNickName(raw)
+  if (!value) return false
+  return LEGACY_PLACEHOLDER_NICK_NAMES.has(value)
+}
+
+export function getDisplayNickName(raw: unknown, fallback = '用户'): string {
+  const value = normalizeNickName(raw)
+  if (!value) return fallback
+  if (isLegacyPlaceholderNickName(value)) return fallback
   return value
 }
 

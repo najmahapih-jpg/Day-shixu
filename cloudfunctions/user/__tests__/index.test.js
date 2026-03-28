@@ -22,7 +22,7 @@ describe('login', () => {
   test('creates new user with correct defaults', async () => {
     const res = await main({ action: 'login' })
     expect(res.code).toBe(0)
-    expect(res.data.nickName).toBe('Voyager')
+    expect(res.data.nickName).toBe('用户')
     expect(res.data.settings.theme).toBe('neo')
     expect(res.data.settings.notifyEnabled).toBe(true)
     expect(res.data.profileMeta).toBeDefined()
@@ -33,7 +33,7 @@ describe('login', () => {
     await main({ action: 'login' })
     const res = await main({ action: 'login' })
     expect(res.code).toBe(0)
-    expect(res.data.nickName).toBe('Voyager')
+    expect(res.data.nickName).toBe('用户')
   })
 
   test('backfills profileMeta for legacy user without it', async () => {

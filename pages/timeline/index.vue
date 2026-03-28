@@ -312,7 +312,7 @@
             <view class="opus-plate">
               <text class="opus-plate__left">Opus. {{ userStore.stats?.joinedDays || 1 }}</text>
               <view class="opus-plate__center-ornament">~ ✦ ~</view>
-              <text class="opus-plate__right">Maestro. <text class="flower-sign">{{ userStore.nickName || 'Voyager' }}</text></text>
+              <text class="opus-plate__right">Maestro. <text class="flower-sign">{{ displayNickName }}</text></text>
               <view class="opus-plate__barlines">𝄂</view>
             </view>
 
@@ -538,6 +538,7 @@ import {
   NEUTRAL_900,
 } from '@/utils/constants'
 import { getHolidayInfo, getLunarDate, getSolarTerm, getUpcomingHolidays, HOLIDAY_TYPE_LABEL, type HolidayType, type UpcomingHoliday } from '@/utils/holiday'
+import { getDisplayNickName } from '@/utils/nickName'
 import type { Habit, HabitCategory, CheckIn } from '@/types'
 
 // --- Constants ---
@@ -657,6 +658,7 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 const { isDark, isNeo } = storeToRefs(appStore)
 const habitStore = useHabitStore()
+const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '用户'))
 const ritualStore = useRitualStore()
 const { entered: pageEntered } = usePageTransition()
 const isNeoTheme = computed(() => isNeo.value)

@@ -2,28 +2,51 @@
   <view v-if="visible" class="wx-sync-overlay" @tap.self="handleClose()">
     <view class="wx-sync-panel brutal-card">
       <text class="wx-sync-panel__title">同步微信资料</text>
-      <text class="wx-sync-desc">一键导入你的微信头像和昵称</text>
+      <text class="wx-sync-desc">仅支持通过微信同步头像和昵称</text>
 
-      <!-- 头像就绪后显示昵称输入行，用户手动点击触发微信昵称选择器 -->
-      <view v-if="avatarReady && !nickReady" class="wx-sync-nick-row">
-        <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
+      <text v-if="isDevtools" class="wx-sync-devtools-tip">
+        开发者工具无法完整模拟微信头像昵称同步，请在真机预览。
+      </text>
+
+      <view class="wx-sync-action-card brutal-card">
+        <view class="wx-sync-action-head">
+          <HfIcon name="pen-2-linear" size="sm" color="#0B0B0C" plain />
+          <text class="wx-sync-action-title">微信昵称</text>
+        </view>
         <input
           class="wx-sync-nick-input"
           type="nickname"
           :value="pendingNickname"
-          placeholder="点此同步微信昵称"
-          :disabled="isBusy"
+          placeholder="点此导入微信昵称"
+          :disabled="isBusy || isDevtools"
           @input="onNickInput"
           @confirm="onNickConfirm"
           @blur="onNickBlur"
         />
       </view>
 
-      <!-- 状态显示区 -->
+      <button
+        v-if="!isDevtools"
+        class="wx-sync-avatar-btn brutal-card"
+        open-type="chooseAvatar"
+        :disabled="isBusy"
+        @chooseavatar="onAvatarChosen"
+      >
+        <text>导入微信头像</text>
+      </button>
+      <button
+        v-else
+        class="wx-sync-avatar-btn brutal-card is-disabled"
+        :disabled="isBusy"
+        @tap="showRealDeviceTip"
+      >
+        <text>请在真机导入微信头像</text>
+      </button>
+
       <view v-if="avatarReady || nickReady" class="wx-sync-result brutal-card">
         <view v-if="avatarReady" class="wx-sync-result__item">
           <HfIcon name="camera-bold" size="sm" color="#0B0B0C" plain />
-          <text>头像已选择</text>
+          <text>微信头像已导入</text>
           <text class="wx-sync-check">✓</text>
         </view>
         <view v-if="nickReady" class="wx-sync-result__item">
@@ -33,19 +56,16 @@
         </view>
       </view>
 
-      <!-- 主按钮：一键触发 chooseAvatar → 自动昵称 → 自动保存 -->
       <button
         class="wx-sync-main-btn brutal-card"
-        open-type="chooseAvatar"
-        :disabled="isBusy"
-        @chooseavatar="onAvatarChosen"
+        :disabled="isBusy || !hasAnything"
+        @tap="handleSync"
       >
         <text>{{ buttonText }}</text>
       </button>
 
       <text class="wx-sync-tip">{{ statusTip }}</text>
 
-      <!-- 底部操作 -->
       <view class="wx-sync-actions">
         <view
           class="wx-sync-skip"
@@ -87,6 +107,19 @@ const emit = defineEmits<{
 const userStore = useUserStore()
 const haptic = useHaptic()
 
+function detectDevtools(): boolean {
+  try {
+    // #ifdef MP-WEIXIN
+    return uni.getSystemInfoSync().platform === 'devtools'
+    // #endif
+  } catch {
+    // ignore
+  }
+  return false
+}
+
+const isDevtools = detectDevtools()
+
 // ── State ──
 const avatarSyncing = ref(false)
 const isSaving = ref(false)
@@ -103,17 +136,21 @@ const hasAnything = computed(() => avatarReady.value || nickReady.value)
 
 const buttonText = computed(() => {
   if (avatarSyncing.value) return '上传中...'
-  if (isSaving.value) return '同步中...'
-  if (avatarReady.value && nickReady.value) return '已完成 ✓'
-  return '一键同步微信资料'
+  if (isSaving.value) return '保存中...'
+  if (avatarReady.value && nickReady.value) return '保存微信头像和昵称'
+  if (avatarReady.value) return '保存微信头像'
+  if (nickReady.value) return '保存微信昵称'
+  return '同步微信资料'
 })
 
 const statusTip = computed(() => {
-  if (avatarSyncing.value) return '头像上传中…'
-  if (isSaving.value) return '保存中…'
-  if (avatarReady.value && nickReady.value) return '同步完成'
-  if (avatarReady.value) return '头像已就绪，请点击上方输入框同步昵称'
-  return '点击按钮，导入微信头像；头像完成后再同步昵称'
+  if (avatarSyncing.value) return '微信头像上传中…'
+  if (isSaving.value) return '微信资料保存中…'
+  if (avatarReady.value && nickReady.value) return '微信头像和昵称已就绪，点击保存即可同步'
+  if (avatarReady.value) return '微信头像已就绪，可继续导入微信昵称后一起保存'
+  if (nickReady.value) return '微信昵称已就绪，可继续导入微信头像或直接保存'
+  if (isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
+  return '请使用微信原生能力导入头像和昵称'
 })
 
 // ── Cleanup ──
@@ -171,34 +208,36 @@ async function onAvatarChosen(e: any) {
 
 // ── Nickname ──
 function onNickInput(e: any) {
-  pendingNickname.value = e.detail?.value || ''
+  pendingNickname.value = normalizeNickName(e.detail?.value || '')
 }
 
 function onNickConfirm(e: any) {
-  const val = (e.detail?.value || '').trim()
+  const val = normalizeNickName(e.detail?.value || '')
   if (val) pendingNickname.value = val
   nickConfirmed = true
-  // 昵称确认后自动保存
-  handleSync()
 }
 
 function onNickBlur(e: any) {
-  if (nickConfirmed) return  // confirm 已处理，忽略 blur
-  // 微信昵称选择器关闭时 blur 的 e.detail.value 通常为空；
-  // 优先使用 @input 已捕获的 pendingNickname，避免遗漏
-  const val = (pendingNickname.value || e.detail?.value || '').trim()
+  if (nickConfirmed) {
+    nickConfirmed = false
+    return
+  }
+  const val = normalizeNickName(e.detail?.value || pendingNickname.value || '')
   if (!val) return
   pendingNickname.value = val
-  // blur 有值时也自动保存（用户可能点了确定但触发的是 blur）
-  if (avatarReady.value) {
-    handleSync()
-  }
 }
 
 // ── 同步保存 ──
 async function handleSync(): Promise<boolean> {
   if (isSaving.value) return false
-  if (!hasAnything.value) return false
+  if (!hasAnything.value) {
+    if (isDevtools) {
+      showRealDeviceTip()
+      return false
+    }
+    uni.showToast({ title: '请先导入微信头像或昵称', icon: 'none' })
+    return false
+  }
 
   const profile: Record<string, string> = {}
 
@@ -279,6 +318,13 @@ async function handleSkip() {
   await userStore.dismissWechatProfilePrompt()
   emit('update:visible', false)
 }
+
+function showRealDeviceTip() {
+  uni.showToast({
+    title: '请在真机导入微信头像和昵称',
+    icon: 'none',
+  })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -333,9 +379,16 @@ $nb-mint: #A8F0D4;
   text-align: center;
 }
 
-.wx-sync-nick-row {
+.wx-sync-devtools-tip {
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: rgba($ink-black, 0.72);
+  text-align: center;
+}
+
+.wx-sync-action-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12rpx;
   padding: 20rpx 24rpx;
   background: $nb-yellow;
@@ -344,12 +397,51 @@ $nb-mint: #A8F0D4;
   box-shadow: 4rpx 4rpx 0 $ink-black;
 }
 
+.wx-sync-action-head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.wx-sync-action-title {
+  font-size: 24rpx;
+  font-weight: 900;
+  color: $ink-black;
+}
+
 .wx-sync-nick-input {
-  flex: 1;
   font-size: 28rpx;
   font-weight: 700;
   color: $ink-black;
   background: transparent;
+  min-height: 48rpx;
+}
+
+.wx-sync-avatar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx;
+  background: $nb-yellow;
+  border: $brutal-border;
+  border-radius: $brutal-radius;
+  box-shadow: 4rpx 4rpx 0 $ink-black;
+  font-size: 28rpx;
+  font-weight: 900;
+  color: $ink-black;
+  line-height: 1;
+
+  &::after { display: none; }
+
+  &:active {
+    box-shadow: 2rpx 2rpx 0 $ink-black;
+    transform: translate(2rpx, 2rpx);
+  }
+
+  &.is-disabled,
+  &[disabled] {
+    opacity: 0.55;
+  }
 }
 
 .wx-sync-result {
@@ -400,22 +492,6 @@ $nb-mint: #A8F0D4;
 
   &[disabled] {
     opacity: 0.4;
-  }
-}
-
-.wx-sync-fallback {
-  text-align: center;
-  padding: 8rpx;
-
-  text {
-    font-size: 24rpx;
-    font-weight: 700;
-    color: $ink-light;
-    text-decoration: underline;
-  }
-
-  &:active text {
-    color: $ink-black;
   }
 }
 
