@@ -8,7 +8,9 @@ import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 const app = createApp({})
 app.config.errorHandler = (err, _vm, info) => {
+  // #ifdef DEBUG
   console.error('[全局错误]', err, info)
+  // #endif
 }
 
 onLaunch(() => {
@@ -23,7 +25,9 @@ onLaunch(() => {
     const env = dynamicEnv || CLOUD_ENV_ID
     wx.cloud.init(env ? { env, traceUser: true } : { traceUser: true })
   } catch (err) {
+    // #ifdef DEBUG
     console.error('[云开发初始化失败]', err)
+    // #endif
   }
   // #endif
 
@@ -62,8 +66,6 @@ onLaunch(() => {
   const userStore = useUserStore()
   userStore.login().catch(() => {})
 })
-
-onShow(() => {})
 </script>
 
 <style lang="scss">
