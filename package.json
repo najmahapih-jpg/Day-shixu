@@ -19,6 +19,7 @@
     "test:habit": "jest cloudfunctions/habit",
     "test:user": "jest cloudfunctions/user",
     "test:ritual": "jest cloudfunctions/ritual",
+    "test:stats": "jest cloudfunctions/stats",
     "clean:dev-artifacts": "powershell -ExecutionPolicy Bypass -File ./scripts/clean-dev-artifacts.ps1",
     "check:hygiene": "powershell -ExecutionPolicy Bypass -File ./scripts/check-hygiene.ps1",
     "check:gate": "npm test && powershell -ExecutionPolicy Bypass -File ./scripts/preflight-check.ps1 && npm run check:hygiene",
@@ -28,6 +29,9 @@
     "@qiun/ucharts": "^2.5.0-20230101",
     "grapheme-splitter": "1.0.4",
     "pinia": "^3.0.4"
+  },
+  "engines": {
+    "node": "16.x"
   },
   "devDependencies": {
     "@cloudbase/cli": "^2.12.4",

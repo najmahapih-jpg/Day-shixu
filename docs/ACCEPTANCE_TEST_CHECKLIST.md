@@ -8,7 +8,7 @@
 - [ ] 清除数据后首次启动，显示引导页
 - [ ] 完成引导 4 个场景，进入首页
 - [ ] 首次启动自动创建 users 文档 (云开发控制台验证)
-- [ ] 默认昵称 "Voyager"，默认设置 theme=neo, notifyEnabled=true
+- [ ] 默认昵称为空（前端显示为"用户"），默认设置 theme=neo, notifyEnabled=true
 
 ### 习惯管理
 - [ ] 点击添加 → 填写名称 → 保存 → 首页显示
