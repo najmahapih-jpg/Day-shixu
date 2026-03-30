@@ -24,28 +24,35 @@
               <view v-else class="avatar-img avatar-img--default">
                 <HfIllustration name="custom/illustrations/profile-character" width="200rpx" height="220rpx" />
               </view>
-              <view v-if="userStore.isLoggedIn" class="hero-stamp">{{ profileCopy.heroStamp }}</view>
+              <view class="hero-stamp">{{ profileCopy.heroStamp }}</view>
             </view>
           </view>
           <view class="hero-zone__bar">
             <view class="hero-bar__main">
-              <view class="hero-bar__name-wrap">
-                <text class="hero-bar__name" @tap="toggleWxSync">{{ nickName }}</text>
+              <view class="hero-bar__name-wrap" @tap="startNickNameEdit">
+                <input
+                  v-show="isEditingNickName"
+                  class="hero-bar__name-input"
+                  type="text"
+                  maxlength="20"
+                  :value="editNickNameValue"
+                  :focus="nickInputFocused"
+                  placeholder="输入昵称"
+                  confirm-type="done"
+                  @input="onNickNameInput"
+                  @confirm="confirmNickName"
+                  @blur="confirmNickName"
+                />
+                <view v-show="!isEditingNickName" class="hero-bar__name-display" :class="{ 'is-placeholder': needsNickName }">
+                  <text class="hero-bar__name">{{ needsNickName ? '点击设置昵称' : nickName }}</text>
+                  <text class="hero-bar__name-edit-icon">✎</text>
+                </view>
               </view>
               <view
-                v-if="userStore.isLoggedIn"
                 class="hero-bar__wx-btn"
-                @tap.stop="toggleWxSync"
+                @tap.stop="openWxSync(true)"
               >
-                <text class="hero-bar__wx-label">导入微信资料</text>
-              </view>
-              <view
-                v-else-if="!userStore.isLoggedIn"
-                class="hero-bar__edit-btn is-guest"
-                @tap.stop="toggleWxSync"
-              >
-                <HfIcon name="pen-2-linear" size="xs" color="#0B0B0C" plain />
-                <text class="hero-bar__edit-label">{{ profileCopy.guestNickNameCta }}</text>
+                <text class="hero-bar__wx-label">{{ userStore.needsWechatProfile ? '集成微信头像' : '同步头像' }}</text>
               </view>
             </view>
             <view class="hero-bar__meta">
@@ -55,15 +62,15 @@
           </view>
           <view class="hero-zone__bottom">
             <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
-            <view v-if="userStore.isLoggedIn" class="hero-zone__edit-link" @tap="toggleWxSync">
-              <text class="edit-link__label">同步微信资料</text>
+            <view class="hero-zone__edit-link" @tap="openWxSync(true)">
+              <text class="edit-link__label">{{ userStore.needsWechatProfile ? '完成头像集成后继续查看' : '编辑头像昵称' }}</text>
             </view>
           </view>
         </view>
 
         <!-- ========== 2. Slogan Tape (Full-bleed) ========== -->
         <view class="slogan-tape anim-stagger-up" style="--stagger-idx: 1;">
-          <text class="slogan-tape__text">{{ profileSlogan || '头像和昵称仅支持通过微信同步，今日进度也会同步展示在这里。' }} ▶</text>
+          <text class="slogan-tape__text">{{ resolvedProfileSlogan || '头像通过微信同步，昵称可手动编辑，今日进度也会同步展示在这里。' }} ▶</text>
           <view v-if="currentStreak > 0" class="slogan-tape__streak">{{ profileCopy.streakDayPrefix }} {{ currentStreak }}</view>
         </view>
 
@@ -175,7 +182,12 @@
     </scroll-view>
 
     <!-- WeChat Sync Panel -->
-    <WechatProfileSyncSheet v-model:visible="wxSyncVisible" @synced="onWxSynced" />
+    <WechatProfileSyncSheet
+      v-if="wxSyncVisible"
+      @synced="onWxSynced"
+      @close="closeWxSync"
+      @request-exit="handleSyncExit"
+    />
 
     <HfTabBar />
   </HfPageBg>
@@ -281,18 +293,67 @@ watch(
   },
   { immediate: true },
 )
-const nickName = computed(() => (
-  userStore.isLoggedIn
-    ? getDisplayNickName(userStore.userInfo?.nickName, profileCopy.guestName)
-    : profileCopy.guestName
-))
+const nickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName))
+const needsNickName = computed(() => {
+  const raw = userStore.userInfo?.nickName
+  return !raw || getDisplayNickName(raw) === '用户'
+})
 const userIdSuffix = computed(() => userStore.userInfo?._id?.slice(-8).toUpperCase() || 'XXXXXXXX')
+
+// ── Nickname Editing ──
+const isEditingNickName = ref(false)
+const nickInputFocused = ref(false)
+const editNickNameValue = ref('')
+const nickNameSaving = ref(false)
+
+function startNickNameEdit() {
+  if (isEditingNickName.value || nickNameSaving.value) return
+  haptic.light()
+  editNickNameValue.value = userStore.userInfo?.nickName || ''
+  isEditingNickName.value = true
+  nickInputFocused.value = false
+  setTimeout(() => { nickInputFocused.value = true }, 50)
+}
+
+function onNickNameInput(e: any) {
+  editNickNameValue.value = e?.detail?.value ?? ''
+}
+
+async function confirmNickName() {
+  if (!isEditingNickName.value || nickNameSaving.value) return
+  isEditingNickName.value = false
+  nickInputFocused.value = false
+
+  const raw = editNickNameValue.value.trim()
+  if (!raw || raw === userStore.userInfo?.nickName) return
+
+  nickNameSaving.value = true
+  try {
+    await userStore.syncWechatProfile({ nickName: raw })
+    haptic.success()
+  } catch {
+    // toast already shown by store
+  } finally {
+    nickNameSaving.value = false
+  }
+}
 
 // ── WeChat Sync Panel ──
 const wxSyncVisible = ref(false)
 
 function onWxSynced() {
-  // Avatar watcher will auto-resolve the new URL
+  userStore.fetchProfile().catch(() => {
+    // Avatar watcher will auto-resolve the latest URL from the store.
+  })
+}
+
+function closeWxSync() {
+  wxSyncVisible.value = false
+}
+
+function handleSyncExit() {
+  closeWxSync()
+  uni.switchTab({ url: '/pages/index/index' })
 }
 
 async function ensureLoggedIn(): Promise<boolean> {
@@ -305,20 +366,20 @@ async function ensureLoggedIn(): Promise<boolean> {
   }
 }
 
-async function toggleWxSync() {
-  haptic.light()
-  if (wxSyncVisible.value) {
-    wxSyncVisible.value = false
-    return
-  }
-  const loggedIn = await ensureLoggedIn()
-  if (!loggedIn) return
+function openWxSync(forceFocus = false) {
+  if (wxSyncVisible.value) return
+  if (!forceFocus) haptic.light()
   wxSyncVisible.value = true
+}
+
+function toggleWxSync() {
+  haptic.light()
+  openWxSync(true)
 }
 
 const joinedDays = computed(() => userStore.userInfo?.stats?.joinedDays ?? 0)
 const joinedText = computed(() => {
-  if (!userStore.userInfo?.stats) return profileCopy.guestBadge
+  if (!userStore.userInfo?.stats) return `${profileCopy.joinedDayPrefix} --`
   return `${profileCopy.joinedDayPrefix} ${joinedDays.value}`
 })
 
@@ -327,25 +388,22 @@ const totalCheckIns = computed(() => userStore.userInfo?.stats?.totalCheckIns ??
 const completionRate = computed(() => habitStore.completionRate)
 const currentStreak = computed(() => userStore.userInfo?.stats?.currentStreak ?? 0)
 const pendingCount = computed(() => habitStore.pendingHabits.length)
+const resolvedProfileSlogan = computed(() => {
+  if (userStore.needsWechatProfile) return '完成微信头像集成后可继续查看个人页。'
+  if (totalHabits.value === 0) return '资料已准备好，现在可以开始创建你的第一个习惯。'
+  if (currentStreak.value >= 21) return '你的近期记录保持稳定，继续按当前安排进行即可。'
+  if (currentStreak.value >= 7) return '本周记录持续更新中，当前进度表现不错。'
+  if (pendingCount.value === 0 && totalHabits.value > 0) return '今天的习惯已全部完成，记录已同步更新。'
+  return '头像通过微信同步，昵称可手动编辑，今日进度也会同步展示在这里。'
+})
 
-// Advanced Dossier Logic
 const myFocusText = computed(() => {
-  if (!userStore.isLoggedIn) return profileCopy.focusAwaiting
+  if (userStore.needsWechatProfile) return '等待头像集成 / Avatar Required'
   if (totalHabits.value === 0) return profileCopy.focusReady
   if (completionRate.value >= 85) return profileCopy.focusPeak
   if (completionRate.value >= 50) return profileCopy.focusStable
   return profileCopy.focusMomentum
 })
-
-const profileSlogan = computed(() => {
-  if (!userStore.isLoggedIn) return '登录后可同步微信头像昵称，并查看你的习惯记录。'
-  if (totalHabits.value === 0) return '资料已准备好，现在可以开始创建你的第一个习惯。'
-  if (currentStreak.value >= 21) return '你的近期记录保持稳定，继续按当前安排进行即可。'
-  if (currentStreak.value >= 7) return '本周记录持续更新中，当前进度表现不错。'
-  if (pendingCount.value === 0 && totalHabits.value > 0) return '今天的习惯已全部完成，记录已同步更新。'
-  return '头像和昵称仅支持通过微信同步，今日进度也会同步展示在这里。'
-})
-
 
 const { displayValue: animHabitCount } = useCountUp(totalHabits)
 const { displayValue: animTotalCheckIns } = useCountUp(totalCheckIns)
@@ -489,9 +547,13 @@ async function handleMenuTap(key: string) {
   haptic.light()
   
   try {
-    if (!userStore.isLoggedIn) {
-       uni.showToast({ title: '访客模式，请先轻触上方头像登录', icon: 'none' })
-       return
+    if (!(await ensureLoggedIn())) {
+      return
+    }
+
+    if (userStore.needsWechatProfile) {
+      await openWxSync(true)
+      return
     }
 
     const routes: Record<string, string> = {
@@ -515,28 +577,31 @@ onShow(async () => {
   appStore.switchTab('profile')
   habitStore.refreshDateIfNeeded()
 
-  // 确保已登录，否则 fetchProfile 会因 userInfo 为空而跳过
-  if (!userStore.isLoggedIn) {
-    try { await userStore.login() } catch { /* toast handled in store */ }
-  }
+  if (!(await ensureLoggedIn())) return
 
   const tasks: Array<Promise<unknown>> = [userStore.fetchProfile()]
   if (habitStore.habits.length === 0) tasks.push(habitStore.fetchHabits())
   if (boardStore.notes.length === 0) tasks.push(boardStore.fetchNotes())
-  Promise.allSettled(tasks).finally(() => loadWeekTrend())
+  Promise.allSettled(tasks).finally(async () => {
+    await loadWeekTrend()
+    if (userStore.needsWechatProfile) {
+      await openWxSync(true)
+    }
+  })
 })
 
 onPullDownRefresh(async () => {
   try {
-    if (!userStore.isLoggedIn) {
-      try { await userStore.login() } catch { /* toast handled in store */ }
-    }
+    if (!(await ensureLoggedIn())) return
     await Promise.all([
       habitStore.fetchHabits(),
       boardStore.fetchNotes(),
       userStore.fetchProfile(),
     ])
     await loadWeekTrend()
+    if (userStore.needsWechatProfile) {
+      await openWxSync(true)
+    }
   } finally {
     setTimeout(() => uni.stopPullDownRefresh(), 600) // Physical delay feel
   }
@@ -855,6 +920,29 @@ $nb-red: #FF4444;
       white-space: nowrap;
     }
 
+    .hero-bar__name-display {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      min-width: 0;
+      padding: 4rpx 0;
+
+      &.is-placeholder {
+        animation: nick-pulse 2s ease-in-out infinite;
+        border-bottom: 2rpx dashed rgba(255, 229, 102, 0.6);
+        padding-bottom: 4rpx;
+      }
+
+      &.is-placeholder .hero-bar__name {
+        color: rgba(255, 229, 102, 0.9);
+        font-size: 28rpx;
+      }
+
+      &.is-placeholder .hero-bar__name-edit-icon {
+        color: rgba(255, 229, 102, 0.9);
+      }
+    }
+
     .hero-bar__name {
       font-family: 'Helvetica Neue', Helvetica, sans-serif;
       font-size: 36rpx;
@@ -865,6 +953,17 @@ $nb-red: #FF4444;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 280rpx;
+    }
+
+    .hero-bar__name-edit-icon {
+      font-size: 24rpx;
+      color: rgba(255, 255, 255, 0.5);
+      flex-shrink: 0;
+    }
+
+    @keyframes nick-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
     }
 
     .hero-bar__name-input {

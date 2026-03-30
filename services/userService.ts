@@ -1,5 +1,5 @@
 import { callCloud } from './cloud'
-import type { User, UserSettings, ProfileSource } from '@/types'
+import type { User, UserSettings } from '@/types'
 
 const FN = 'user'
 
@@ -17,13 +17,8 @@ export async function updateSettings(
   return callCloud<UserSettings>(FN, 'updateSettings', { settings })
 }
 
-
-export async function updateProfile(
-  profile: { nickName?: string; avatarUrl?: string; source?: ProfileSource },
+export async function syncWechatProfile(
+  profile: { nickName?: string; avatarUrl?: string },
 ): Promise<User> {
-  return callCloud<User>(FN, 'updateProfile', profile)
-}
-
-export async function dismissWechatProfilePrompt(): Promise<boolean> {
-  return callCloud<boolean>(FN, 'dismissWechatProfilePrompt')
+  return callCloud<User>(FN, 'syncWechatProfile', profile)
 }

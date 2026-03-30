@@ -3,20 +3,18 @@ import { defineStore } from 'pinia'
 import { withDefaultPinia } from './pinia'
 import * as userService from '@/services/userService'
 import { clearCache } from '@/utils/cache'
-import type { User, UserSettings, ProfileSource } from '@/types'
+import type { User, UserSettings } from '@/types'
 
 export const useUserStore = withDefaultPinia(defineStore('user', () => {
   const userInfo = ref<User | null>(null)
 
   const isLoggedIn = computed(() => userInfo.value !== null)
 
-  const shouldShowWechatPrompt = computed(() => {
+  const needsWechatProfile = computed(() => {
     const meta = userInfo.value?.profileMeta
     if (!meta) return false
-    return !meta.firstLoginPromptDismissed && !meta.wechatAuthorized
+    return meta.wechatAuthorized !== true
   })
-
-  const profileSource = computed(() => userInfo.value?.profileMeta?.source ?? null)
 
   async function login() {
     try {
@@ -32,7 +30,7 @@ export const useUserStore = withDefaultPinia(defineStore('user', () => {
     try {
       userInfo.value = await userService.getProfile()
     } catch {
-      // silent — keep existing userInfo
+      // Keep existing userInfo on background refresh failure.
     }
   }
 
@@ -52,34 +50,14 @@ export const useUserStore = withDefaultPinia(defineStore('user', () => {
     }
   }
 
-async function updateProfile(
-    profile: { nickName?: string; avatarUrl?: string },
-    source: ProfileSource = 'manual',
-  ) {
+  async function syncWechatProfile(profile: { nickName?: string; avatarUrl?: string }) {
     if (!userInfo.value) throw new Error('用户未登录')
-    const prev = userInfo.value
-    userInfo.value = { ...prev, ...profile }
-    try {
-      const fullUser = await userService.updateProfile({ ...profile, source })
-      userInfo.value = fullUser
-    } catch (err) {
-      userInfo.value = prev
-      uni.showToast({ title: '资料更新失败', icon: 'none' })
-      throw err
-    }
-  }
 
-  async function dismissWechatProfilePrompt() {
     try {
-      await userService.dismissWechatProfilePrompt()
-      if (userInfo.value?.profileMeta) {
-        userInfo.value = {
-          ...userInfo.value,
-          profileMeta: { ...userInfo.value.profileMeta, firstLoginPromptDismissed: true },
-        }
-      }
-    } catch {
-      // non-critical, silent
+      userInfo.value = await userService.syncWechatProfile(profile)
+    } catch (err) {
+      uni.showToast({ title: '资料同步失败', icon: 'none' })
+      throw err
     }
   }
 
@@ -87,8 +65,7 @@ async function updateProfile(
     userInfo.value = null
     clearCache()
 
-    // Reset all data stores
-    // Import them lazily to avoid circular dependencies
+    // Reset all data stores.
     const { useHabitStore } = require('@/stores/habit')
     const { useBoardStore } = require('@/stores/board')
     const { useJourneyStore } = require('@/stores/journey')
@@ -100,13 +77,11 @@ async function updateProfile(
   return {
     userInfo,
     isLoggedIn,
-    shouldShowWechatPrompt,
-    profileSource,
+    needsWechatProfile,
     login,
     fetchProfile,
     updateSettings,
-    updateProfile,
-    dismissWechatProfilePrompt,
+    syncWechatProfile,
     logout,
   }
 }))

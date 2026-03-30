@@ -31,13 +31,8 @@ export interface UserStats {
   freezeTotal: number
 }
 
-export type ProfileSource = 'manual' | 'wechat'
-
 export interface ProfileMeta {
-  source: ProfileSource
   wechatAuthorized: boolean
-  firstLoginPromptDismissed: boolean
-  manualEditAt: string | null
   wechatSyncAt: string | null
 }
 

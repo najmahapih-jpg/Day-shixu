@@ -1,18 +1,15 @@
 const cloud = require('wx-server-sdk')
 const { normalizeNickName } = require('./nickName')
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
-const db = cloud.database()
-const _ = db.command
-const usersCol = db.collection('users')
 
-// ── helpers ──────────────────────────────────────────────
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+
+const db = cloud.database()
+const usersCol = db.collection('users')
+const LEGACY_PLACEHOLDER_NICK_NAMES = new Set(['习惯者', 'Voyager', '用户', '微信用户'])
 
 function defaultProfileMeta() {
   return {
-    source: 'manual',
     wechatAuthorized: false,
-    firstLoginPromptDismissed: false,
-    manualEditAt: null,
     wechatSyncAt: null,
   }
 }
@@ -33,16 +30,13 @@ function normalizeAvatarUrl(raw) {
   if (typeof raw !== 'string') return ''
   const val = raw.trim()
   if (!val) return ''
-  if (val.length > 2048) {
-    // avatarUrl exceeds 2048 char limit
-    return ''
-  }
+  if (val.length > 2048) return ''
+
   const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://', 'data:image/']
   if (!allowedPrefixes.some((prefix) => val.startsWith(prefix))) return ''
   return val
 }
 
-/** 生成 YYYY-MM-DD 格式日期字符串（东八区/北京时间） */
 function toDateStr(d) {
   const dt = typeof d === 'string' ? new Date(d) : d
   const utc8 = new Date(dt.getTime() + 8 * 3600 * 1000)
@@ -52,10 +46,72 @@ function toDateStr(d) {
   return `${y}-${m}-${day}`
 }
 
-// ── 内容安全检查 ────────────────────────────────────────
+function hasMeaningfulNickName(raw) {
+  const nick = normalizeNickName(raw)
+  if (!nick) return false
+  return !LEGACY_PLACEHOLDER_NICK_NAMES.has(nick)
+}
+
+function hasSyncedWechatAvatar(user) {
+  const avatarUrl = normalizeAvatarUrl(user && user.avatarUrl)
+  return Boolean(avatarUrl)
+}
+
+function normalizeProfileMeta(user) {
+  const rawMeta = (user && user.profileMeta) || {}
+  const meta = defaultProfileMeta()
+
+  if (rawMeta.wechatAuthorized === true) {
+    meta.wechatAuthorized = true
+  }
+  if (typeof rawMeta.wechatSyncAt === 'string' && rawMeta.wechatSyncAt.trim()) {
+    meta.wechatSyncAt = rawMeta.wechatSyncAt.trim()
+  }
+
+  if (!meta.wechatAuthorized && rawMeta.source === 'wechat' && hasSyncedWechatAvatar(user)) {
+    meta.wechatAuthorized = true
+    meta.wechatSyncAt = meta.wechatSyncAt || nowISO()
+  }
+
+  if (!meta.wechatAuthorized) {
+    meta.wechatSyncAt = null
+  }
+
+  return meta
+}
+
+function profileMetaNeedsMigration(user, normalizedMeta) {
+  const rawMeta = user && user.profileMeta
+  if (!rawMeta) return true
+  if ('source' in rawMeta || 'firstLoginPromptDismissed' in rawMeta || 'manualEditAt' in rawMeta) {
+    return true
+  }
+  return (
+    rawMeta.wechatAuthorized !== normalizedMeta.wechatAuthorized ||
+    (rawMeta.wechatSyncAt || null) !== normalizedMeta.wechatSyncAt
+  )
+}
+
+async function normalizeUserDocument(user) {
+  const normalizedMeta = normalizeProfileMeta(user)
+  if (profileMetaNeedsMigration(user, normalizedMeta)) {
+    await usersCol.doc(user._id).update({
+      data: {
+        profileMeta: normalizedMeta,
+        updatedAt: db.serverDate(),
+      },
+    })
+  }
+
+  return {
+    ...user,
+    profileMeta: normalizedMeta,
+  }
+}
 
 async function checkText(content, openid, scene) {
   if (!content || typeof content !== 'string' || !content.trim()) return true
+
   try {
     const res = await cloud.openapi.security.msgSecCheck({
       content: content.trim().slice(0, 2500),
@@ -65,39 +121,27 @@ async function checkText(content, openid, scene) {
     })
     return res.result.suggest !== 'risky'
   } catch (err) {
-    console.error('[内容安全检查失败]', err)
+    console.error('[msgSecCheck]', err)
     return true
   }
 }
 
-// ── actions ──────────────────────────────────────────────
+async function findUserByOpenid(openid) {
+  const { data } = await usersCol.where({ _openid: openid }).limit(1).get()
+  return data[0] || null
+}
 
 async function login(openid) {
-  // 查询是否已有该用户
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
-
-  if (existing.length > 0) {
-    const user = existing[0]
-    // 懒回填：存量用户无 profileMeta 时补写一次
-    if (!user.profileMeta) {
-      const meta = defaultProfileMeta()
-      await usersCol.doc(user._id).update({
-        data: { profileMeta: meta, updatedAt: db.serverDate() },
-      })
-      user.profileMeta = meta
-    }
-    return ok(user)
+  const existingUser = await findUserByOpenid(openid)
+  if (existingUser) {
+    return ok(await normalizeUserDocument(existingUser))
   }
 
-  // 新用户 → 创建默认记录
   const now = db.serverDate()
   const joinDateStr = toDateStr(new Date())
   const newUser = {
     _openid: openid,
-    nickName: '用户',
+    nickName: '',
     avatarUrl: '',
     settings: {
       theme: 'neo',
@@ -122,49 +166,29 @@ async function login(openid) {
 }
 
 async function getProfile(openid) {
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
-
-  if (existing.length === 0) {
+  const user = await findUserByOpenid(openid)
+  if (!user) {
     return { code: 404, message: '用户不存在' }
   }
 
-  const user = existing[0]
-
-  // 懒回填：存量用户无 profileMeta 时补写一次
-  if (!user.profileMeta) {
-    const meta = defaultProfileMeta()
-    await usersCol.doc(user._id).update({
-      data: { profileMeta: meta, updatedAt: db.serverDate() },
-    })
-    user.profileMeta = meta
-  }
-
-  return ok(user)
+  return ok(await normalizeUserDocument(user))
 }
 
 const ALLOWED_SETTINGS_KEYS = new Set([
-  'reduceMotion', 'weekStartsOn', 'defaultView', 'notifyEnabled',
-  'language', 'fontSize', 'colorScheme', 'soundEnabled', 'vibrationEnabled',
+  'reduceMotion',
+  'weekStartsOn',
+  'defaultView',
+  'notifyEnabled',
 ])
 
 async function updateSettings(openid, data) {
   if (!data || !data.settings) return fail('缺少 settings 数据')
 
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
+  const user = await findUserByOpenid(openid)
+  if (!user) return fail('用户不存在')
 
-  if (existing.length === 0) return fail('用户不存在')
-
-  const user = existing[0]
-
-  // 构建局部更新对象（白名单过滤，防止任意 key 注入）
   const updateFields = {}
-  Object.keys(data.settings).forEach(key => {
+  Object.keys(data.settings).forEach((key) => {
     if (key === 'theme') {
       updateFields['settings.theme'] = 'neo'
       return
@@ -177,102 +201,83 @@ async function updateSettings(openid, data) {
 
   await usersCol.doc(user._id).update({ data: updateFields })
 
-  // 返回合并后的完整 settings
   const merged = { ...user.settings, ...data.settings, theme: 'neo' }
   return ok(merged)
 }
 
-
-async function updateProfile(openid, data) {
+async function syncWechatProfile(openid, data) {
   if (!data) return fail('缺少 data')
 
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
+  const user = await findUserByOpenid(openid)
+  if (!user) return fail('用户不存在')
 
-  if (existing.length === 0) return fail('用户不存在')
-
-  const user = existing[0]
   const updateFields = { updatedAt: db.serverDate() }
+  const normalizedMeta = normalizeProfileMeta(user)
   let hasChanges = false
+  let avatarUpdated = false
 
-  if (data.nickName !== undefined) {
-    const nick = normalizeNickName(data.nickName)
-    if (!nick) return fail('昵称不合法（最多 20 个字符）')
-    if (!(await checkText(nick, openid, 1))) {
-      return fail('昵称包含违规内容，请修改后重试')
+  if (typeof data.nickName === 'string') {
+    const rawNick = data.nickName.trim()
+    if (rawNick) {
+      const nick = normalizeNickName(rawNick)
+      if (!nick) return fail('昵称不合法（最多 20 个字符）')
+      if (!(await checkText(nick, openid, 1))) {
+        return fail('昵称包含违规内容，请修改后重试')
+      }
+      updateFields.nickName = nick
+      hasChanges = true
     }
-    updateFields.nickName = nick
-    hasChanges = true
   }
 
-  if (data.avatarUrl !== undefined) {
-    const avatar = normalizeAvatarUrl(data.avatarUrl)
-    if (!avatar) return fail('头像地址不合法')
-    updateFields.avatarUrl = avatar
-    hasChanges = true
+  if (typeof data.avatarUrl === 'string') {
+    const rawAvatar = data.avatarUrl.trim()
+    if (rawAvatar) {
+      const avatar = normalizeAvatarUrl(rawAvatar)
+      if (!avatar) return fail('头像地址不合法')
+      updateFields.avatarUrl = avatar
+      hasChanges = true
+      avatarUpdated = true
+    }
   }
 
-  if (!hasChanges) return fail('没有需要更新的字段')
+  if (!hasChanges) return fail('没有可保存的头像或昵称')
 
-  // profileMeta 来源追踪
-  const source = data.source === 'wechat' ? 'wechat' : 'manual'
-  const ts = nowISO()
-
-  const baseMeta = user.profileMeta || defaultProfileMeta()
-  const mergedMeta = { ...baseMeta, source }
-  if (source === 'wechat') {
-    mergedMeta.wechatAuthorized = true
-    mergedMeta.wechatSyncAt = ts
-  } else {
-    mergedMeta.manualEditAt = ts
+  const effectiveAvatarUrl = normalizeAvatarUrl(updateFields.avatarUrl || user.avatarUrl)
+  updateFields.profileMeta = {
+    ...normalizedMeta,
+    wechatAuthorized: Boolean(effectiveAvatarUrl),
+    wechatSyncAt: effectiveAvatarUrl
+      ? (avatarUpdated ? nowISO() : (normalizedMeta.wechatSyncAt || nowISO()))
+      : null,
   }
-  updateFields.profileMeta = mergedMeta
 
   await usersCol.doc(user._id).update({ data: updateFields })
 
-  // 返回完整用户文档
   const { data: updated } = await usersCol.doc(user._id).get()
-  return ok(updated)
+  return ok(await normalizeUserDocument(updated))
 }
 
-async function dismissWechatProfilePrompt(openid) {
-  const { data: existing } = await usersCol
-    .where({ _openid: openid })
-    .limit(1)
-    .get()
-
-  if (existing.length === 0) return fail('用户不存在')
-
-  const user = existing[0]
-  const baseMeta = user.profileMeta || defaultProfileMeta()
-  const mergedMeta = { ...baseMeta, firstLoginPromptDismissed: true }
-
-  await usersCol.doc(user._id).update({
-    data: { profileMeta: mergedMeta, updatedAt: db.serverDate() },
-  })
-  return ok(true)
-}
-
-// ── main ─────────────────────────────────────────────────
-
-exports.main = async (event, context) => {
+exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext()
   if (!OPENID) return fail('未获取到用户身份')
 
   const { action, data } = event
+
   try {
     switch (action) {
-      case 'login': return await login(OPENID)
-      case 'getProfile': return await getProfile(OPENID)
-      case 'updateSettings': return await updateSettings(OPENID, data)
-case 'updateProfile': return await updateProfile(OPENID, data)
-      case 'dismissWechatProfilePrompt': return await dismissWechatProfilePrompt(OPENID)
-      default: return fail('未知操作')
+      case 'login':
+        return await login(OPENID)
+      case 'getProfile':
+        return await getProfile(OPENID)
+      case 'updateSettings':
+        return await updateSettings(OPENID, data)
+      case 'syncWechatProfile':
+        return await syncWechatProfile(OPENID, data)
+      default:
+        return fail('未知操作')
     }
   } catch (err) {
-    console.error('[' + action + ']', err)
+    console.error(`[${action}]`, err)
     return fail('服务器错误，请稍后重试')
   }
 }

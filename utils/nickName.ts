@@ -1,7 +1,7 @@
 const CONTROL_CHAR_REGEX = /[\x00-\x1f]/g
 
 export const MAX_NICK_NAME_GRAPHEMES = 20
-const LEGACY_PLACEHOLDER_NICK_NAMES = new Set(['习惯者', 'Voyager'])
+const LEGACY_PLACEHOLDER_NICK_NAMES = new Set(['习惯者', 'Voyager', '用户', '微信用户'])
 
 function nextCodePointIndex(value: string, index: number): number {
   const first = value.charCodeAt(index)

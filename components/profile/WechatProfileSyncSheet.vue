@@ -1,158 +1,95 @@
 <template>
-  <view v-if="visible" class="wx-sync-overlay" @tap.self="handleClose">
+  <view class="wx-sync-overlay" @tap.self="handleMaskTap">
     <view class="wx-sync-panel brutal-card">
+      <text class="wx-sync-panel__title">同步微信头像</text>
+      <text class="wx-sync-desc">从微信导入你的头像</text>
 
-      <text class="wx-sync-panel__title">同步微信资料</text>
-      <text class="wx-sync-desc">通过微信原生能力导入头像和昵称</text>
-
-      <!-- Devtools 提示 -->
       <view v-if="isDevtools" class="wx-sync-notice wx-sync-notice--warn">
-        <text>开发者工具不支持微信头像昵称选择，请在真机预览</text>
+        <text>开发者工具无法完成微信头像同步，请在真机预览中完成集成。</text>
       </view>
 
-      <!-- 错误提示 -->
-      <view v-else-if="phase === 'error'" class="wx-sync-notice wx-sync-notice--error">
+      <view v-if="phase === 'error'" class="wx-sync-notice wx-sync-notice--error">
         <text>{{ errorMessage }}</text>
       </view>
 
-      <!-- ── 昵称卡 ── -->
-      <view class="wx-sync-card" :class="{ 'is-ready': nickReady }">
-        <view class="wx-sync-card__head">
-          <text class="wx-sync-card__label">微信昵称</text>
-          <text v-if="nickReady" class="wx-sync-card__check">✓</text>
-        </view>
-        <input
-          class="wx-sync-card__input"
-          type="nickname"
-          :value="pendingNickname"
-          placeholder="点此导入微信昵称"
-          :disabled="isBusy || isDevtools"
-          @input="onNickInput"
-        />
-      </view>
-
-      <!-- ── 头像按钮 ── -->
+      <!-- idle / error: 同步头像按钮 -->
       <button
-        v-if="!isDevtools"
-        class="wx-sync-avatar-btn brutal-card"
-        :class="{ 'is-uploading': phase === 'uploading-avatar' }"
+        v-if="!isDevtools && (phase === 'idle' || phase === 'error')"
+        class="wx-sync-main-btn brutal-card"
         open-type="chooseAvatar"
         :disabled="isBusy"
         @chooseavatar="onAvatarChosen"
       >
-        <text>{{ phase === 'uploading-avatar' ? '上传中...' : avatarReady ? '重新导入微信头像' : '导入微信头像' }}</text>
-      </button>
-      <view v-else class="wx-sync-avatar-btn wx-sync-avatar-btn--disabled brutal-card">
-        <text>头像导入需真机</text>
-      </view>
-
-      <!-- ── 已就绪状态 ── -->
-      <view v-if="avatarReady" class="wx-sync-ready-item">
-        <text class="wx-sync-ready-item__label">微信头像</text>
-        <text class="wx-sync-ready-item__check">✓ 已导入</text>
-      </view>
-
-      <!-- ── 保存按钮 ── -->
-      <button
-        class="wx-sync-save-btn brutal-card"
-        :disabled="isBusy || !hasAnything"
-        @tap="handleSave"
-      >
-        <text>{{ saveButtonText }}</text>
+        <text class="wx-sync-main-btn__text">点击同步微信头像</text>
       </button>
 
-      <text class="wx-sync-tip">{{ statusTip }}</text>
-
-      <!-- ── 底部操作 ── -->
-      <view class="wx-sync-actions">
-        <view class="wx-sync-action-btn" :class="{ 'is-disabled': isBusy }" @tap="handleSkip">
-          <text>跳过</text>
-        </view>
-        <view class="wx-sync-action-btn" :class="{ 'is-disabled': isBusy }" @tap="handleClose">
-          <text>关闭</text>
-        </view>
+      <!-- uploading-avatar / saving -->
+      <view v-if="phase === 'uploading-avatar' || phase === 'saving'" class="wx-sync-status-card brutal-card">
+        <text class="wx-sync-status-card__text">{{ phase === 'uploading-avatar' ? '正在处理头像...' : '正在同步...' }}</text>
       </view>
 
+      <!-- done -->
+      <view v-if="phase === 'done'" class="wx-sync-status-card wx-sync-status-card--done brutal-card">
+        <text class="wx-sync-status-card__text">头像同步完成</text>
+      </view>
+
+      <!-- devtools 提示 -->
+      <view v-if="isDevtools && phase !== 'error'" class="wx-sync-notice wx-sync-notice--warn">
+        <text>微信头像同步需在真机完成</text>
+      </view>
+
+      <!-- 关闭 / 返回 -->
+      <view class="wx-sync-footer">
+        <view class="wx-sync-close-btn" :class="{ 'is-disabled': isBusy }" @tap="handleFooterAction">
+          <text>{{ required ? '返回首页' : '关闭' }}</text>
+        </view>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
 import { useWechatProfileSync } from '@/composables/useWechatProfileSync'
 
-const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{
-  (e: 'update:visible', value: boolean): void
+  (e: 'close'): void
   (e: 'synced'): void
+  (e: 'request-exit'): void
 }>()
 
-// 解构到顶层，Vue template 自动 unwrap ref（无需 .value）
+const userStore = useUserStore()
+
 const {
   phase,
-  pendingNickname,
-  avatarReady,
-  nickReady,
   isBusy,
-  hasAnything,
   errorMessage,
   isDevtools,
+  avatarReady,
   reset,
-  onNickInput,
   onAvatarChosen,
   save,
-  dismiss,
 } = useWechatProfileSync()
 
-watch(() => props.visible, (isVisible) => { if (isVisible) reset() })
+const required = computed(() => userStore.needsWechatProfile)
 
-const saveButtonText = computed(() => {
-  if (phase.value === 'saving') return '保存中...'
-  if (phase.value === 'done') return '已同步 ✓'
-  if (avatarReady.value && nickReady.value) return '保存头像和昵称'
-  if (avatarReady.value) return '保存微信头像'
-  if (nickReady.value) return '保存微信昵称'
-  return '请先导入资料'
+onMounted(() => {
+  reset()
 })
 
-const statusTip = computed(() => {
-  if (isDevtools) return '请在真机使用微信原生能力导入头像和昵称'
-  if (phase.value === 'uploading-avatar') return '头像上传中，请稍候…'
-  if (phase.value === 'saving') return '正在保存…'
-  if (phase.value === 'done') return '微信资料已同步'
-  if (phase.value === 'error') return '出错了，请重试'
-  if (avatarReady.value && nickReady.value) return '头像和昵称已就绪，点击保存'
-  if (avatarReady.value) return '头像已就绪，还可导入昵称后一起保存'
-  if (nickReady.value) return '昵称已就绪，还可导入头像后一起保存'
-  return '点击输入框导入昵称，点击按钮导入头像'
-})
-
-async function handleSave() {
-  const ok = await save()
-  if (ok) {
-    emit('synced')
-    setTimeout(() => emit('update:visible', false), 800)
-  }
+function handleMaskTap() {
+  if (required.value || isBusy.value) return
+  emit('close')
 }
 
-async function handleClose() {
+function handleFooterAction() {
   if (isBusy.value) return
-  if (hasAnything.value) {
-    const ok = await save()
-    if (!ok) return
-    emit('synced')
+  if (required.value) {
+    emit('request-exit')
+    return
   }
-  emit('update:visible', false)
-}
-
-async function handleSkip() {
-  if (isBusy.value) return
-  if (hasAnything.value) {
-    await save()
-    emit('synced')
-  }
-  await dismiss()
-  emit('update:visible', false)
+  emit('close')
 }
 </script>
 
@@ -160,15 +97,15 @@ async function handleSkip() {
 @import '@/styles/variables.scss';
 @import '@/styles/mixins.scss';
 
-$ink: #0B0B0C;
-$ink-light: #3A3A3A;
-$paper: #F5F3EE;
+$ink: #0b0b0c;
+$ink-light: #3a3a3a;
+$paper: #f5f3ee;
 $border: 3px solid $ink;
 $border-heavy: 4px solid $ink;
 $radius: 8rpx;
-$yellow: #FFE566;
-$mint: #A8F0D4;
-$red: #FF6B6B;
+$yellow: #ffe566;
+$mint: #a8f0d4;
+$red: #ff6b6b;
 
 .wx-sync-overlay {
   position: fixed;
@@ -226,154 +163,77 @@ $red: #FF6B6B;
   }
 }
 
-.wx-sync-card {
+.wx-sync-main-btn {
   display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  padding: 20rpx 24rpx;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx 24rpx;
   background: $yellow;
-  border: $border;
+  border: $border-heavy;
   border-radius: $radius;
-  box-shadow: 4rpx 4rpx 0 $ink;
-  transition: background 0.15s;
-
-  &.is-ready {
-    background: $mint;
-  }
-
-  &__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  &__label {
-    font-size: 22rpx;
-    font-weight: 900;
-    color: $ink;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  &__check {
-    font-size: 22rpx;
-    font-weight: 900;
-    color: $ink;
-  }
-
-  &__input {
-    font-size: 30rpx;
-    font-weight: 700;
-    color: $ink;
-    background: transparent;
-    min-height: 56rpx;
-  }
-}
-
-.wx-sync-avatar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24rpx;
-  background: $ink;
-  border: $border;
-  border-radius: $radius;
-  box-shadow: 4rpx 4rpx 0 $ink;
-  font-size: 28rpx;
-  font-weight: 900;
-  color: $paper;
+  box-shadow: 6rpx 6rpx 0 $ink;
   line-height: 1;
 
-  &::after { display: none; }
+  &::after {
+    display: none;
+  }
 
   &:active:not([disabled]) {
     box-shadow: 2rpx 2rpx 0 $ink;
-    transform: translate(2rpx, 2rpx);
-  }
-
-  &[disabled],
-  &.is-uploading {
-    opacity: 0.5;
-  }
-
-  &--disabled {
-    background: rgba($ink, 0.2);
-    color: $ink-light;
-    cursor: default;
-  }
-}
-
-.wx-sync-ready-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16rpx 24rpx;
-  background: $mint;
-  border: $border;
-  border-radius: $radius;
-  box-shadow: 3rpx 3rpx 0 $ink;
-
-  &__label {
-    font-size: 26rpx;
-    font-weight: 700;
-    color: $ink;
-  }
-
-  &__check {
-    font-size: 22rpx;
-    font-weight: 900;
-    color: $ink;
-  }
-}
-
-.wx-sync-save-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24rpx;
-  background: $ink;
-  border: $border;
-  border-radius: $radius;
-  box-shadow: 4rpx 4rpx 0 $ink;
-  font-size: 30rpx;
-  font-weight: 900;
-  color: $paper;
-  line-height: 1;
-
-  &::after { display: none; }
-
-  &:active:not([disabled]) {
-    box-shadow: 2rpx 2rpx 0 $ink;
-    transform: translate(2rpx, 2rpx);
+    transform: translate(4rpx, 4rpx);
   }
 
   &[disabled] {
-    opacity: 0.35;
+    opacity: 0.5;
+  }
+
+  &__text {
+    font-size: 30rpx;
+    font-weight: 900;
+    color: $ink;
   }
 }
 
-.wx-sync-tip {
-  font-size: 22rpx;
-  line-height: 1.5;
-  color: $ink-light;
-  text-align: center;
-}
-
-.wx-sync-actions {
+.wx-sync-status-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $space-4;
+  padding: 24rpx;
+  background: $ink;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: 4rpx 4rpx 0 $ink;
+
+  &__text {
+    font-size: 28rpx;
+    font-weight: 700;
+    color: $paper;
+  }
+
+  &--done {
+    background: $mint;
+
+    .wx-sync-status-card__text {
+      color: $ink;
+    }
+  }
 }
 
-.wx-sync-action-btn {
-  padding: 12rpx 24rpx;
+.wx-sync-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 4rpx;
+}
+
+.wx-sync-close-btn {
   font-size: 24rpx;
   font-weight: 700;
   color: $ink-light;
+  padding: 8rpx 16rpx;
 
-  &:active { color: $ink; }
-
-  &.is-disabled { opacity: 0.4; pointer-events: none; }
+  &.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
 }
 </style>

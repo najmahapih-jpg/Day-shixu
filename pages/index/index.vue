@@ -380,15 +380,12 @@
       </view>
     </view>
 
-    <!-- WeChat Profile Sync Prompt (first login) -->
-    <WechatProfileSyncSheet v-model:visible="wxProfilePromptVisible" />
-
     <HfTabBar />
   </HfPageBg>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, provide, watch } from 'vue'
+import { ref, computed, provide } from 'vue'
 import { onShow, onHide, onPageScroll, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
@@ -406,7 +403,6 @@ import HfIllustration from '@/components/base/HfIllustration.vue'
 import HfIcon from '@/components/base/HfIcon.vue'
 import HabitListItem from '@/components/habit/HabitListItem.vue'
 import ProgressBlockCard from '@/components/home/ProgressBlockCard.vue'
-import WechatProfileSyncSheet from '@/components/profile/WechatProfileSyncSheet.vue'
 import { usePageError } from '@/composables/usePageError'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { useFLIPGroup, useHaptic } from '@/composables/motion'
@@ -445,18 +441,6 @@ function getStatusBarHeight() {
 }
 
 const statusBarHeight = ref(getStatusBarHeight())
-const wxProfilePromptVisible = ref(false)
-
-// 首登提醒：login 异步完成后才能拿到 profileMeta，用 watch 等待
-watch(
-  () => userStore.shouldShowWechatPrompt,
-  (should) => {
-    if (should && !wxProfilePromptVisible.value) {
-      wxProfilePromptVisible.value = true
-    }
-  },
-  { immediate: true },
-)
 
 const greetingText = computed(() => {
   const hour = getBeijingDateParts().hour
@@ -1316,8 +1300,6 @@ onShow(() => {
   journeyStore.fetchUserJourneys().catch(() => {
     // ignore
   })
-
-  // 首登提醒移至 watch，确保 login 完成后再检查
 })
 
 onHide(() => {

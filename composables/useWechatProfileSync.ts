@@ -1,77 +1,81 @@
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useHaptic } from '@/composables/motion'
-import { normalizeNickName, getNickNameValidationMessage } from '@/utils/nickName'
 import {
+  isUserCancelError,
   normalizeAvatarTempFile,
   uploadAvatarToCloud,
-  isUserCancelError,
 } from '@/composables/useAvatarUpload'
+import {
+  getDisplayNickName,
+  getNickNameValidationMessage,
+  normalizeNickName,
+} from '@/utils/nickName'
 
 export type SyncPhase = 'idle' | 'uploading-avatar' | 'saving' | 'done' | 'error'
 
-export interface WechatProfileSyncState {
-  phase: ReturnType<typeof ref<SyncPhase>>
-  pendingNickname: ReturnType<typeof ref<string>>
-  pendingAvatarCloudId: ReturnType<typeof ref<string>>
-  errorMessage: ReturnType<typeof ref<string>>
-  isDevtools: boolean
-  isBusy: ReturnType<typeof computed<boolean>>
-  avatarReady: ReturnType<typeof computed<boolean>>
-  nickReady: ReturnType<typeof computed<boolean>>
-  hasAnything: ReturnType<typeof computed<boolean>>
-  reset: () => void
-  onNickInput: (e: any) => void
-  onAvatarChosen: (e: any) => Promise<void>
-  save: () => Promise<boolean>
-  dismiss: () => Promise<void>
+export interface UseWechatProfileSyncOptions {
+  onSaved?: () => void
 }
 
 function detectDevtools(): boolean {
   try {
     // #ifdef MP-WEIXIN
-    return uni.getSystemInfoSync().platform === 'devtools'
+    const info = uni.getDeviceInfo()
+    return info.platform === 'devtools'
     // #endif
   } catch {
     // ignore
   }
+
   return false
 }
 
-export function useWechatProfileSync(): WechatProfileSyncState {
+export function useWechatProfileSync(options?: UseWechatProfileSyncOptions) {
   const userStore = useUserStore()
   const haptic = useHaptic()
   const isDevtools = detectDevtools()
 
   const phase = ref<SyncPhase>('idle')
-  const pendingNickname = ref('')
   const pendingAvatarCloudId = ref('')
+  const pendingNickname = ref('')
   const errorMessage = ref('')
 
   const isBusy = computed(
     () => phase.value === 'uploading-avatar' || phase.value === 'saving',
   )
   const avatarReady = computed(() => !!pendingAvatarCloudId.value)
-  const nickReady = computed(() => !!normalizeNickName(pendingNickname.value.trim()))
-  const hasAnything = computed(() => avatarReady.value || nickReady.value)
+  const nickReady = computed(() => !!normalizeNickName(pendingNickname.value))
+
+  watch(pendingNickname, (next, prev) => {
+    if (next === prev) return
+    if (phase.value === 'error' || phase.value === 'done') {
+      errorMessage.value = ''
+      phase.value = 'idle'
+    }
+  })
+
+  function getInitialNickname() {
+    return getDisplayNickName(userStore.userInfo?.nickName, '')
+  }
+
+  function setPendingNickname(raw: unknown) {
+    pendingNickname.value = typeof raw === 'string' ? raw : ''
+  }
+
+  function onNickInput(e: any) {
+    setPendingNickname(e?.detail?.value ?? e)
+  }
 
   function reset() {
     phase.value = 'idle'
-    pendingNickname.value = ''
     pendingAvatarCloudId.value = ''
+    pendingNickname.value = getInitialNickname()
     errorMessage.value = ''
   }
 
-  // ── Nickname ──
-  // @input is the ONLY reliable event for type="nickname" — do not use @blur or @confirm
-  function onNickInput(e: any) {
-    pendingNickname.value = normalizeNickName(e.detail?.value || '')
-    if (phase.value === 'error') phase.value = 'idle'
-  }
-
-  // ── Avatar ──
   async function onAvatarChosen(e: any) {
-    const tempUrl = e.detail?.avatarUrl
+    const tempUrl = e?.detail?.avatarUrl
     if (!tempUrl || typeof tempUrl !== 'string') return
     if (isBusy.value) return
 
@@ -81,73 +85,78 @@ export function useWechatProfileSync(): WechatProfileSyncState {
     let loadingShown = false
     try {
       const normalizedPath = await normalizeAvatarTempFile(tempUrl, 0)
-      uni.showLoading({ title: '处理中', mask: true })
+      uni.showLoading({ title: '处理中...', mask: true })
       loadingShown = true
 
       const cloudFileId = await uploadAvatarToCloud(normalizedPath)
-      if (!cloudFileId) throw new Error('上传结果异常')
+      if (!cloudFileId) throw new Error('头像上传结果异常')
 
       pendingAvatarCloudId.value = cloudFileId
+      phase.value = 'idle'
       haptic.success()
     } catch (err: unknown) {
-      if (!isUserCancelError(err)) {
-        haptic.warning()
-        errorMessage.value = err instanceof Error ? '头像上传失败，请重试' : '头像上传失败'
-        phase.value = 'error'
+      if (isUserCancelError(err)) {
+        phase.value = 'idle'
         return
       }
+
+      haptic.warning()
+      errorMessage.value = err instanceof Error ? err.message : '头像上传失败，请重试'
+      phase.value = 'error'
     } finally {
       if (loadingShown) uni.hideLoading()
-      if (phase.value === 'uploading-avatar') phase.value = 'idle'
     }
   }
 
-  // ── Save ──
-  async function save(): Promise<boolean> {
-    if (isSaving()) return false
-    if (!hasAnything.value) return false
+  async function save(nicknameOverride?: unknown): Promise<boolean> {
+    if (phase.value === 'saving') return false
+
+    if (nicknameOverride !== undefined) {
+      setPendingNickname(nicknameOverride)
+    }
+
+    const nicknameValidationMessage = pendingNickname.value
+      ? getNickNameValidationMessage(pendingNickname.value)
+      : ''
+    if (nicknameValidationMessage) {
+      errorMessage.value = nicknameValidationMessage
+      phase.value = 'error'
+      return false
+    }
 
     const profile: { nickName?: string; avatarUrl?: string } = {}
+    const normalizedNickname = normalizeNickName(pendingNickname.value)
 
+    if (normalizedNickname) {
+      profile.nickName = normalizedNickname
+    }
     if (pendingAvatarCloudId.value) {
       profile.avatarUrl = pendingAvatarCloudId.value
     }
 
-    const nick = normalizeNickName(pendingNickname.value.trim())
-    if (nick) {
-      const validationMsg = getNickNameValidationMessage(pendingNickname.value.trim())
-      if (validationMsg) {
-        errorMessage.value = validationMsg
-        phase.value = 'error'
-        return false
-      }
-      profile.nickName = nick
-    }
-
-    if (Object.keys(profile).length === 0) return true
-
-    phase.value = 'saving'
-    errorMessage.value = ''
-    try {
-      await userStore.updateProfile(profile, 'wechat')
-      haptic.success()
-      phase.value = 'done'
-      return true
-    } catch {
-      haptic.warning()
-      errorMessage.value = '同步失败，请重试'
+    if (!profile.nickName && !profile.avatarUrl) {
+      errorMessage.value = '请先同步微信头像或填写昵称'
       phase.value = 'error'
       return false
     }
-  }
 
-  function isSaving() {
-    return phase.value === 'saving'
-  }
+    phase.value = 'saving'
+    errorMessage.value = ''
 
-  // ── Dismiss ──
-  async function dismiss(): Promise<void> {
-    await userStore.dismissWechatProfilePrompt()
+    try {
+      await userStore.syncWechatProfile(profile)
+      pendingNickname.value = getInitialNickname()
+      pendingAvatarCloudId.value = ''
+      haptic.success()
+      phase.value = 'done'
+      options?.onSaved?.()
+      return true
+    } catch {
+      haptic.warning()
+      errorMessage.value = '头像或昵称保存失败，请重试'
+      phase.value = 'error'
+      return false
+    }
   }
 
   return {
@@ -159,11 +168,10 @@ export function useWechatProfileSync(): WechatProfileSyncState {
     isBusy,
     avatarReady,
     nickReady,
-    hasAnything,
     reset,
+    setPendingNickname,
     onNickInput,
     onAvatarChosen,
     save,
-    dismiss,
   }
 }

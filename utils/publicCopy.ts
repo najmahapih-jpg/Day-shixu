@@ -42,11 +42,6 @@ export interface ProfileCopy {
   heroTitleBottom: string
   heroStamp: string
   heroVersion: string
-  guestName: string
-  nickNamePlaceholder: string
-  editNickNameCta: string
-  guestNickNameCta: string
-  guestBadge: string
   joinedDayPrefix: string
   streakDayPrefix: string
   uidLabel: string
@@ -64,7 +59,6 @@ export interface ProfileCopy {
   settingsTitle: string
   settingsSub: string
   footerMotto: string
-  focusAwaiting: string
   focusReady: string
   focusPeak: string
   focusStable: string
@@ -187,11 +181,6 @@ export const PUBLIC_COPY = {
     heroTitleBottom: 'PROFILE',
     heroStamp: 'USER',
     heroVersion: 'PROFILE V1.0 / 星划 HabitFlow',
-    guestName: '用户',
-    nickNamePlaceholder: '导入微信昵称',
-    editNickNameCta: '同步微信昵称',
-    guestNickNameCta: '登录后同步微信资料',
-    guestBadge: 'GUEST',
     joinedDayPrefix: 'DAY',
     streakDayPrefix: 'DAY',
     uidLabel: 'UID',
@@ -209,7 +198,6 @@ export const PUBLIC_COPY = {
     settingsTitle: '设置 / Settings',
     settingsSub: '偏好与体验设置',
     footerMotto: 'Profile stays current. 资料会持续更新。',
-    focusAwaiting: '登录后查看 / Awaiting',
     focusReady: '今日待开始 / Ready',
     focusPeak: '完成度很高 / Peak',
     focusStable: '进展稳定 / Stable',
