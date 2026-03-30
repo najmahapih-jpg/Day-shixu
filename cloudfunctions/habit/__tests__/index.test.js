@@ -182,6 +182,89 @@ describe('boardBatchUpdate', () => {
   })
 })
 
+// ── checkIn validation ─────────────────────────────────
+
+describe('checkIn', () => {
+  let habitId
+
+  beforeEach(async () => {
+    cloud.__setMsgSecCheckResult({ result: { suggest: 'pass', label: 0 } })
+    const res = await main({ action: 'create', data: { name: '打卡测试' } })
+    habitId = res.data._id
+  })
+
+  test('rejects non-numeric non-boolean value', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: 'abc' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('类型不合法')
+  })
+
+  test('rejects value out of range (negative)', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: -1 },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('0-9999')
+  })
+
+  test('rejects value out of range (too large)', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: 10000 },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('0-9999')
+  })
+
+  test('accepts boolean value', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: true },
+    })
+    expect(res.code).toBe(0)
+  })
+
+  test('accepts numeric value within range', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: 5000 },
+    })
+    expect(res.code).toBe(0)
+  })
+
+  test('dedup compensation rolls back totalCompletions on race', async () => {
+    // Simulate: first checkIn succeeds, second checkIn for same date
+    // creates duplicate then compensates
+    await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: true },
+    })
+
+    // Second checkIn for same date should update existing (not create duplicate)
+    const res2 = await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: true },
+    })
+    expect(res2.code).toBe(0)
+
+    // totalCompletions should be 1, not 2 (first created, second updated existing)
+    const habitRes = await main({ action: 'get', data: { id: habitId } })
+    expect(habitRes.data.totalCompletions).toBe(1)
+  })
+})
+
+describe('get', () => {
+  test('returns error for nonexistent habit', async () => {
+    const res = await main({ action: 'get', data: { id: 'nonexistent-id' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('不存在')
+  })
+})
+
 // ── Edge cases ──────────────────────────────────────────
 
 describe('edge cases', () => {

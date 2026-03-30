@@ -84,6 +84,7 @@ const command = {
 
 function createQueryChain(colName, where) {
   let _limit = 100
+  let _skip = 0
   let _orderKey = null
   let _orderDir = 'asc'
 
@@ -91,6 +92,7 @@ function createQueryChain(colName, where) {
     where: (w) => createQueryChain(colName, w),
     orderBy: (key, dir) => { _orderKey = key; _orderDir = dir; return chain },
     limit: (n) => { _limit = n; return chain },
+    skip: (n) => { _skip = n; return chain },
     count: () => {
       const col = _getCol(colName)
       const matched = where ? col.filter(d => _matchCondition(d, where)) : col
@@ -105,7 +107,7 @@ function createQueryChain(colName, where) {
           return a[_orderKey] > b[_orderKey] ? -1 : 1
         })
       }
-      return Promise.resolve({ data: matched.slice(0, _limit) })
+      return Promise.resolve({ data: matched.slice(_skip, _skip + _limit) })
     },
     update: ({ data: updateData }) => {
       const col = _getCol(colName)

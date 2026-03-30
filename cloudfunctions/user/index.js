@@ -174,12 +174,18 @@ async function getProfile(openid) {
   return ok(await normalizeUserDocument(user))
 }
 
-const ALLOWED_SETTINGS_KEYS = new Set([
-  'reduceMotion',
-  'weekStartsOn',
-  'defaultView',
-  'notifyEnabled',
-])
+/**
+ * Settings value validation map.
+ * Each known key has a validator — if the value is invalid the entire request fails.
+ * Unknown keys are silently ignored for forward compatibility.
+ */
+const SETTINGS_VALIDATORS = {
+  reduceMotion: (v) => typeof v === 'boolean',
+  weekStartsOn: (v) => v === 0 || v === 1,
+  defaultView: (v) => ['timeline', 'today', 'board'].includes(v),
+  notifyEnabled: (v) => typeof v === 'boolean',
+  theme: () => true, // always coerced to 'neo'
+}
 
 async function updateSettings(openid, data) {
   if (!data || !data.settings) return fail('缺少 settings 数据')
@@ -187,13 +193,21 @@ async function updateSettings(openid, data) {
   const user = await findUserByOpenid(openid)
   if (!user) return fail('用户不存在')
 
+  // Validate all known keys first — reject entire request on any invalid value
+  for (const key of Object.keys(data.settings)) {
+    const validator = SETTINGS_VALIDATORS[key]
+    if (validator && !validator(data.settings[key])) {
+      return fail(`设置项 ${key} 的值不合法`)
+    }
+  }
+
   const updateFields = {}
   Object.keys(data.settings).forEach((key) => {
     if (key === 'theme') {
       updateFields['settings.theme'] = 'neo'
       return
     }
-    if (ALLOWED_SETTINGS_KEYS.has(key)) {
+    if (key in SETTINGS_VALIDATORS) {
       updateFields[`settings.${key}`] = data.settings[key]
     }
   })

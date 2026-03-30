@@ -136,6 +136,9 @@ async function create(openid, event) {
   if (!(await checkText(ritual.name, openid, 2))) {
     return fail('仪式名称包含违规内容，请修改后重试')
   }
+  if (ritual.description && !(await checkText(ritual.description, openid, 2))) {
+    return fail('仪式描述包含违规内容，请修改后重试')
+  }
 
   const now = db.serverDate()
   const record = {
@@ -152,13 +155,22 @@ async function create(openid, event) {
 
 async function update(openid, event) {
   if (!event.id) return fail('缺少仪式 ID')
-  const { data: existing } = await ritualsCol.doc(event.id).get()
+  let existing
+  try {
+    const res = await ritualsCol.doc(event.id).get()
+    existing = res.data
+  } catch (e) {
+    return fail('仪式不存在')
+  }
   if (existing._openid !== openid) return fail('无权操作')
 
   // 内容安全检查
   const ritual = event.ritual || {}
   if (ritual.name && !(await checkText(ritual.name, openid, 2))) {
     return fail('仪式名称包含违规内容，请修改后重试')
+  }
+  if (ritual.description && !(await checkText(ritual.description, openid, 2))) {
+    return fail('仪式描述包含违规内容，请修改后重试')
   }
 
   const fields = sanitize(event.ritual || {})
@@ -197,17 +209,17 @@ async function execute(openid, event) {
   const dateStr = date ? toDateStr(date) : toDateStr(new Date())
   const results = []
 
-  // 逐个处理打卡
+  // Batch query: fetch all valid habits in one call instead of per-habit doc().get()
+  const { data: habitDocs } = await habitsCol
+    .where({ _id: _.in(validIds), _openid: openid })
+    .limit(100)
+    .get()
+  const habitMap = {}
+  habitDocs.forEach(h => { habitMap[h._id] = h })
+
   for (const habitId of validIds) {
-    // 校验习惯存在且归属当前用户
-    let habit
-    try {
-      const res = await habitsCol.doc(habitId).get()
-      habit = res.data
-    } catch (e) {
-      continue // 习惯不存在，跳过
-    }
-    if (!habit || habit._openid !== openid) continue
+    const habit = habitMap[habitId]
+    if (!habit) continue // 习惯不存在或不属于当前用户，跳过
 
     // 查是否已有打卡记录
     const { data: existing } = await checkInsCol

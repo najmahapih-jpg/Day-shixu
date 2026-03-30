@@ -237,6 +237,68 @@ describe('syncWechatProfile', () => {
   })
 })
 
+describe('updateSettings', () => {
+  beforeEach(async () => {
+    await main({ action: 'login' })
+  })
+
+  test('updates valid settings successfully', async () => {
+    const res = await main({
+      action: 'updateSettings',
+      data: {
+        settings: {
+          reduceMotion: true,
+          weekStartsOn: 0,
+          defaultView: 'board',
+          notifyEnabled: false,
+        },
+      },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.reduceMotion).toBe(true)
+    expect(res.data.weekStartsOn).toBe(0)
+    expect(res.data.defaultView).toBe('board')
+    expect(res.data.notifyEnabled).toBe(false)
+    expect(res.data.theme).toBe('neo')
+  })
+
+  test('rejects invalid reduceMotion value', async () => {
+    const res = await main({
+      action: 'updateSettings',
+      data: { settings: { reduceMotion: 'yes' } },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('reduceMotion')
+  })
+
+  test('rejects invalid weekStartsOn value', async () => {
+    const res = await main({
+      action: 'updateSettings',
+      data: { settings: { weekStartsOn: 3 } },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('weekStartsOn')
+  })
+
+  test('rejects invalid defaultView value', async () => {
+    const res = await main({
+      action: 'updateSettings',
+      data: { settings: { defaultView: 'calendar' } },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('defaultView')
+  })
+
+  test('ignores unknown keys silently', async () => {
+    const res = await main({
+      action: 'updateSettings',
+      data: { settings: { unknownKey: 'anything', reduceMotion: true } },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.reduceMotion).toBe(true)
+  })
+})
+
 describe('edge cases', () => {
   test('missing OPENID returns error', async () => {
     cloud.__setWXContext({ OPENID: null })

@@ -188,6 +188,100 @@ describe('ritual execute', () => {
   })
 })
 
+// ── Description content security ───────────────────────
+
+describe('ritual description content security', () => {
+  test('rejects risky description on create', async () => {
+    // First call (name) passes, second call (description) fails
+    cloud.openapi.security.msgSecCheck
+      .mockResolvedValueOnce({ result: { suggest: 'pass', label: 0 } })
+      .mockResolvedValueOnce({ result: { suggest: 'risky', label: 100 } })
+    const res = await main({
+      action: 'create',
+      ritual: { name: '正常名称', description: '违规描述' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('描述')
+  })
+
+  test('rejects risky description on update', async () => {
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '测试仪式', habitIds: [] },
+    })
+    // Name passes, description fails
+    cloud.openapi.security.msgSecCheck
+      .mockResolvedValueOnce({ result: { suggest: 'pass', label: 0 } })
+      .mockResolvedValueOnce({ result: { suggest: 'risky', label: 100 } })
+    const res = await main({
+      action: 'update',
+      id: createRes.data._id,
+      ritual: { name: '新名称', description: '违规描述' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('描述')
+  })
+})
+
+describe('ritual update nonexistent', () => {
+  test('returns error for nonexistent ritual', async () => {
+    const res = await main({
+      action: 'update',
+      id: 'nonexistent-id',
+      ritual: { name: '新名称' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('不存在')
+  })
+})
+
+describe('ritual execute ownership', () => {
+  test('only processes habits belonging to current user', async () => {
+    // Create a habit for current user
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'my-habit',
+      _openid: OPENID,
+      name: '我的习惯',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+    // Create a habit for another user
+    habitsCol.push({
+      _id: 'other-habit',
+      _openid: 'other-user',
+      name: '别人的习惯',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+
+    // Create a ritual with both habits
+    const ritualsCol = cloud.__getCol('rituals')
+    ritualsCol.push({
+      _id: 'test-ritual',
+      _openid: OPENID,
+      name: '混合仪式',
+      habitIds: ['my-habit', 'other-habit'],
+    })
+
+    const res = await main({
+      action: 'execute',
+      ritualId: 'test-ritual',
+      completedHabitIds: ['my-habit', 'other-habit'],
+      date: '2026-03-30',
+    })
+
+    expect(res.code).toBe(0)
+    // Only my-habit should be checked in (other-habit belongs to different user)
+    expect(res.data.checkIns.length).toBe(1)
+    expect(res.data.checkIns[0].habitId).toBe('my-habit')
+  })
+})
+
 // ── Edge cases ──────────────────────────────────────────
 
 describe('edge cases', () => {

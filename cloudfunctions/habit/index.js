@@ -125,8 +125,13 @@ async function list(openid) {
 
 async function get(openid, data) {
   if (!data || !data.id) return fail('缺少习惯 ID')
-  const { data: records } = await habitsCol.doc(data.id).get()
-  const habit = records
+  let habit
+  try {
+    const res = await habitsCol.doc(data.id).get()
+    habit = res.data
+  } catch (e) {
+    return fail('习惯不存在')
+  }
   if (habit._openid !== openid) return fail('无权访问')
   return ok(habit)
 }
@@ -334,6 +339,20 @@ async function checkIn(openid, data) {
     return fail('缺少 habitId 或 date')
   }
   const { habitId, date, value } = data
+
+  // value 校验：仅允许 boolean 或 0-9999 的数字
+  if (value !== undefined) {
+    if (typeof value === 'boolean') {
+      // ok
+    } else if (typeof value === 'number') {
+      if (!Number.isFinite(value) || value < 0 || value > 9999) {
+        return fail('打卡值必须在 0-9999 之间')
+      }
+    } else {
+      return fail('打卡值类型不合法')
+    }
+  }
+
   const dateStr = toDateStr(date)
 
   // 校验习惯归属
@@ -369,6 +388,34 @@ async function checkIn(openid, data) {
     await habitsCol.doc(habitId).update({
       data: { totalCompletions: _.inc(1) }
     })
+
+    // Post-insert duplicate check (compensating action for race condition).
+    // NOTE: For best protection, create a unique compound index on
+    // { _openid, habitId, date } in the cloud console.
+    const { data: duplicates } = await checkInsCol
+      .where({ _openid: openid, habitId, date: dateStr })
+      .orderBy('createdAt', 'asc')
+      .limit(5)
+      .get()
+
+    if (duplicates.length > 1) {
+      if (_id !== duplicates[0]._id) {
+        // Another request beat us — roll back our record and totalCompletions
+        await checkInsCol.doc(_id).remove()
+        await habitsCol.doc(habitId).update({
+          data: { totalCompletions: _.inc(-1) }
+        })
+        checkInRecord = duplicates[0]
+      } else {
+        // We won the race — remove all later duplicates and adjust totalCompletions
+        for (let i = 1; i < duplicates.length; i++) {
+          await checkInsCol.doc(duplicates[i]._id).remove()
+          await habitsCol.doc(habitId).update({
+            data: { totalCompletions: _.inc(-1) }
+          })
+        }
+      }
+    }
   }
 
   // 计算连续天数：查最近打卡记录 + 冻结记录（范围查询）

@@ -109,13 +109,34 @@ async function batchGetCheckIns(where) {
 
 // ── actions ──────────────────────────────────────────────
 
+const MAX_DATE_RANGE_DAYS = 400
+
+/** Validate date string is parseable and returns a valid Date */
+function isValidDate(dateStr) {
+  const d = parseDate(toDateStr(dateStr))
+  return !isNaN(d.getTime())
+}
+
 async function getHeatmap(openid, data) {
   if (!data || !data.startDate || !data.endDate) {
     return fail('缺少 startDate 或 endDate')
   }
 
+  if (!isValidDate(data.startDate) || !isValidDate(data.endDate)) {
+    return fail('日期格式不合法')
+  }
+
   const startDate = toDateStr(data.startDate)
   const endDate = toDateStr(data.endDate)
+
+  if (startDate > endDate) {
+    return fail('startDate 不能晚于 endDate')
+  }
+
+  const rangeMs = parseDate(endDate).getTime() - parseDate(startDate).getTime()
+  if (rangeMs > MAX_DATE_RANGE_DAYS * 24 * 3600 * 1000) {
+    return fail('查询范围不能超过 400 天')
+  }
 
   // 1. 查询该用户所有活跃（未归档）习惯
   const { data: habits } = await habitsCol
