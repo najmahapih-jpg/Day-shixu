@@ -897,6 +897,16 @@ async function loadWeekComparison() {
   }
 }
 
+function syncWeekProgressForToday() {
+  const today = habitStore.currentDate || getToday()
+  const totalActive = habitStore.activeHabits.filter((h) => Boolean(h._id)).length
+  if (totalActive === 0) return
+
+  const nextRates = [...weekRates.value]
+  nextRates[getWeekdayFromDateStr(today)] = Math.round((habitStore.todayCheckIns.size / totalActive) * 100)
+  weekRates.value = nextRates
+}
+
 const weekMiniData = computed(() => {
   const today = getBeijingDateParts().weekday
   return Array.from({ length: 7 }, (_, i) => {
@@ -1130,6 +1140,8 @@ async function handleCheck(habitId: string, value: number) {
 
   try {
     await habitStore.checkIn(habitId, value)
+    syncWeekProgressForToday()
+    loadWeekComparison()
     const settleDelay = appStore.reduceMotion ? 120 : 320
     const transitionTimer = setTimeout(() => {
       clearHabitTransition(habitId)
@@ -1152,6 +1164,8 @@ async function handleUncheck(habitId: string) {
 
   try {
     await habitStore.uncheckIn(habitId)
+    syncWeekProgressForToday()
+    loadWeekComparison()
   } catch {
     markHabitWarning(habitId)
     haptic.warning()
