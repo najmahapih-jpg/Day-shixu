@@ -54,7 +54,7 @@ if ($manifest -match '__usePrivacyCheck__.*true') {
 
 # ── 4. Version Number ──
 Write-Host "`n4. Version Configuration" -ForegroundColor White
-if ($manifest -match '"versionName":\s*"(\d+\.\d+\.\d+)"') {
+if ($manifest -match '"versionName"\s*:\s*"(\d+\.\d+\.\d+)"') {
   $version = $Matches[1]
   Pass "Version: $version"
 } else {
