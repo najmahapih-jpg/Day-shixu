@@ -118,6 +118,33 @@ describe('login', () => {
       wechatSyncAt: null,
     })
   })
+
+  test('strips legacy defaultView from settings on login', async () => {
+    const col = cloud.__getCol('users')
+    col.push({
+      _id: 'legacy-settings',
+      _openid: OPENID,
+      nickName: 'OldUser',
+      avatarUrl: '',
+      settings: {
+        theme: 'neo',
+        reduceMotion: false,
+        weekStartsOn: 1,
+        defaultView: 'board',
+        notifyEnabled: true,
+      },
+      profileMeta: {
+        wechatAuthorized: false,
+        wechatSyncAt: null,
+      },
+    })
+
+    const res = await main({ action: 'login' })
+
+    expect(res.code).toBe(0)
+    expect(res.data.settings.defaultView).toBeUndefined()
+    expect(res.data.settings.notifyEnabled).toBe(true)
+  })
 })
 
 describe('syncWechatProfile', () => {
@@ -249,7 +276,6 @@ describe('updateSettings', () => {
         settings: {
           reduceMotion: true,
           weekStartsOn: 0,
-          defaultView: 'board',
           notifyEnabled: false,
         },
       },
@@ -257,7 +283,6 @@ describe('updateSettings', () => {
     expect(res.code).toBe(0)
     expect(res.data.reduceMotion).toBe(true)
     expect(res.data.weekStartsOn).toBe(0)
-    expect(res.data.defaultView).toBe('board')
     expect(res.data.notifyEnabled).toBe(false)
     expect(res.data.theme).toBe('neo')
   })
@@ -280,13 +305,14 @@ describe('updateSettings', () => {
     expect(res.message).toContain('weekStartsOn')
   })
 
-  test('rejects invalid defaultView value', async () => {
+  test('ignores legacy defaultView key silently', async () => {
     const res = await main({
       action: 'updateSettings',
-      data: { settings: { defaultView: 'calendar' } },
+      data: { settings: { defaultView: 'calendar', reduceMotion: true } },
     })
-    expect(res.code).toBe(-1)
-    expect(res.message).toContain('defaultView')
+    expect(res.code).toBe(0)
+    expect(res.data.reduceMotion).toBe(true)
+    expect(res.data.defaultView).toBeUndefined()
   })
 
   test('ignores unknown keys silently', async () => {

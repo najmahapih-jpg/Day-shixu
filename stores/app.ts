@@ -9,7 +9,6 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
   const theme = ref<ThemeMode>('neo')
   const reduceMotion = ref(false)
   const weekStartsOn = ref<0 | 1>(1)
-  const defaultView = ref<'board' | 'timeline' | 'calendar'>('timeline')
   const notifyEnabled = ref(true)
   const systemInfo = ref<UniApp.GetSystemInfoResult | null>(null)
 
@@ -51,10 +50,6 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     weekStartsOn.value = value
   }
 
-  function setDefaultView(value: 'board' | 'timeline' | 'calendar') {
-    defaultView.value = value
-  }
-
   function setNotifyEnabled(value: boolean) {
     notifyEnabled.value = value
   }
@@ -64,7 +59,6 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     theme,
     reduceMotion,
     weekStartsOn,
-    defaultView,
     notifyEnabled,
     systemInfo,
     isDark,
@@ -76,7 +70,6 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     setTheme,
     setReduceMotion,
     setWeekStartsOn,
-    setDefaultView,
     setNotifyEnabled,
   }
 }))

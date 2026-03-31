@@ -41,22 +41,6 @@
           </view>
         </view>
 
-        <!-- Default view -->
-        <view class="setting-row">
-          <text class="setting-row__label">默认视图</text>
-          <view class="seg-picker">
-            <view
-              v-for="opt in viewOptions"
-              :key="opt.value"
-              class="seg-item"
-              :class="{ 'seg-item--active': defaultView === opt.value }"
-              @tap="setDefaultView(opt.value)"
-            >
-              <text class="seg-item__text">{{ opt.label }}</text>
-            </view>
-          </view>
-        </view>
-
         <!-- Notify -->
         <view class="setting-row">
           <text class="setting-row__label">习惯提醒</text>
@@ -136,7 +120,6 @@ const settingsAboutCopy = PUBLIC_COPY.settingsAbout
 const {
   reduceMotion,
   weekStartsOn,
-  defaultView,
   notifyEnabled,
   isNeo,
 } = storeToRefs(appStore)
@@ -150,12 +133,6 @@ const weekStartOptions = [
   { value: 0 as const, label: '周日' },
 ]
 
-const viewOptions = [
-  { value: 'timeline' as const, label: '时间轴' },
-  { value: 'board' as const, label: '灵感板' },
-  { value: 'calendar' as const, label: '日历' },
-]
-
 // --- State ---
 
 const cacheSize = ref('计算中...')
@@ -164,11 +141,6 @@ const cacheSize = ref('计算中...')
 
 function setWeekStartsOn(val: 0 | 1) {
   appStore.setWeekStartsOn(val)
-  syncToServer()
-}
-
-function setDefaultView(val: 'board' | 'timeline' | 'calendar') {
-  appStore.setDefaultView(val)
   syncToServer()
 }
 
@@ -189,7 +161,6 @@ function syncToServer() {
     theme: 'neo',
     reduceMotion: reduceMotion.value,
     weekStartsOn: weekStartsOn.value,
-    defaultView: defaultView.value,
     notifyEnabled: notifyEnabled.value,
   }).catch(() => {
     // Error already handled in store

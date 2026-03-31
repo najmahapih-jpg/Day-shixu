@@ -14,6 +14,15 @@ function defaultProfileMeta() {
   }
 }
 
+function defaultSettings() {
+  return {
+    theme: 'neo',
+    reduceMotion: false,
+    weekStartsOn: 1,
+    notifyEnabled: true,
+  }
+}
+
 function nowISO() {
   return new Date(Date.now() + 8 * 3600 * 1000).toISOString()
 }
@@ -92,19 +101,50 @@ function profileMetaNeedsMigration(user, normalizedMeta) {
   )
 }
 
+function normalizeSettings(rawSettings) {
+  const raw = rawSettings || {}
+  return {
+    theme: 'neo',
+    reduceMotion: raw.reduceMotion === true,
+    weekStartsOn: raw.weekStartsOn === 0 ? 0 : 1,
+    notifyEnabled: raw.notifyEnabled !== false,
+  }
+}
+
+function settingsNeedMigration(rawSettings, normalizedSettings) {
+  if (!rawSettings) return true
+  if (Object.prototype.hasOwnProperty.call(rawSettings, 'defaultView')) {
+    return true
+  }
+
+  return (
+    rawSettings.theme !== normalizedSettings.theme ||
+    rawSettings.reduceMotion !== normalizedSettings.reduceMotion ||
+    rawSettings.weekStartsOn !== normalizedSettings.weekStartsOn ||
+    rawSettings.notifyEnabled !== normalizedSettings.notifyEnabled
+  )
+}
+
 async function normalizeUserDocument(user) {
   const normalizedMeta = normalizeProfileMeta(user)
+  const normalizedSettings = normalizeSettings(user.settings)
+  const updateData = {}
+
   if (profileMetaNeedsMigration(user, normalizedMeta)) {
-    await usersCol.doc(user._id).update({
-      data: {
-        profileMeta: normalizedMeta,
-        updatedAt: db.serverDate(),
-      },
-    })
+    updateData.profileMeta = normalizedMeta
+  }
+  if (settingsNeedMigration(user.settings, normalizedSettings)) {
+    updateData.settings = normalizedSettings
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    updateData.updatedAt = db.serverDate()
+    await usersCol.doc(user._id).update({ data: updateData })
   }
 
   return {
     ...user,
+    settings: normalizedSettings,
     profileMeta: normalizedMeta,
   }
 }
@@ -143,13 +183,7 @@ async function login(openid) {
     _openid: openid,
     nickName: '',
     avatarUrl: '',
-    settings: {
-      theme: 'neo',
-      reduceMotion: false,
-      weekStartsOn: 1,
-      defaultView: 'timeline',
-      notifyEnabled: true,
-    },
+    settings: defaultSettings(),
     stats: {
       joinDate: joinDateStr,
       totalCheckIns: 0,
@@ -182,7 +216,6 @@ async function getProfile(openid) {
 const SETTINGS_VALIDATORS = {
   reduceMotion: (v) => typeof v === 'boolean',
   weekStartsOn: (v) => v === 0 || v === 1,
-  defaultView: (v) => ['timeline', 'today', 'board'].includes(v),
   notifyEnabled: (v) => typeof v === 'boolean',
   theme: () => true, // always coerced to 'neo'
 }
@@ -201,21 +234,26 @@ async function updateSettings(openid, data) {
     }
   }
 
-  const updateFields = {}
+  const supportedIncoming = {}
   Object.keys(data.settings).forEach((key) => {
     if (key === 'theme') {
-      updateFields['settings.theme'] = 'neo'
+      supportedIncoming.theme = 'neo'
       return
     }
     if (key in SETTINGS_VALIDATORS) {
-      updateFields[`settings.${key}`] = data.settings[key]
+      supportedIncoming[key] = data.settings[key]
     }
   })
-  updateFields.updatedAt = db.serverDate()
 
-  await usersCol.doc(user._id).update({ data: updateFields })
+  const merged = normalizeSettings({ ...user.settings, ...supportedIncoming })
 
-  const merged = { ...user.settings, ...data.settings, theme: 'neo' }
+  await usersCol.doc(user._id).update({
+    data: {
+      settings: merged,
+      updatedAt: db.serverDate(),
+    },
+  })
+
   return ok(merged)
 }
 

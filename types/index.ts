@@ -17,7 +17,6 @@ export interface UserSettings {
   theme: 'neo'
   reduceMotion: boolean
   weekStartsOn: 0 | 1
-  defaultView: 'board' | 'timeline' | 'calendar'
   notifyEnabled: boolean
 }
 
