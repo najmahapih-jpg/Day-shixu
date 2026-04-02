@@ -308,8 +308,12 @@ async function getWeeklyComparison(openid) {
   const lastMonday = toDateStr(
     new Date(parseDate(thisMonday).getTime() - 7 * 24 * 3600 * 1000)
   )
-  const lastSunday = toDateStr(
-    new Date(parseDate(thisMonday).getTime() - 1 * 24 * 3600 * 1000)
+  // Use the same day count as thisWeek (Mon..today) for a fair comparison
+  const elapsedDays = Math.round(
+    (parseDate(today).getTime() - parseDate(thisMonday).getTime()) / (24 * 3600 * 1000)
+  )
+  const lastWeekEnd = toDateStr(
+    new Date(parseDate(lastMonday).getTime() + elapsedDays * 24 * 3600 * 1000)
   )
 
   // 查询活跃习惯
@@ -343,7 +347,7 @@ async function getWeeklyComparison(openid) {
   }
 
   const thisWeek = buildWeekData(thisMonday, today)
-  const lastWeek = buildWeekData(lastMonday, lastSunday)
+  const lastWeek = buildWeekData(lastMonday, lastWeekEnd)
 
   // 计算平均完成率
   const avgThis = thisWeek.length > 0

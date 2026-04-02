@@ -87,9 +87,11 @@ export interface CheckIn extends BaseDocument {
   habitId: string
   /** Format: YYYY-MM-DD */
   date: string
-  completed: boolean
   value: number
-  completedAt: string
+  /** Client-only: set during optimistic update, never stored by server */
+  completed?: boolean
+  /** Client-only: set during optimistic update, never stored by server */
+  completedAt?: string
 }
 
 // --- Ritual ---
