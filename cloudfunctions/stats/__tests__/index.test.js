@@ -103,6 +103,30 @@ describe('getStreaks today grace period', () => {
   })
 })
 
+describe('getWeeklyComparison fair comparison', () => {
+  test('lastWeek has the same number of days as thisWeek (partial-week parity)', async () => {
+    const res = await main({ action: 'getWeeklyComparison' })
+    expect(res.code).toBe(0)
+    const { thisWeek, lastWeek } = res.data
+    expect(Array.isArray(thisWeek)).toBe(true)
+    expect(Array.isArray(lastWeek)).toBe(true)
+    // The key invariant: both arrays must have equal length
+    expect(lastWeek.length).toBe(thisWeek.length)
+    // Each entry should have { day, rate } shape
+    thisWeek.forEach(entry => {
+      expect(entry).toHaveProperty('day')
+      expect(entry).toHaveProperty('rate')
+    })
+    lastWeek.forEach(entry => {
+      expect(entry).toHaveProperty('day')
+      expect(entry).toHaveProperty('rate')
+    })
+    // thisWeek length must be between 1 and 7
+    expect(thisWeek.length).toBeGreaterThanOrEqual(1)
+    expect(thisWeek.length).toBeLessThanOrEqual(7)
+  })
+})
+
 describe('edge cases', () => {
   test('missing OPENID returns error', async () => {
     cloud.__setWXContext({ OPENID: null })

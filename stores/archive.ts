@@ -65,7 +65,7 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
 
         // Simple Milestone Logic: If this checkIn caused a streak of exactly 7, 21, 30, 100
         // (Assuming streakCurrent matches at the day. In a real app we might need historical streak values, but this is a simplified proxy)
-        if (habit && [7, 21, 30, 100].includes(habit.streakCurrent) && getToday() === dateStr) {
+        if (habit && [7, 21, 30, 100].includes(habit.streakCurrent)) {
           dailyMap.get(dateStr)!.isMilestone = true
           dailyMap.get(dateStr)!.milestoneHabits.push(habit)
         }
