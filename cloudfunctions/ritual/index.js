@@ -130,10 +130,21 @@ async function get(openid, event) {
   return ok({ ...ritual, habits })
 }
 
+const MAX_NAME_LENGTH = 100
+const MAX_DESCRIPTION_LENGTH = 500
+
 async function create(openid, event) {
   const ritual = event.ritual
   if (!ritual) return fail('缺少数据')
   if (!ritual.name) return fail('仪式名称必填')
+
+  // 字段长度校验
+  if (ritual.name.length > MAX_NAME_LENGTH) {
+    return fail(`仪式名称不能超过 ${MAX_NAME_LENGTH} 个字符`)
+  }
+  if (ritual.description && ritual.description.length > MAX_DESCRIPTION_LENGTH) {
+    return fail(`仪式描述不能超过 ${MAX_DESCRIPTION_LENGTH} 个字符`)
+  }
 
   // 内容安全检查
   if (!(await checkText(ritual.name, openid, 2))) {
@@ -167,8 +178,16 @@ async function update(openid, event) {
   }
   if (existing._openid !== openid) return fail('无权操作')
 
-  // 内容安全检查
+  // 字段长度校验
   const ritual = event.ritual || {}
+  if (ritual.name && ritual.name.length > MAX_NAME_LENGTH) {
+    return fail(`仪式名称不能超过 ${MAX_NAME_LENGTH} 个字符`)
+  }
+  if (ritual.description && ritual.description.length > MAX_DESCRIPTION_LENGTH) {
+    return fail(`仪式描述不能超过 ${MAX_DESCRIPTION_LENGTH} 个字符`)
+  }
+
+  // 内容安全检查
   if (ritual.name && !(await checkText(ritual.name, openid, 2))) {
     return fail('仪式名称包含违规内容，请修改后重试')
   }
@@ -306,7 +325,7 @@ exports.main = async (event, context) => {
       default:        return fail('未知操作: ' + action)
     }
   } catch (err) {
-    console.error('[' + action + ']', err)
-    return fail(err.message || '服务器错误')
+    console.error('[ritual/' + action + ']', err)
+    return fail('服务器错误，请稍后重试')
   }
 }

@@ -331,7 +331,7 @@ exports.main = async (event, context) => {
         return fail('未知操作: ' + action)
     }
   } catch (err) {
-    console.error('[ai:' + action + ']', err)
-    return fail(err.message || '服务器错误')
+    console.error('[ai/' + action + ']', err)
+    return fail('服务器错误，请稍后重试')
   }
 }

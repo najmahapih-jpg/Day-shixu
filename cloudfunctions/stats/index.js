@@ -90,7 +90,7 @@ function getMonday(dateStr) {
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 /** 批量查询 check_ins（处理云数据库100条/次限制） */
-async function batchGetCheckIns(where) {
+async function batchGetCheckIns(where, maxRecords = 10000) {
   const MAX = 100
   let allData = []
   let skip = 0
@@ -101,7 +101,7 @@ async function batchGetCheckIns(where) {
       .limit(MAX)
       .get()
     allData = allData.concat(data)
-    if (data.length < MAX) break
+    if (data.length < MAX || allData.length >= maxRecords) break
     skip += MAX
   }
   return allData
@@ -372,7 +372,7 @@ exports.main = async (event, context) => {
       default: return fail('未知操作: ' + action)
     }
   } catch (err) {
-    console.error('[' + action + ']', err)
-    return fail(err.message || '服务器错误')
+    console.error('[stats/' + action + ']', err)
+    return fail('服务器错误，请稍后重试')
   }
 }

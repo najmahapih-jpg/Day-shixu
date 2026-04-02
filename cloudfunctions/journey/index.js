@@ -172,12 +172,13 @@ function toReadableErrorMessage(err) {
   if (msg.includes('journeys')) {
     return '云数据库缺少集合 journeys，请先在云开发控制台创建'
   }
-  return raw || '服务器错误'
+  return '服务器错误，请稍后重试'
 }
 
 async function listPreset() {
   const { data } = await journeysCol
     .where({ type: 'preset' })
+    .field({ title: true, description: true, difficulty: true, steps: true, presetKey: true, type: true, icon: true, category: true, coverImage: true, totalDays: true })
     .orderBy('difficulty', 'asc')
     .limit(100)
     .get()
@@ -350,34 +351,28 @@ async function completeStep(openid, event) {
   const step = steps[stepIndex]
   const totalSteps = steps.length
 
-  await userJourneysCol.doc(userJourneyId).update({
-    data: {
-      completedSteps: _.addToSet(stepIndex),
-      updatedAt: db.serverDate(),
-    },
-  })
-
-  const { data: updated } = await userJourneysCol.doc(userJourneyId).get()
-  const newCompletedSteps = updated.completedSteps || []
+  // 合并为单次写入，防止双击造成两次 update 竞态
+  const newCompletedSteps = [...new Set([...completedSteps, stepIndex])]
   const allDone = newCompletedSteps.length >= totalSteps
   const newCurrentStep = allDone
     ? totalSteps
-    : Math.max(updated.currentStep || 0, stepIndex + 1)
+    : Math.max(userJourney.currentStep || 0, stepIndex + 1)
 
   const nowStr = toDateStr(new Date())
-  const progressUpdate = {
+  const updateData = {
+    completedSteps: _.addToSet(stepIndex),
     currentStep: newCurrentStep,
     isCompleted: allDone,
     updatedAt: db.serverDate(),
   }
-  if (allDone) {
-    progressUpdate.completedAt = nowStr
+  if (allDone && !userJourney.completedAt) {
+    updateData.completedAt = nowStr
   }
 
-  await userJourneysCol.doc(userJourneyId).update({ data: progressUpdate })
+  await userJourneysCol.doc(userJourneyId).update({ data: updateData })
 
   return ok({
-    ...updated,
+    ...userJourney,
     completedSteps: newCompletedSteps,
     currentStep: newCurrentStep,
     isCompleted: allDone,

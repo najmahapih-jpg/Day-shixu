@@ -136,8 +136,20 @@ async function get(openid, data) {
   return ok(habit)
 }
 
+const MAX_HABITS_PER_USER = 200
+const MAX_NAME_LENGTH = 100
+const MAX_DESCRIPTION_LENGTH = 500
+
 async function create(openid, data) {
   if (!data) return fail('缺少数据')
+
+  // 字段长度校验
+  if (data.name && data.name.length > MAX_NAME_LENGTH) {
+    return fail(`习惯名称不能超过 ${MAX_NAME_LENGTH} 个字符`)
+  }
+  if (data.description && data.description.length > MAX_DESCRIPTION_LENGTH) {
+    return fail(`习惯描述不能超过 ${MAX_DESCRIPTION_LENGTH} 个字符`)
+  }
 
   // 内容安全检查
   if (data.name && !(await checkText(data.name, openid, 2))) {
@@ -149,10 +161,14 @@ async function create(openid, data) {
 
   const now = db.serverDate()
 
-  // 查当前用户未归档习惯数量作为 order
+  // 查当前用户习惯总数（含归档），用作 order 和上限检查
   const { total } = await habitsCol
     .where({ _openid: openid, isArchived: _.neq(true) })
     .count()
+
+  if (total >= MAX_HABITS_PER_USER) {
+    return fail(`习惯数量已达上限（${MAX_HABITS_PER_USER}）`)
+  }
 
   const record = {
     ...sanitize(data),
@@ -171,6 +187,14 @@ async function create(openid, data) {
 
 async function update(openid, data) {
   if (!data || !data.id) return fail('缺少习惯 ID')
+
+  // 字段长度校验
+  if (data.name && data.name.length > MAX_NAME_LENGTH) {
+    return fail(`习惯名称不能超过 ${MAX_NAME_LENGTH} 个字符`)
+  }
+  if (data.description && data.description.length > MAX_DESCRIPTION_LENGTH) {
+    return fail(`习惯描述不能超过 ${MAX_DESCRIPTION_LENGTH} 个字符`)
+  }
 
   // 内容安全检查
   if (data.name && !(await checkText(data.name, openid, 2))) {
@@ -887,6 +911,6 @@ exports.main = async (event, context) => {
     }
   } catch (err) {
     console.error('[' + action + ']', err)
-    return fail(err.message || '服务器错误')
+    return fail('服务器错误，请稍后重试')
   }
 }
