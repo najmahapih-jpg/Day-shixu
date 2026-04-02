@@ -69,6 +69,40 @@ describe('habit create', () => {
     const res = await main({ action: 'create' })
     expect(res.code).toBe(-1)
   })
+
+  test('rejects name exceeding max length', async () => {
+    const res = await main({
+      action: 'create',
+      data: { name: 'x'.repeat(101) },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('100')
+  })
+
+  test('rejects description exceeding max length', async () => {
+    const res = await main({
+      action: 'create',
+      data: { name: 'ok', description: 'x'.repeat(501) },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('500')
+  })
+
+  test('rejects creation when habit limit reached', async () => {
+    // Fill up habits to the limit
+    const habitsCol = cloud.__getCol('habits')
+    for (let i = 0; i < 200; i++) {
+      habitsCol.push({
+        _id: `limit-h-${i}`,
+        _openid: OPENID,
+        name: `习惯${i}`,
+        isArchived: false,
+      })
+    }
+    const res = await main({ action: 'create', data: { name: '超出上限' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('上限')
+  })
 })
 
 describe('habit update', () => {

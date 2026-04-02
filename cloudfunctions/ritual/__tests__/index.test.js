@@ -56,6 +56,24 @@ describe('ritual create', () => {
     expect(res.code).toBe(-1)
     expect(res.message).toContain('名称必填')
   })
+
+  test('rejects name exceeding max length', async () => {
+    const res = await main({
+      action: 'create',
+      ritual: { name: 'x'.repeat(101) },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('100')
+  })
+
+  test('rejects description exceeding max length', async () => {
+    const res = await main({
+      action: 'create',
+      ritual: { name: 'ok', description: 'x'.repeat(501) },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('500')
+  })
 })
 
 // ── Update ──────────────────────────────────────────────
