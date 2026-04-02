@@ -40,10 +40,11 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
 
       // 2. Fetch check-ins for the last N days (simulate cursor)
       const endDate = fetchedUntil.value ? fetchedUntil.value : getToday()
-      // Calculate start date by subtracting days from endDate
-      const end = new Date(endDate)
-      end.setDate(end.getDate() - days)
-      const startDate = end.toISOString().split('T')[0]
+      // Calculate start date using UTC-safe arithmetic to avoid timezone off-by-one
+      const [ey, em, ed] = endDate.split('-').map(Number)
+      const startTs = Date.UTC(ey, em - 1, ed - days)
+      const sd = new Date(startTs)
+      const startDate = `${sd.getUTCFullYear()}-${String(sd.getUTCMonth() + 1).padStart(2, '0')}-${String(sd.getUTCDate()).padStart(2, '0')}`
 
       const checkIns = await habitService.getCheckInRange('', startDate, endDate)
       
