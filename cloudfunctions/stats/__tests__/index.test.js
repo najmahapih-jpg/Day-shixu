@@ -62,6 +62,47 @@ describe('getHeatmap date validation', () => {
   })
 })
 
+describe('getStreaks today grace period', () => {
+  test('does not break streak when today is active but not yet checked in', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    const checkInsCol = cloud.__getCol('check_ins')
+
+    habitsCol.push({
+      _id: 'streak-h1',
+      _openid: OPENID,
+      name: '每日习惯',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 3,
+      streakLongest: 3,
+      totalCompletions: 3,
+    })
+
+    // Checked in yesterday, day before, and day before that — but NOT today
+    const today = new Date()
+    const utc8 = new Date(today.getTime() + 8 * 3600 * 1000)
+    const pad = (n) => String(n).padStart(2, '0')
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(utc8)
+      d.setUTCDate(d.getUTCDate() - i)
+      const dateStr = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+      checkInsCol.push({
+        _id: `ci-streak-${i}`,
+        _openid: OPENID,
+        habitId: 'streak-h1',
+        date: dateStr,
+        value: true,
+      })
+    }
+
+    const res = await main({ action: 'getStreaks' })
+    expect(res.code).toBe(0)
+    // Current streak should be 3 (yesterday + 2 days before), NOT 0
+    const habit = res.data.habits.find(h => h.id === 'streak-h1')
+    expect(habit.currentStreak).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe('edge cases', () => {
   test('missing OPENID returns error', async () => {
     cloud.__setWXContext({ OPENID: null })

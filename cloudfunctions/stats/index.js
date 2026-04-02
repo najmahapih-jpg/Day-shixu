@@ -260,6 +260,7 @@ async function getStreaks(openid) {
     if (tempStreak > longestStreak) longestStreak = tempStreak
 
     // 重新计算 currentStreak（从今天往前的连续）
+    // 如果今天是活跃日但尚未打卡，跳过今天（不算中断），从昨天开始计算
     currentStreak = 0
     const cursor2 = parseDate(today)
     for (let i = 0; i < 365; i++) {
@@ -267,6 +268,8 @@ async function getStreaks(openid) {
       if (isHabitActiveOnDate(habit, dateStr)) {
         if (checkedDates.has(dateStr) || frozenSet.has(dateStr)) {
           currentStreak++
+        } else if (i === 0) {
+          // 今天还未打卡 — 不中断连续，跳过继续看昨天
         } else {
           break
         }

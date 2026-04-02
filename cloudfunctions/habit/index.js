@@ -529,11 +529,22 @@ async function getCheckIns(openid, data) {
     return fail('缺少 date 或 startDate+endDate')
   }
 
-  const { data: records } = await checkInsCol
-    .where(where)
-    .orderBy('date', 'asc')
-    .limit(1000)
-    .get()
+  // 分页获取（wx-server-sdk 单次上限 100 条）
+  const PAGE = 100
+  let records = []
+  let skip = 0
+  while (true) {
+    const { data } = await checkInsCol
+      .where(where)
+      .orderBy('date', 'asc')
+      .skip(skip)
+      .limit(PAGE)
+      .get()
+    records = records.concat(data)
+    if (data.length < PAGE) break
+    skip += PAGE
+    if (records.length >= 5000) break // safety cap
+  }
   return ok(records)
 }
 
