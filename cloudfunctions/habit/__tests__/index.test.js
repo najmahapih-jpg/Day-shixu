@@ -132,6 +132,54 @@ describe('boardCreate', () => {
   })
 })
 
+describe('boardCreate imageUrl allowlist', () => {
+  test('accepts cloud:// imageUrl', async () => {
+    const res = await main({
+      action: 'boardCreate',
+      data: { content: 'ok', imageUrl: 'cloud://env.xxx/img.png' },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.imageUrl).toBe('cloud://env.xxx/img.png')
+  })
+
+  test('accepts https:// imageUrl', async () => {
+    const res = await main({
+      action: 'boardCreate',
+      data: { content: 'ok', imageUrl: 'https://example.com/img.png' },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.imageUrl).toBe('https://example.com/img.png')
+  })
+
+  test('rejects javascript: imageUrl', async () => {
+    const res = await main({
+      action: 'boardCreate',
+      data: { content: 'ok', imageUrl: 'javascript:alert(1)' },
+    })
+    expect(res.code).toBe(0)
+    // imageUrl should be sanitized to empty string
+    expect(res.data.imageUrl || '').toBe('')
+  })
+
+  test('rejects data: imageUrl', async () => {
+    const res = await main({
+      action: 'boardCreate',
+      data: { content: 'ok', imageUrl: 'data:text/html,<script>alert(1)</script>' },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.imageUrl || '').toBe('')
+  })
+
+  test('rejects http:// imageUrl', async () => {
+    const res = await main({
+      action: 'boardCreate',
+      data: { content: 'ok', imageUrl: 'http://evil.com/track.gif' },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.imageUrl || '').toBe('')
+  })
+})
+
 describe('boardUpdate', () => {
   let noteId
 

@@ -594,9 +594,14 @@ function normalizeBoardGroupId(groupId) {
   return groupId.trim().slice(0, 24)
 }
 
+const BOARD_IMAGE_ALLOWED_PREFIXES = ['cloud://', 'https://', 'wxfile://']
 function normalizeBoardImageUrl(imageUrl) {
   if (typeof imageUrl !== 'string') return ''
-  return imageUrl.trim()
+  const val = imageUrl.trim()
+  if (!val) return ''
+  if (val.length > 2048) return ''
+  if (!BOARD_IMAGE_ALLOWED_PREFIXES.some(p => val.startsWith(p))) return ''
+  return val
 }
 
 async function verifyLinkedHabit(openid, linkedHabitId) {

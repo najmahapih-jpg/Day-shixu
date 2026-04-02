@@ -69,15 +69,23 @@ async function scheduledRemind() {
   const endM = String(endMin % 60).padStart(2, '0')
   const windowEnd = `${endH}:${endM}`
 
-  // 查询所有未归档、有提醒时间的习惯
-  // reminderTime 在当前窗口内
-  const { data: habits } = await habitsCol
-    .where({
-      isArchived: _.neq(true),
-      reminderTime: _.gte(currentTime).and(_.lte(windowEnd)),
-    })
-    .limit(500)
-    .get()
+  // 分页查询所有未归档、有提醒时间的习惯（wx-server-sdk 单次上限 100 条）
+  const PAGE = 100
+  let habits = []
+  let skip = 0
+  while (true) {
+    const { data } = await habitsCol
+      .where({
+        isArchived: _.neq(true),
+        reminderTime: _.gte(currentTime).and(_.lte(windowEnd)),
+      })
+      .skip(skip)
+      .limit(PAGE)
+      .get()
+    habits = habits.concat(data)
+    if (data.length < PAGE) break
+    skip += PAGE
+  }
 
   if (habits.length === 0) {
     return ok({ sent: 0, total: 0 })
@@ -95,10 +103,33 @@ async function scheduledRemind() {
     userHabitsMap[openid].push(habit)
   }
 
+  // 过滤已关闭通知的用户
+  const openids = Object.keys(userHabitsMap)
+  if (openids.length === 0) {
+    return ok({ sent: 0, total: 0 })
+  }
+
+  // 分页获取用户通知设置（同样受 100 条限制）
+  const notifyDisabled = new Set()
+  for (let i = 0; i < openids.length; i += PAGE) {
+    const batch = openids.slice(i, i + PAGE)
+    const { data: users } = await usersCol
+      .where({ _openid: _.in(batch) })
+      .field({ _openid: true, settings: true })
+      .limit(PAGE)
+      .get()
+    for (const u of users) {
+      if (u.settings && u.settings.notifyEnabled === false) {
+        notifyDisabled.add(u._openid)
+      }
+    }
+  }
+
   let sent = 0
   const errors = []
 
   for (const [openid, userHabits] of Object.entries(userHabitsMap)) {
+    if (notifyDisabled.has(openid)) continue
     // 取第一个习惯作为主提醒（订阅消息模板有字数限制）
     const firstHabit = userHabits[0]
     const habitNames = userHabits.map((h) => h.name).join('、')
