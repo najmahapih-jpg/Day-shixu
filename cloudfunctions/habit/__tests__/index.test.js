@@ -220,12 +220,16 @@ describe('checkIn', () => {
     expect(res.message).toContain('0-9999')
   })
 
-  test('accepts boolean value', async () => {
+  test('accepts boolean value and returns streak fields', async () => {
     const res = await main({
       action: 'checkIn',
       data: { habitId, date: '2026-03-30', value: true },
     })
     expect(res.code).toBe(0)
+    expect(res.data).toHaveProperty('streakCurrent')
+    expect(res.data).toHaveProperty('streakLongest')
+    expect(typeof res.data.streakCurrent).toBe('number')
+    expect(typeof res.data.streakLongest).toBe('number')
   })
 
   test('accepts numeric value within range', async () => {
@@ -234,6 +238,8 @@ describe('checkIn', () => {
       data: { habitId, date: '2026-03-30', value: 5000 },
     })
     expect(res.code).toBe(0)
+    expect(res.data).toHaveProperty('streakCurrent')
+    expect(res.data).toHaveProperty('streakLongest')
   })
 
   test('dedup compensation rolls back totalCompletions on race', async () => {
@@ -254,6 +260,62 @@ describe('checkIn', () => {
     // totalCompletions should be 1, not 2 (first created, second updated existing)
     const habitRes = await main({ action: 'get', data: { id: habitId } })
     expect(habitRes.data.totalCompletions).toBe(1)
+  })
+})
+
+// ── uncheckIn ──────────────────────────────────────────
+
+describe('uncheckIn', () => {
+  let habitId
+
+  beforeEach(async () => {
+    cloud.__setMsgSecCheckResult({ result: { suggest: 'pass', label: 0 } })
+    const res = await main({ action: 'create', data: { name: '取消打卡测试' } })
+    habitId = res.data._id
+  })
+
+  test('returns _id and streakCurrent', async () => {
+    // First check in
+    await main({
+      action: 'checkIn',
+      data: { habitId, date: '2026-03-30', value: true },
+    })
+    // Then uncheck
+    const res = await main({
+      action: 'uncheckIn',
+      data: { habitId, date: '2026-03-30' },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data).toHaveProperty('_id')
+    expect(res.data).toHaveProperty('streakCurrent')
+    expect(typeof res.data.streakCurrent).toBe('number')
+  })
+
+  test('does not decrement totalCompletions when already 0', async () => {
+    // Create a check-in record directly in the DB so totalCompletions stays 0
+    const checkInsCol = cloud.__getCol('check_ins')
+    checkInsCol.push({
+      _id: 'ci-zero',
+      _openid: 'test-openid',
+      habitId,
+      date: '2026-03-30',
+      value: true,
+    })
+
+    // Force totalCompletions to 0 on the habit
+    const habitsCol = cloud.__getCol('habits')
+    const habit = habitsCol.find(h => h._id === habitId)
+    habit.totalCompletions = 0
+
+    const res = await main({
+      action: 'uncheckIn',
+      data: { habitId, date: '2026-03-30' },
+    })
+    expect(res.code).toBe(0)
+
+    // totalCompletions should still be 0 (not -1)
+    const habitAfter = habitsCol.find(h => h._id === habitId)
+    expect(habitAfter.totalCompletions).toBe(0)
   })
 })
 

@@ -60,8 +60,8 @@ export async function doCheckIn(
 export async function undoCheckIn(
   habitId: string,
   date: string = getToday(),
-): Promise<void> {
-  return callCloud<void>(FN, 'uncheckIn', { habitId, date })
+): Promise<{ _id: string; streakCurrent: number }> {
+  return callCloud<{ _id: string; streakCurrent: number }>(FN, 'uncheckIn', { habitId, date })
 }
 
 export async function getCheckIns(

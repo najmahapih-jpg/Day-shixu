@@ -235,6 +235,66 @@ describe('ritual update nonexistent', () => {
   })
 })
 
+describe('ritual execute streak with freeze records', () => {
+  let ritualId, habitId
+
+  beforeEach(async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitId = 'streak-habit'
+    habitsCol.push({
+      _id: habitId,
+      _openid: OPENID,
+      name: '连续打卡',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+
+    const res = await main({
+      action: 'create',
+      ritual: { name: '连续仪式', type: 'morning', habitIds: [habitId] },
+    })
+    ritualId = res.data._id
+  })
+
+  test('streak calculation considers freeze records', async () => {
+    const checkInsCol = cloud.__getCol('check_ins')
+
+    // Day before yesterday: normal check-in
+    checkInsCol.push({
+      _id: 'ci-day-2',
+      _openid: OPENID,
+      habitId,
+      date: '2026-03-23',
+      value: true,
+    })
+    // Yesterday: freeze record (no habit check-in)
+    checkInsCol.push({
+      _id: 'freeze-day-1',
+      _openid: OPENID,
+      habitId: '__freeze__',
+      date: '2026-03-24',
+      value: 1,
+      type: 'freeze',
+    })
+
+    // Execute today — should count freeze day in streak
+    const res = await main({
+      action: 'execute',
+      ritualId,
+      completedHabitIds: [habitId],
+      date: '2026-03-25',
+    })
+    expect(res.code).toBe(0)
+
+    // Verify streak was updated on the habit (should be >= 3: day-2 + freeze + today)
+    const habitsCol = cloud.__getCol('habits')
+    const habit = habitsCol.find(h => h._id === habitId)
+    expect(habit.streakCurrent).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe('ritual execute ownership', () => {
   test('only processes habits belonging to current user', async () => {
     // Create a habit for current user

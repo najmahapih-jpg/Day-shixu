@@ -45,10 +45,13 @@ function getRecentDates(baseDate, n) {
   return dates
 }
 
-function calcStreak(recentDates, checkedDateSet) {
+const STREAK_LOOKBACK = 365
+const FREEZE_HABIT_ID = '__freeze__'
+
+function calcStreak(recentDates, checkedDateSet, frozenDateSet) {
   let streak = 0
   for (const date of recentDates) {
-    if (checkedDateSet.has(date)) {
+    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
       streak++
     } else {
       break
@@ -253,15 +256,25 @@ async function execute(openid, event) {
       })
     }
 
-    // 重算连续天数
-    const recentDates = getRecentDates(dateStr, 7)
-    const { data: recentCheckins } = await checkInsCol
-      .where({ _openid: openid, habitId, date: _.in(recentDates) })
-      .limit(7)
-      .get()
+    // 重算连续天数（365 天回溯 + 冻结日，与 habit/checkIn 一致）
+    const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
+    const lookbackStart = recentDates[recentDates.length - 1]
+    const [checkRes, freezeRes] = await Promise.all([
+      checkInsCol
+        .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+        .limit(100)
+        .get(),
+      checkInsCol
+        .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+        .limit(100)
+        .get(),
+    ])
 
-    const checkedSet = new Set(recentCheckins.map(r => r.date))
-    const streakCurrent = calcStreak(recentDates, checkedSet)
+    const checkedSet = new Set(checkRes.data.map(r => r.date))
+    const frozenSet = new Set(freezeRes.data.map(r => r.date))
+    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet)
 
     const updateData = { streakCurrent, updatedAt: db.serverDate() }
     if (streakCurrent > (habit.streakLongest || 0)) {

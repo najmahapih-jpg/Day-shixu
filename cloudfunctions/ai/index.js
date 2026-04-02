@@ -7,6 +7,20 @@ const _ = db.command
 const habitsCol = db.collection('habits')
 const checkInsCol = db.collection('check_ins')
 
+/** 分页获取，绕过 wx-server-sdk 单次 100 条硬限制 */
+async function batchGet(collection, where, maxRecords = 2000) {
+  const PAGE = 100
+  let all = []
+  let skip = 0
+  while (all.length < maxRecords) {
+    const { data } = await collection.where(where).skip(skip).limit(PAGE).get()
+    all = all.concat(data)
+    if (data.length < PAGE) break
+    skip += PAGE
+  }
+  return all
+}
+
 function ok(data) {
   return { code: 0, data }
 }
@@ -202,11 +216,8 @@ async function generateHabitInsight(openid) {
   const lastMonday = offsetDate(monday, -7)
   const lastSunday = offsetDate(lastMonday, 6)
 
-  const habitsRes = await habitsCol
-    .where({ _openid: openid, isArchived: _.neq(true) })
-    .limit(200)
-    .get()
-  const activeHabits = (habitsRes.data || []).filter((h) => !h.isArchived)
+  const habitsData = await batchGet(habitsCol, { _openid: openid, isArchived: _.neq(true) }, 500)
+  const activeHabits = (habitsData || []).filter((h) => !h.isArchived)
 
   if (activeHabits.length === 0) {
     return ok({
@@ -236,17 +247,14 @@ async function generateHabitInsight(openid) {
   }
 
   const activeIdSet = new Set(activeHabits.map((h) => h._id).filter(Boolean))
-  const checkInsRes = await checkInsCol
-    .where({
-      _openid: openid,
-      habitId: _.neq('__freeze__'),
-      date: _.gte(lastMonday).and(_.lte(sunday)),
-    })
-    .limit(5000)
-    .get()
+  const checkInsData = await batchGet(checkInsCol, {
+    _openid: openid,
+    habitId: _.neq('__freeze__'),
+    date: _.gte(lastMonday).and(_.lte(sunday)),
+  })
 
   const dayDoneMap = new Map()
-  for (const item of (checkInsRes.data || [])) {
+  for (const item of (checkInsData || [])) {
     if (!item || !item.habitId || !item.date) continue
     if (!activeIdSet.has(item.habitId)) continue
     const dateStr = toDateStr(item.date)

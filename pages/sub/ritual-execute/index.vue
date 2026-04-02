@@ -392,12 +392,6 @@ async function completeHabit() {
     completedRecords.value = [...completedRecords.value, { habitId, value }]
     haptic.success()
 
-    try {
-      await habitStore.checkIn(habitId, value)
-    } catch {
-      // Store already shows toast; continue flow
-    }
-
     // Dot pulse on completed item
     justCompletedIdx.value = currentIdx.value
     safeTimeout(() => { justCompletedIdx.value = -1 }, 400)

@@ -160,10 +160,16 @@ export const useHabitStore = withDefaultPinia(defineStore('habit', () => {
       todayCheckIns.value = new Map(todayCheckIns.value).set(habitId, real)
 
       // Sync streak stats from server response
-      const habit = habits.value.find((h) => h._id === habitId)
-      if (habit && real.streakCurrent !== undefined) {
-        habit.streakCurrent = real.streakCurrent
-        habit.streakLongest = Math.max(habit.streakLongest, real.streakCurrent)
+      if (real.streakCurrent !== undefined) {
+        habits.value = habits.value.map((h) =>
+          h._id === habitId
+            ? {
+              ...h,
+              streakCurrent: real.streakCurrent,
+              streakLongest: Math.max(h.streakLongest || 0, real.streakCurrent),
+            }
+            : h,
+        )
       }
     } catch (err) {
       todayCheckIns.value = prevMap
@@ -197,7 +203,15 @@ export const useHabitStore = withDefaultPinia(defineStore('habit', () => {
     )
 
     try {
-      await habitService.undoCheckIn(habitId, currentDate.value)
+      const result = await habitService.undoCheckIn(habitId, currentDate.value)
+      // Sync server-authoritative streak back to store
+      if (result && result.streakCurrent !== undefined) {
+        habits.value = habits.value.map((h) =>
+          h._id === habitId
+            ? { ...h, streakCurrent: result.streakCurrent }
+            : h,
+        )
+      }
     } catch (err) {
       todayCheckIns.value = prevMap
       habits.value = prevHabits

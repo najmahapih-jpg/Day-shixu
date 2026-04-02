@@ -424,11 +424,13 @@ async function checkIn(openid, data) {
   const [checkRes, freezeRes] = await Promise.all([
     checkInsCol
       .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .limit(STREAK_LOOKBACK)
+      .orderBy('date', 'desc')
+      .limit(100)
       .get(),
     checkInsCol
       .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .limit(STREAK_LOOKBACK)
+      .orderBy('date', 'desc')
+      .limit(100)
       .get(),
   ])
 
@@ -442,7 +444,11 @@ async function checkIn(openid, data) {
   }
   await habitsCol.doc(habitId).update({ data: updateData })
 
-  return ok(checkInRecord)
+  return ok({
+    ...checkInRecord,
+    streakCurrent,
+    streakLongest: updateData.streakLongest ?? (habit.streakLongest || 0)
+  })
 }
 
 async function uncheckIn(openid, data) {
@@ -466,13 +472,15 @@ async function uncheckIn(openid, data) {
 
   await checkInsCol.doc(existing[0]._id).remove()
 
-  // totalCompletions-1（原子操作）
-  await habitsCol.doc(habitId).update({
-    data: {
-      totalCompletions: _.inc(-1),
-      updatedAt: db.serverDate()
-    }
-  })
+  // totalCompletions-1（仅当 > 0 时递减，防止负数）
+  if ((habit.totalCompletions || 0) > 0) {
+    await habitsCol.doc(habitId).update({
+      data: {
+        totalCompletions: _.inc(-1),
+        updatedAt: db.serverDate()
+      }
+    })
+  }
 
   // 重算 streakCurrent（含冻结日，范围查询）
   const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
@@ -480,11 +488,13 @@ async function uncheckIn(openid, data) {
   const [uncheckRes, freezeRes2] = await Promise.all([
     checkInsCol
       .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .limit(STREAK_LOOKBACK)
+      .orderBy('date', 'desc')
+      .limit(100)
       .get(),
     checkInsCol
       .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .limit(STREAK_LOOKBACK)
+      .orderBy('date', 'desc')
+      .limit(100)
       .get(),
   ])
 
@@ -495,7 +505,7 @@ async function uncheckIn(openid, data) {
     data: { streakCurrent, updatedAt: db.serverDate() }
   })
 
-  return ok({ _id: existing[0]._id })
+  return ok({ _id: existing[0]._id, streakCurrent })
 }
 
 async function getCheckIns(openid, data) {
