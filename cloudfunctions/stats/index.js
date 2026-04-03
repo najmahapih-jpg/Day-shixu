@@ -281,10 +281,8 @@ async function getStreaks(openid) {
     if (currentStreak > globalCurrentStreak) globalCurrentStreak = currentStreak
     if (longestStreak > globalLongestStreak) globalLongestStreak = longestStreak
 
-    // 也用数据库中存储的 streakLongest 作为参考（防止365天窗口遗漏）
-    const dbLongest = habit.streakLongest || 0
-    if (dbLongest > longestStreak) longestStreak = dbLongest
-    if (dbLongest > globalLongestStreak) globalLongestStreak = dbLongest
+    // streakLongest 现在由 checkIn/uncheckIn 实时维护，stats 仅使用历史计算值
+    // 不再信任存储的 streakLongest（可能因旧代码被意外膨胀）
 
     return {
       id: habit._id,
