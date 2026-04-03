@@ -129,6 +129,58 @@ describe('backfill-streaks', () => {
     expect(res.data.unchanged).toBe(1)
   })
 
+  test('daily habit with yesterday checked but today open keeps streakCurrent', async () => {
+    // User checked in yesterday but not yet today — streak should be 1, not 0
+    seedHabit({ _id: 'grace', frequency: 'daily', streakCurrent: 1, streakLongest: 1 })
+    seedCheckIn('grace', daysAgo(1))
+
+    const res = await main({ dryRun: true, habitId: 'grace' })
+    expect(res.code).toBe(0)
+    // streakCurrent should remain 1 (today is skipped, yesterday is checked)
+    if (res.data.changed === 0) {
+      expect(res.data.unchanged).toBe(1)
+    } else {
+      expect(res.data.details[0].newCurrent).toBe(1)
+    }
+  })
+
+  test('daily habit with 3-day streak and today open preserves streak', async () => {
+    seedHabit({ _id: 'grace3', frequency: 'daily', streakCurrent: 3, streakLongest: 3 })
+    seedCheckIn('grace3', daysAgo(1))
+    seedCheckIn('grace3', daysAgo(2))
+    seedCheckIn('grace3', daysAgo(3))
+
+    const res = await main({ dryRun: true, habitId: 'grace3' })
+    expect(res.code).toBe(0)
+    expect(res.data.changed).toBe(0)
+    expect(res.data.unchanged).toBe(1)
+  })
+
+  test('weekdays habit with today open (weekday) still preserves streak', async () => {
+    // Today is a weekday, not yet checked in — should not break streak
+    // Use daysAgo to create a run of recent weekday check-ins
+    seedHabit({ _id: 'wd-grace', frequency: 'weekdays', streakCurrent: 1, streakLongest: 1 })
+    // Find the most recent past weekday
+    let d = 1
+    while (true) {
+      const date = daysAgo(d)
+      const [y, m, dd] = date.split('-').map(Number)
+      const wd = new Date(Date.UTC(y, m - 1, dd)).getUTCDay()
+      if (wd >= 1 && wd <= 5) {
+        seedCheckIn('wd-grace', date)
+        break
+      }
+      d++
+    }
+
+    const res = await main({ dryRun: true, habitId: 'wd-grace' })
+    expect(res.code).toBe(0)
+    // Whether today is a weekday or weekend, the streak from yesterday should be preserved
+    if (res.data.changed > 0) {
+      expect(res.data.details[0].newCurrent).toBeGreaterThanOrEqual(1)
+    }
+  })
+
   test('returns nextSkip when batch is full', async () => {
     for (let i = 0; i < 5; i++) {
       seedHabit({ _id: `batch-${i}`, name: `习惯${i}` })
