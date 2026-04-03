@@ -80,12 +80,16 @@ function isHabitActiveOnDate(habit, dateStr) {
   return true
 }
 
-function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
+function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit, today) {
   let streak = 0
-  for (const date of recentDates) {
+  for (let i = 0; i < recentDates.length; i++) {
+    const date = recentDates[i]
     if (!isHabitActiveOnDate(habit, date)) continue
     if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
       streak++
+    } else if (date === today) {
+      // 今天是活跃日但尚未打卡 — 跳过，不中断连续（与 stats/getStreaks 一致）
+      continue
     } else {
       break
     }
@@ -167,7 +171,7 @@ async function processHabit(habit, today, dryRun) {
   const checkedSet = new Set(checkData.map(r => r.date))
   const frozenSet = new Set(freezeData.map(r => r.date))
 
-  const newCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit)
+  const newCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
   const newLongest = calcLongestStreak(recentDates, checkedSet, frozenSet, habit)
 
   const oldCurrent = habit.streakCurrent || 0
