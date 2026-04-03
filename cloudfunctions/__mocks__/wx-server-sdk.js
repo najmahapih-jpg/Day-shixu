@@ -163,6 +163,11 @@ function createDocRef(colName, docId) {
   }
 }
 
+// Unique compound indexes: { collection: [field1, field2, ...] }
+const _uniqueIndexes = {
+  check_ins: ['_openid', 'habitId', 'date'],
+}
+
 function collection(name) {
   let _id_counter = 0
   return {
@@ -172,6 +177,16 @@ function collection(name) {
     doc: (id) => createDocRef(name, id),
     add: ({ data }) => {
       const col = _getCol(name)
+      // Enforce unique compound index if defined
+      const indexFields = _uniqueIndexes[name]
+      if (indexFields) {
+        const dup = col.find(doc =>
+          indexFields.every(f => doc[f] === data[f])
+        )
+        if (dup) {
+          return Promise.reject(new Error(`duplicate key error: ${indexFields.join(',')} (unique index)`))
+        }
+      }
       const _id = data._id || `mock-id-${++_id_counter}`
       const doc = { ...data, _id }
       col.push(doc)
