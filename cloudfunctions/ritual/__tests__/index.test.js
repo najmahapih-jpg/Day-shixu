@@ -253,6 +253,50 @@ describe('ritual update nonexistent', () => {
   })
 })
 
+describe('ritual execute frequency-aware streak', () => {
+  test('weekdays-only habit streak crosses weekend in ritual execute', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'wd-habit',
+      _openid: OPENID,
+      name: '工作日习惯',
+      frequency: 'weekdays',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+
+    const ritualsCol = cloud.__getCol('rituals')
+    ritualsCol.push({
+      _id: 'wd-ritual',
+      _openid: OPENID,
+      name: '工作日仪式',
+      habitIds: ['wd-habit'],
+    })
+
+    // Check-ins for Mon-Fri of previous week
+    const checkInsCol = cloud.__getCol('check_ins')
+    const days = ['2026-03-23', '2026-03-24', '2026-03-25', '2026-03-26', '2026-03-27']
+    days.forEach((d, i) => {
+      checkInsCol.push({ _id: `ci-wd-${i}`, _openid: OPENID, habitId: 'wd-habit', date: d, value: true, createdAt: d })
+    })
+
+    // Execute ritual on Monday 2026-03-30
+    const res = await main({
+      action: 'execute',
+      ritualId: 'wd-ritual',
+      completedHabitIds: ['wd-habit'],
+      date: '2026-03-30',
+    })
+    expect(res.code).toBe(0)
+
+    const habit = habitsCol.find(h => h._id === 'wd-habit')
+    // Streak should be 6 (5 prev weekdays + today), not 1
+    expect(habit.streakCurrent).toBe(6)
+  })
+})
+
 describe('ritual execute streak with freeze records', () => {
   let ritualId, habitId
 

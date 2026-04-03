@@ -154,8 +154,11 @@ function createDocRef(colName, docId) {
     remove: () => {
       const col = _getCol(colName)
       const idx = col.findIndex(d => d._id === docId)
-      if (idx !== -1) col.splice(idx, 1)
-      return Promise.resolve({ stats: { removed: 1 } })
+      if (idx !== -1) {
+        col.splice(idx, 1)
+        return Promise.resolve({ stats: { removed: 1 } })
+      }
+      return Promise.resolve({ stats: { removed: 0 } })
     },
   }
 }

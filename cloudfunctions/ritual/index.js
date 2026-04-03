@@ -60,9 +60,31 @@ async function paginatedGet(query, maxRecords = 400) {
 const STREAK_LOOKBACK = 365
 const FREEZE_HABIT_ID = '__freeze__'
 
-function calcStreak(recentDates, checkedDateSet, frozenDateSet) {
+/**
+ * 判断习惯在指定日期是否需要打卡
+ * Keep in sync with habit/index.js isHabitActiveOnDate (canonical source)
+ */
+function isHabitActiveOnDate(habit, dateStr) {
+  if (!habit || !habit.frequency || habit.frequency === 'daily') return true
+  const dt = parseDate(dateStr)
+  const wd = dt.getUTCDay()
+  if (habit.frequency === 'weekdays') return wd >= 1 && wd <= 5
+  if (habit.frequency === 'weekends') return wd === 0 || wd === 6
+  if (habit.frequency === 'custom' && Array.isArray(habit.customDays)) {
+    const wd1to7 = wd === 0 ? 7 : wd
+    return habit.customDays.includes(wd1to7)
+  }
+  return true
+}
+
+/**
+ * 频率感知的连续天数计算
+ * Keep in sync with habit/index.js calcStreak (canonical source)
+ */
+function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
   let streak = 0
   for (const date of recentDates) {
+    if (!isHabitActiveOnDate(habit, date)) continue
     if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
       streak++
     } else {
@@ -322,7 +344,7 @@ async function execute(openid, event) {
 
     const checkedSet = new Set(checkData.map(r => r.date))
     const frozenSet = new Set(freezeData.map(r => r.date))
-    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet)
+    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit)
 
     const updateData = { streakCurrent, updatedAt: db.serverDate() }
     if (streakCurrent > (habit.streakLongest || 0)) {
