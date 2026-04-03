@@ -63,6 +63,18 @@ function getRecentDates(baseDate, n) {
   return dates
 }
 
+/** 分页获取记录（绕过 wx-server-sdk 100 条上限） */
+async function paginatedGet(query, maxRecords = 400) {
+  const all = []
+  const PAGE = 100
+  for (let skip = 0; skip < maxRecords; skip += PAGE) {
+    const { data } = await query.skip(skip).limit(PAGE).get()
+    all.push(...data)
+    if (data.length < PAGE) break
+  }
+  return all
+}
+
 /** 根据最近打卡记录计算当前连续天数（冻结日视为已完成） */
 function calcStreak(recentDates, checkedDateSet, frozenDateSet) {
   let streak = 0
@@ -142,9 +154,10 @@ const MAX_DESCRIPTION_LENGTH = 500
 
 async function create(openid, data) {
   if (!data) return fail('缺少数据')
+  if (!data.name || !data.name.trim()) return fail('习惯名称必填')
 
   // 字段长度校验
-  if (data.name && data.name.length > MAX_NAME_LENGTH) {
+  if (data.name.length > MAX_NAME_LENGTH) {
     return fail(`习惯名称不能超过 ${MAX_NAME_LENGTH} 个字符`)
   }
   if (data.description && data.description.length > MAX_DESCRIPTION_LENGTH) {
@@ -445,21 +458,21 @@ async function checkIn(openid, data) {
   // 计算连续天数：查最近打卡记录 + 冻结记录（范围查询）
   const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
   const lookbackStart = recentDates[recentDates.length - 1]
-  const [checkRes, freezeRes] = await Promise.all([
-    checkInsCol
-      .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .orderBy('date', 'desc')
-      .limit(100)
-      .get(),
-    checkInsCol
-      .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .orderBy('date', 'desc')
-      .limit(100)
-      .get(),
+  const [checkData, freezeData] = await Promise.all([
+    paginatedGet(
+      checkInsCol
+        .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+    ),
+    paginatedGet(
+      checkInsCol
+        .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+    ),
   ])
 
-  const checkedSet = new Set(checkRes.data.map(r => r.date))
-  const frozenSet = new Set(freezeRes.data.map(r => r.date))
+  const checkedSet = new Set(checkData.map(r => r.date))
+  const frozenSet = new Set(freezeData.map(r => r.date))
   const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet)
 
   const updateData = { streakCurrent, updatedAt: db.serverDate() }
@@ -509,21 +522,21 @@ async function uncheckIn(openid, data) {
   // 重算 streakCurrent（含冻结日，范围查询）
   const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
   const lookbackStart = recentDates[recentDates.length - 1]
-  const [uncheckRes, freezeRes2] = await Promise.all([
-    checkInsCol
-      .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .orderBy('date', 'desc')
-      .limit(100)
-      .get(),
-    checkInsCol
-      .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-      .orderBy('date', 'desc')
-      .limit(100)
-      .get(),
+  const [uncheckData, freezeData2] = await Promise.all([
+    paginatedGet(
+      checkInsCol
+        .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+    ),
+    paginatedGet(
+      checkInsCol
+        .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+        .orderBy('date', 'desc')
+    ),
   ])
 
-  const checkedSet = new Set(uncheckRes.data.map(r => r.date))
-  const frozenSet = new Set(freezeRes2.data.map(r => r.date))
+  const checkedSet = new Set(uncheckData.map(r => r.date))
+  const frozenSet = new Set(freezeData2.map(r => r.date))
   const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet)
   await habitsCol.doc(habitId).update({
     data: { streakCurrent, updatedAt: db.serverDate() }
@@ -665,8 +678,13 @@ async function boardList(openid) {
   return ok(data)
 }
 
+const MAX_BOARD_NOTES_PER_USER = 200
+
 async function boardCreate(openid, data) {
   if (!data) return fail('缺少便签数据')
+
+  const { total: noteCount } = await boardCol.where({ _openid: openid }).count()
+  if (noteCount >= MAX_BOARD_NOTES_PER_USER) return fail('便签数量已达上限')
 
   // 内容安全检查
   if (data.content && !(await checkText(data.content, openid, 4))) {
@@ -786,6 +804,12 @@ async function boardUpdate(openid, data) {
       return fail('清单最多 50 项')
     }
     updates.checkItems = normalizeBoardCheckItems(incoming.checkItems)
+    if (updates.checkItems.length > 0) {
+      const combinedText = updates.checkItems.map(i => i.text).join('\n')
+      if (!(await checkText(combinedText, openid, 4))) {
+        return fail('清单内容包含违规内容，请修改后重试')
+      }
+    }
   }
   if (has('linkedHabitId')) {
     const linkedHabitCheck = await verifyLinkedHabit(openid, incoming.linkedHabitId)

@@ -214,6 +214,18 @@ describe('boardCreate imageUrl allowlist', () => {
   })
 })
 
+describe('boardCreate limits', () => {
+  test('rejects when board note limit reached', async () => {
+    const boardCol = cloud.__getCol('board_notes')
+    for (let i = 0; i < 200; i++) {
+      boardCol.push({ _id: `bn-${i}`, _openid: OPENID, content: `note${i}` })
+    }
+    const res = await main({ action: 'boardCreate', data: { content: '超出上限' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('上限')
+  })
+})
+
 describe('boardUpdate', () => {
   let noteId
 
@@ -244,6 +256,40 @@ describe('boardUpdate', () => {
       data: { id: noteId, updates: { content: '违规' } },
     })
     expect(res.code).toBe(-1)
+  })
+
+  test('checks updated checkItems for content security', async () => {
+    cloud.openapi.security.msgSecCheck.mockClear()
+    const res = await main({
+      action: 'boardUpdate',
+      data: {
+        id: noteId,
+        updates: {
+          noteType: 'checklist',
+          checkItems: [{ id: '1', text: '新任务' }],
+        },
+      },
+    })
+    const calls = cloud.openapi.security.msgSecCheck.mock.calls
+    const checkedContents = calls.map(c => c[0].content)
+    expect(checkedContents.some(c => c.includes('新任务'))).toBe(true)
+  })
+
+  test('rejects checkItems with risky content', async () => {
+    // No content field in updates, so only checkItems triggers msgSecCheck
+    cloud.__setMsgSecCheckResult({ result: { suggest: 'risky', label: 100 } })
+    const res = await main({
+      action: 'boardUpdate',
+      data: {
+        id: noteId,
+        updates: {
+          noteType: 'checklist',
+          checkItems: [{ id: '1', text: '违规清单' }],
+        },
+      },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('清单')
   })
 })
 
@@ -412,11 +458,16 @@ describe('get', () => {
 // ── Edge cases ──────────────────────────────────────────
 
 describe('edge cases', () => {
-  test('skips check for empty/null name', async () => {
-    cloud.openapi.security.msgSecCheck.mockClear()
-    await main({ action: 'create', data: { name: '' } })
-    // Empty name should not trigger msgSecCheck (checkText returns true for empty)
-    expect(cloud.openapi.security.msgSecCheck).not.toHaveBeenCalled()
+  test('rejects empty name', async () => {
+    const res = await main({ action: 'create', data: { name: '' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('必填')
+  })
+
+  test('rejects whitespace-only name', async () => {
+    const res = await main({ action: 'create', data: { name: '   ' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('必填')
   })
 
   test('unknown action returns error', async () => {

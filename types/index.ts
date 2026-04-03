@@ -92,6 +92,10 @@ export interface CheckIn extends BaseDocument {
   completed?: boolean
   /** Client-only: set during optimistic update, never stored by server */
   completedAt?: string
+  /** Returned by checkIn action only — server-computed current streak */
+  streakCurrent?: number
+  /** Returned by checkIn action only — server-computed longest streak */
+  streakLongest?: number
 }
 
 // --- Ritual ---
