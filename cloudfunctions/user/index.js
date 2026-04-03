@@ -41,7 +41,7 @@ function normalizeAvatarUrl(raw) {
   if (!val) return ''
   if (val.length > 2048) return ''
 
-  const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://', 'data:image/']
+  const allowedPrefixes = ['cloud://', 'https://', 'http://', 'wxfile://']
   if (!allowedPrefixes.some((prefix) => val.startsWith(prefix))) return ''
   return val
 }

@@ -45,6 +45,18 @@ function getRecentDates(baseDate, n) {
   return dates
 }
 
+/** 分页获取记录（绕过 wx-server-sdk 100 条上限） */
+async function paginatedGet(query, maxRecords = 400) {
+  const all = []
+  const PAGE = 100
+  for (let skip = 0; skip < maxRecords; skip += PAGE) {
+    const { data } = await query.skip(skip).limit(PAGE).get()
+    all.push(...data)
+    if (data.length < PAGE) break
+  }
+  return all
+}
+
 const STREAK_LOOKBACK = 365
 const FREEZE_HABIT_ID = '__freeze__'
 
@@ -109,7 +121,13 @@ async function list(openid) {
 
 async function get(openid, event) {
   if (!event.id) return fail('缺少仪式 ID')
-  const { data: ritual } = await ritualsCol.doc(event.id).get()
+  let ritual
+  try {
+    const res = await ritualsCol.doc(event.id).get()
+    ritual = res.data
+  } catch {
+    return fail('仪式不存在')
+  }
   if (ritual._openid !== openid) return fail('无权访问')
 
   // 关联查询习惯详情
@@ -137,6 +155,9 @@ async function create(openid, event) {
   const ritual = event.ritual
   if (!ritual) return fail('缺少数据')
   if (!ritual.name) return fail('仪式名称必填')
+
+  const { total: ritualCount } = await ritualsCol.where({ _openid: openid }).count()
+  if (ritualCount >= MAX_RITUALS_PER_USER) return fail('仪式数量已达上限')
 
   // 字段长度校验
   if (ritual.name.length > MAX_NAME_LENGTH) {
@@ -202,9 +223,17 @@ async function update(openid, event) {
   return ok({ _id: event.id, ...fields })
 }
 
+const MAX_RITUALS_PER_USER = 50
+
 async function remove(openid, event) {
   if (!event.id) return fail('缺少仪式 ID')
-  const { data: existing } = await ritualsCol.doc(event.id).get()
+  let existing
+  try {
+    const res = await ritualsCol.doc(event.id).get()
+    existing = res.data
+  } catch {
+    return fail('仪式不存在')
+  }
   if (existing._openid !== openid) return fail('无权操作')
 
   await ritualsCol.doc(event.id).remove()
@@ -278,21 +307,21 @@ async function execute(openid, event) {
     // 重算连续天数（365 天回溯 + 冻结日，与 habit/checkIn 一致）
     const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
     const lookbackStart = recentDates[recentDates.length - 1]
-    const [checkRes, freezeRes] = await Promise.all([
-      checkInsCol
-        .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-        .orderBy('date', 'desc')
-        .limit(100)
-        .get(),
-      checkInsCol
-        .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-        .orderBy('date', 'desc')
-        .limit(100)
-        .get(),
+    const [checkData, freezeData] = await Promise.all([
+      paginatedGet(
+        checkInsCol
+          .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+          .orderBy('date', 'desc')
+      ),
+      paginatedGet(
+        checkInsCol
+          .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+          .orderBy('date', 'desc')
+      ),
     ])
 
-    const checkedSet = new Set(checkRes.data.map(r => r.date))
-    const frozenSet = new Set(freezeRes.data.map(r => r.date))
+    const checkedSet = new Set(checkData.map(r => r.date))
+    const frozenSet = new Set(freezeData.map(r => r.date))
     const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet)
 
     const updateData = { streakCurrent, updatedAt: db.serverDate() }

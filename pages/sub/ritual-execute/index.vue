@@ -439,6 +439,7 @@ async function finishRitual() {
   const completedIds = completedRecords.value.map((r) => r.habitId)
   try {
     await executeRitual(ritualData.value._id, completedIds)
+    await habitStore.fetchHabits()
   } catch {
     // Service already handles toast
   }

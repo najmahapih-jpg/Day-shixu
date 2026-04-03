@@ -360,6 +360,37 @@ describe('ritual execute ownership', () => {
   })
 })
 
+// ── Limits ─────────────────────────────────────────────
+
+describe('ritual limits', () => {
+  test('rejects creation when ritual limit reached', async () => {
+    const col = cloud.__getCol('rituals')
+    for (let i = 0; i < 50; i++) {
+      col.push({ _id: `r-${i}`, _openid: OPENID, name: `仪式${i}` })
+    }
+    const res = await main({
+      action: 'create',
+      ritual: { name: '超出上限', habitIds: [] },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('上限')
+  })
+})
+
+describe('ritual get/remove nonexistent', () => {
+  test('get returns friendly error for nonexistent ritual', async () => {
+    const res = await main({ action: 'get', id: 'nonexistent-id' })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('不存在')
+  })
+
+  test('remove returns friendly error for nonexistent ritual', async () => {
+    const res = await main({ action: 'delete', id: 'nonexistent-id' })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('不存在')
+  })
+})
+
 // ── Edge cases ──────────────────────────────────────────
 
 describe('edge cases', () => {

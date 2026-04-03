@@ -44,7 +44,9 @@ function shouldRemindToday(habit, dow) {
   if (freq === 'weekdays') return dow >= 1 && dow <= 5
   if (freq === 'weekends') return dow === 0 || dow === 6
   if (freq === 'custom' && Array.isArray(habit.customDays)) {
-    return habit.customDays.includes(dow)
+    // customDays uses 1-7 convention (1=Mon, 7=Sun), convert JS 0-6 to match
+    const wd1to7 = dow === 0 ? 7 : dow
+    return habit.customDays.includes(wd1to7)
   }
   return false
 }
@@ -168,9 +170,12 @@ async function scheduledRemind() {
 // ── main ─────────────────────────────────────────────────
 
 exports.main = async (event, context) => {
+  const { OPENID } = cloud.getWXContext()
+  // 仅允许定时触发器调用（无 OPENID），拒绝用户直接调用
+  if (OPENID) return fail('该接口不支持直接调用')
+
   const { action } = event
   try {
-    // 定时触发器调用时没有 action，直接执行提醒
     if (!action || action === 'scheduledRemind') {
       return await scheduledRemind()
     }
