@@ -450,6 +450,8 @@ async function checkIn(openid, data) {
     checkInRecord = { ...existing[0], value: value !== undefined ? value : existing[0].value }
   } else {
     // 不存在 → 创建 & totalCompletions+1
+    // 唯一复合索引 checkin_habit_date_unique (_openid, habitId, date)
+    // 保证并发插入时仅一条成功，失败方回退到更新路径
     const newRecord = {
       _openid: openid,
       habitId,
@@ -458,42 +460,27 @@ async function checkIn(openid, data) {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate()
     }
-    const { _id } = await checkInsCol.add({ data: newRecord })
-    checkInRecord = { _id, ...newRecord }
+    try {
+      const { _id } = await checkInsCol.add({ data: newRecord })
+      checkInRecord = { _id, ...newRecord }
 
-    await habitsCol.doc(habitId).update({
-      data: { totalCompletions: _.inc(1) }
-    })
-
-    // Post-insert duplicate check (compensating action for race condition).
-    // NOTE: For best protection, create a unique compound index on
-    // { _openid, habitId, date } in the cloud console.
-    const { data: duplicates } = await checkInsCol
-      .where({ _openid: openid, habitId, date: dateStr })
-      .orderBy('createdAt', 'asc')
-      .limit(5)
-      .get()
-
-    if (duplicates.length > 1) {
-      if (_id !== duplicates[0]._id) {
-        // Another request beat us — roll back our record and totalCompletions
-        const removeResult = await checkInsCol.doc(_id).remove()
-        if (removeResult.stats && removeResult.stats.removed > 0) {
-          await habitsCol.doc(habitId).update({
-            data: { totalCompletions: _.inc(-1) }
-          })
-        }
-        checkInRecord = duplicates[0]
+      await habitsCol.doc(habitId).update({
+        data: { totalCompletions: _.inc(1) }
+      })
+    } catch (dupErr) {
+      // 唯一索引冲突 → 并发请求已插入，回退到更新路径
+      const { data: raceExisting } = await checkInsCol
+        .where({ _openid: openid, habitId, date: dateStr })
+        .limit(1)
+        .get()
+      if (raceExisting.length > 0) {
+        await checkInsCol.doc(raceExisting[0]._id).update({
+          data: { value: value !== undefined ? value : true, updatedAt: db.serverDate() }
+        })
+        checkInRecord = { ...raceExisting[0], value: value !== undefined ? value : raceExisting[0].value }
       } else {
-        // We won the race — remove all later duplicates and adjust totalCompletions
-        for (let i = 1; i < duplicates.length; i++) {
-          const removeResult = await checkInsCol.doc(duplicates[i]._id).remove()
-          if (removeResult.stats && removeResult.stats.removed > 0) {
-            await habitsCol.doc(habitId).update({
-              data: { totalCompletions: _.inc(-1) }
-            })
-          }
-        }
+        // 索引冲突但查不到记录（不应发生），抛出原始错误
+        throw dupErr
       }
     }
   }
