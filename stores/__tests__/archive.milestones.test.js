@@ -1,5 +1,7 @@
 const {
   computeHistoricalMilestones,
+  mergeArchiveBatch,
+  shouldApplyFetchResult,
 } = require('../archive.milestones')
 
 function seq(start, count) {
@@ -99,5 +101,95 @@ describe('computeHistoricalMilestones', () => {
   test('empty inputs return empty map', () => {
     expect(computeHistoricalMilestones(new Map()).size).toBe(0)
     expect(computeHistoricalMilestones(new Map([['h1', []]])).size).toBe(0)
+  })
+})
+
+describe('mergeArchiveBatch', () => {
+  test('dedupes overlapping days by id', () => {
+    const existing = [
+      { id: '2026-03-10', date: '2026-03-10' },
+      { id: '2026-03-09', date: '2026-03-09' },
+    ]
+    const incoming = [
+      { id: '2026-03-10', date: '2026-03-10' }, // overlap
+      { id: '2026-03-08', date: '2026-03-08' }, // new
+    ]
+    const merged = mergeArchiveBatch(existing, incoming)
+    expect(merged).toHaveLength(3)
+    expect(merged.map((a) => a.id)).toEqual([
+      '2026-03-10',
+      '2026-03-09',
+      '2026-03-08',
+    ])
+  })
+
+  test('two overlapped fetches never produce duplicate days', () => {
+    // Simulates fetchArchive() called twice with overlapping windows
+    // (30-day batches covering the same region)
+    const batch1 = [
+      { id: '2026-03-10', date: '2026-03-10' },
+      { id: '2026-03-05', date: '2026-03-05' },
+    ]
+    const batch2 = [
+      { id: '2026-03-05', date: '2026-03-05' }, // overlap
+      { id: '2026-03-01', date: '2026-03-01' }, // new
+    ]
+    const afterFirst = mergeArchiveBatch([], batch1)
+    const afterSecond = mergeArchiveBatch(afterFirst, batch2)
+    const ids = afterSecond.map((a) => a.id)
+    expect(new Set(ids).size).toBe(ids.length) // no dupes
+    expect(ids).toEqual(['2026-03-10', '2026-03-05', '2026-03-01'])
+  })
+
+  test('preserves descending date order after merge', () => {
+    const existing = [{ id: '2026-01-05', date: '2026-01-05' }]
+    const incoming = [
+      { id: '2026-01-10', date: '2026-01-10' },
+      { id: '2026-01-01', date: '2026-01-01' },
+      { id: '2026-01-07', date: '2026-01-07' },
+    ]
+    const merged = mergeArchiveBatch(existing, incoming)
+    const dates = merged.map((a) => a.date)
+    expect(dates).toEqual([
+      '2026-01-10',
+      '2026-01-07',
+      '2026-01-05',
+      '2026-01-01',
+    ])
+  })
+
+  test('empty incoming returns existing unchanged (sorted)', () => {
+    const existing = [
+      { id: '2026-01-01', date: '2026-01-01' },
+      { id: '2026-01-02', date: '2026-01-02' },
+    ]
+    const merged = mergeArchiveBatch(existing, [])
+    expect(merged.map((a) => a.date)).toEqual(['2026-01-02', '2026-01-01'])
+  })
+})
+
+describe('shouldApplyFetchResult (stale-response guard)', () => {
+  test('stale version is rejected (captured < current)', () => {
+    // A fetch captured version=1, meanwhile $reset() bumped to 2
+    expect(shouldApplyFetchResult(1, 2)).toBe(false)
+  })
+
+  test('current version is accepted', () => {
+    expect(shouldApplyFetchResult(3, 3)).toBe(true)
+  })
+
+  test('models the reset-during-flight scenario', () => {
+    // Store version starts at 0
+    let current = 0
+    // Fetch #1 starts, captures v1
+    const captured1 = ++current // 1
+    // $reset() is called — bumps version
+    current++ // 2
+    // Fetch #2 starts, captures v3
+    const captured2 = ++current // 3
+    // Fetch #1 resolves late → should be rejected
+    expect(shouldApplyFetchResult(captured1, current)).toBe(false)
+    // Fetch #2 resolves → should be applied
+    expect(shouldApplyFetchResult(captured2, current)).toBe(true)
   })
 })

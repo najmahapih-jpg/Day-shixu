@@ -8,7 +8,7 @@ import type { BoardNote, CheckIn, Habit } from '@/types'
 import { getToday } from '@/services/cloud'
 // Canonical milestone computation (pure JS, unit-tested under jest).
 // @ts-expect-error — plain JS sibling module without explicit .d.ts
-import { computeHistoricalMilestones as computeHistoricalMilestonesJs } from './archive.milestones.js'
+import { computeHistoricalMilestones as computeHistoricalMilestonesJs, mergeArchiveBatch as mergeArchiveBatchJs } from './archive.milestones.js'
 
 export interface DailyArchive {
   id: string
@@ -32,6 +32,11 @@ export const computeHistoricalMilestones = computeHistoricalMilestonesJs as (
   checkInsByHabit: Map<string, string[]>,
 ) => Map<string, Set<string>>
 
+const mergeArchiveBatch = mergeArchiveBatchJs as (
+  existing: DailyArchive[],
+  incoming: DailyArchive[],
+) => DailyArchive[]
+
 export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
   const habitStore = useHabitStore()
   const boardStore = useBoardStore()
@@ -45,11 +50,17 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
   // fetch from starting even within the same synchronous tick, and makes
   // re-entrance safety explicit at the call site.
   let inFlight = false
+  // Monotonically increasing fetch token. Every fetch captures its own
+  // version at start; before writing state it checks the token still
+  // matches. $reset() bumps the token, so any fetch started under an
+  // older generation becomes a no-op when it resolves late.
+  let fetchVersion = 0
 
   async function fetchArchive(days: number = 30) {
     if (inFlight || loading.value) return
     inFlight = true
     loading.value = true
+    const version = ++fetchVersion
     // Snapshot cursor locally; only advance the ref AFTER the merge completes.
     const endDate = fetchedUntil.value ? fetchedUntil.value : getToday()
     const [ey, em, ed] = endDate.split('-').map(Number)
@@ -61,13 +72,17 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
       // 1. Ensure board notes are loaded (they load all by default in this app)
       if (boardStore.notes.length === 0) {
         await boardStore.fetchNotes()
+        if (version !== fetchVersion) return
       }
       if (habitStore.habits.length === 0) {
         await habitStore.fetchHabits()
+        if (version !== fetchVersion) return
       }
 
       // 2. Fetch check-ins for the last N days (simulate cursor)
       const checkIns = await habitService.getCheckInRange('', startDate, endDate)
+      // Bail out if a reset or newer fetch has invalidated us mid-flight.
+      if (version !== fetchVersion) return
 
       // 3. Aggregate CheckIns and Notes by Date
       const dailyMap = new Map<string, DailyArchive>()
@@ -97,10 +112,9 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
       // Convert to sorted array (Desc)
       const newArchives = Array.from(dailyMap.values()).sort((a, b) => b.date.localeCompare(a.date))
 
-      // Append to list (handling duplicates if any)
-      const existingIds = new Set(archives.value.map(a => a.id))
-      const toAdd = newArchives.filter(a => !existingIds.has(a.id))
-      const merged = [...archives.value, ...toAdd].sort((a, b) => b.date.localeCompare(a.date))
+      // Append to list (handling duplicates if any).
+      // Uses pure merge helper — unit-tested in archive.milestones.test.js.
+      const merged = mergeArchiveBatch(archives.value, newArchives)
 
       // 4. Recompute historical milestones across ALL loaded archives
       // (previous batches + this batch). Milestones are a function of the
@@ -130,15 +144,25 @@ export const useArchiveStore = withDefaultPinia(defineStore('archive', () => {
       // Cursor only advances after the full batch has been merged.
       fetchedUntil.value = startDate
     } catch (err) {
+      if (version !== fetchVersion) return
       uni.showToast({ title: '加载档案失败', icon: 'none' })
       if (process.env.NODE_ENV !== 'production') console.error(err)
     } finally {
-      loading.value = false
-      inFlight = false
+      // Only clear flags if our generation is still current. A stale
+      // fetch resolving late after $reset()/newer fetchArchive() must
+      // not wipe the newer generation's loading/inFlight flags.
+      if (version === fetchVersion) {
+        loading.value = false
+        inFlight = false
+      }
     }
   }
 
   function $reset() {
+    // Bump the fetch token first — any in-flight fetch will see its
+    // captured version go stale and bail at the next await checkpoint
+    // instead of writing post-reset state.
+    fetchVersion++
     archives.value = []
     loading.value = false
     fetchedUntil.value = ''
