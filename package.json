@@ -21,7 +21,7 @@
     "cf:deploy:user": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy user",
     "wx:upload": "node scripts/upload-miniprogram.js",
     "release:wechat": "powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1",
-    "test": "jest --roots cloudfunctions",
+    "test": "jest",
     "test:habit": "jest cloudfunctions/habit",
     "test:user": "jest cloudfunctions/user",
     "test:ritual": "jest cloudfunctions/ritual",
