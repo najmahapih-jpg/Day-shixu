@@ -1,5 +1,5 @@
 module.exports = {
-  roots: ['<rootDir>/cloudfunctions'],
+  roots: ['<rootDir>/cloudfunctions', '<rootDir>/stores'],
   testMatch: ['**/__tests__/**/*.test.js'],
   transform: {},
   moduleNameMapper: {
