@@ -20,6 +20,7 @@ function _resetDB() {
 
 let _msgSecCheckResult = { result: { suggest: 'pass', label: 0 } }
 let _wxContext = { OPENID: 'test-openid', APPID: 'test-appid' }
+let _nextGetError = null // { msg } — if set, next chain .get() rejects
 
 function setMsgSecCheckResult(result) {
   _msgSecCheckResult = result
@@ -93,12 +94,18 @@ function createQueryChain(colName, where) {
     orderBy: (key, dir) => { _orderKey = key; _orderDir = dir; return chain },
     limit: (n) => { _limit = n; return chain },
     skip: (n) => { _skip = n; return chain },
+    field: () => chain,
     count: () => {
       const col = _getCol(colName)
       const matched = where ? col.filter(d => _matchCondition(d, where)) : col
       return Promise.resolve({ total: matched.length })
     },
     get: () => {
+      if (_nextGetError) {
+        const err = new Error(_nextGetError.msg || 'injected DB error')
+        _nextGetError = null
+        return Promise.reject(err)
+      }
       const col = _getCol(colName)
       let matched = where ? col.filter(d => _matchCondition(d, where)) : [...col]
       if (_orderKey) {
@@ -229,5 +236,7 @@ cloud.__resetDB = _resetDB
 cloud.__setMsgSecCheckResult = setMsgSecCheckResult
 cloud.__setWXContext = setWXContext
 cloud.__getCol = _getCol
+cloud.__failNextGet = (msg) => { _nextGetError = { msg } }
+cloud.__clearNextGetError = () => { _nextGetError = null }
 
 module.exports = cloud

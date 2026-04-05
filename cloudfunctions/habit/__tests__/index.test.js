@@ -657,3 +657,170 @@ describe('edge cases', () => {
     expect(res.code).toBe(-1)
   })
 })
+
+// ── Cross-user authorization (F5) ──────────────────────
+// Attacker cannot mutate a habit that belongs to another user.
+describe('cross-user authorization — habit mutations', () => {
+  const VICTIM = 'victim-openid'
+  const ATTACKER = 'attacker-openid'
+
+  function seedVictimHabit(overrides = {}) {
+    cloud.__getCol('habits').push({
+      _id: 'victim-habit',
+      _openid: VICTIM,
+      name: 'victim habit',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 5,
+      streakLongest: 5,
+      totalCompletions: 5,
+      ...overrides,
+    })
+  }
+
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID: ATTACKER, APPID: 'test' })
+  })
+
+  test('update rejects attacker and leaves name intact', async () => {
+    seedVictimHabit()
+    const res = await main({
+      action: 'update',
+      data: { id: 'victim-habit', name: 'hijacked' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const after = cloud.__getCol('habits').find((h) => h._id === 'victim-habit')
+    expect(after.name).toBe('victim habit')
+    expect(after._openid).toBe(VICTIM)
+  })
+
+  test('delete (archive) rejects attacker and leaves isArchived intact', async () => {
+    seedVictimHabit({ isArchived: false })
+    const res = await main({ action: 'delete', data: { id: 'victim-habit' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const after = cloud.__getCol('habits').find((h) => h._id === 'victim-habit')
+    expect(after.isArchived).toBe(false)
+  })
+
+  test('restore rejects attacker and leaves isArchived=true', async () => {
+    seedVictimHabit({ isArchived: true })
+    const res = await main({ action: 'restore', data: { id: 'victim-habit' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const after = cloud.__getCol('habits').find((h) => h._id === 'victim-habit')
+    expect(after.isArchived).toBe(true)
+  })
+
+  test('checkIn rejects attacker and creates no check-in record', async () => {
+    seedVictimHabit()
+    const checkInsBefore = cloud.__getCol('check_ins').length
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'victim-habit', date: '2026-04-05', value: true },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    expect(cloud.__getCol('check_ins').length).toBe(checkInsBefore)
+  })
+
+  test('uncheckIn rejects attacker and leaves check-in intact', async () => {
+    seedVictimHabit()
+    cloud.__getCol('check_ins').push({
+      _id: 'victim-ci',
+      _openid: VICTIM,
+      habitId: 'victim-habit',
+      date: '2026-04-05',
+      value: true,
+    })
+    const res = await main({
+      action: 'uncheckIn',
+      data: { habitId: 'victim-habit', date: '2026-04-05' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const ci = cloud.__getCol('check_ins').find((c) => c._id === 'victim-ci')
+    expect(ci).toBeTruthy()
+  })
+})
+
+// ── Open-day grace parity (F1) ─────────────────────────
+describe('calcStreak open-day grace (F1 regression)', () => {
+  test('checkIn on yesterday keeps today-grace in streak', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'grace-h1',
+      _openid: OPENID,
+      name: 'grace habit',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+
+    const now = new Date()
+    const utc8 = new Date(now.getTime() + 8 * 3600 * 1000)
+    const pad = (n) => String(n).padStart(2, '0')
+    const y = new Date(utc8)
+    y.setUTCDate(y.getUTCDate() - 1)
+    const yStr = `${y.getUTCFullYear()}-${pad(y.getUTCMonth() + 1)}-${pad(y.getUTCDate())}`
+    const dbY = new Date(utc8)
+    dbY.setUTCDate(dbY.getUTCDate() - 2)
+    const dbyStr = `${dbY.getUTCFullYear()}-${pad(dbY.getUTCMonth() + 1)}-${pad(dbY.getUTCDate())}`
+
+    cloud.__getCol('check_ins').push({
+      _id: 'ci-dby',
+      _openid: OPENID,
+      habitId: 'grace-h1',
+      date: dbyStr,
+      value: true,
+    })
+
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'grace-h1', date: yStr, value: true },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.streakCurrent).toBe(2)
+  })
+
+  test('live checkIn for TODAY produces same streak as backfill would', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'parity-h1',
+      _openid: OPENID,
+      name: 'parity habit',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+
+    const now = new Date()
+    const utc8 = new Date(now.getTime() + 8 * 3600 * 1000)
+    const pad = (n) => String(n).padStart(2, '0')
+    const todayStr = `${utc8.getUTCFullYear()}-${pad(utc8.getUTCMonth() + 1)}-${pad(utc8.getUTCDate())}`
+    for (let i = 1; i <= 2; i++) {
+      const d = new Date(utc8)
+      d.setUTCDate(d.getUTCDate() - i)
+      const ds = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+      cloud.__getCol('check_ins').push({
+        _id: `ci-p-${i}`,
+        _openid: OPENID,
+        habitId: 'parity-h1',
+        date: ds,
+        value: true,
+      })
+    }
+
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'parity-h1', date: todayStr, value: true },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.streakCurrent).toBe(3)
+  })
+})

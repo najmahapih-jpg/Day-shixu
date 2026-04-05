@@ -4,6 +4,7 @@ const db = cloud.database()
 const _ = db.command
 const habitsCol = db.collection('habits')
 const checkInsCol = db.collection('check_ins')
+const { isHabitActiveOnDate, calcStreak, calcLongestStreak } = require('./streak')
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -42,23 +43,7 @@ function getWeekday(dateStr) {
   return parseDate(dateStr).getUTCDay()
 }
 
-/** 判断习惯在指定日期是否需要打卡 */
-function isHabitActiveOnDate(habit, dateStr) {
-  const freq = habit.frequency
-  if (freq === 'daily') return true
-
-  const wd = getWeekday(dateStr) // 0=Sun ... 6=Sat
-  if (freq === 'weekdays') return wd >= 1 && wd <= 5
-  if (freq === 'weekends') return wd === 0 || wd === 6
-
-  // custom：customDays 存储的是 [1,2,3,4,5,6,7]（1=Mon, 7=Sun）
-  if (freq === 'custom' && Array.isArray(habit.customDays)) {
-    const wd1to7 = wd === 0 ? 7 : wd
-    return habit.customDays.includes(wd1to7)
-  }
-
-  return true // 兜底
-}
+// isHabitActiveOnDate — imported from ./streak (canonical source)
 
 /** 生成 startDate 到 endDate（含）之间所有日期字符串 */
 function getDateRange(startDate, endDate) {
@@ -89,23 +74,62 @@ function getMonday(dateStr) {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-/** 批量查询 check_ins（处理云数据库100条/次限制） */
-async function batchGetCheckIns(where, maxRecords = 10000) {
+/**
+ * 批量查询 check_ins（处理云数据库100条/次限制）
+ *
+ * Returns { records, truncated }. `truncated` is true iff the
+ * `maxRecords` cap was hit before natural loop termination — callers
+ * should surface this to the API response so the frontend can flag
+ * incomplete aggregations instead of silently showing under-counts.
+ */
+async function batchGetCheckIns(where, maxRecords = 50000) {
   const MAX = 100
-  let allData = []
+  let records = []
   let skip = 0
+  let truncated = false
   while (true) {
     const { data } = await checkInsCol
       .where(where)
       .skip(skip)
       .limit(MAX)
       .get()
-    allData = allData.concat(data)
-    if (data.length < MAX || allData.length >= maxRecords) break
+    records = records.concat(data)
+    if (data.length < MAX) break
+    if (records.length >= maxRecords) {
+      truncated = true
+      console.warn('[stats] batchGetCheckIns truncated at', maxRecords, 'records')
+      break
+    }
     skip += MAX
   }
-  return allData
+  return { records, truncated }
 }
+
+/** 分页获取习惯（绕过 wx-server-sdk 100 条上限） */
+async function paginatedGet(query, maxRecords = 400) {
+  const all = []
+  const PAGE = 100
+  for (let skip = 0; skip < maxRecords; skip += PAGE) {
+    const { data } = await query.skip(skip).limit(PAGE).get()
+    all.push(...data)
+    if (data.length < PAGE) break
+  }
+  return all
+}
+
+/** 获取从 baseDate 向前 n 天的日期字符串数组（含 baseDate） */
+function getRecentDates(baseDate, n) {
+  const dates = []
+  const base = parseDate(baseDate)
+  for (let i = 0; i < n; i++) {
+    const d = new Date(base)
+    d.setUTCDate(d.getUTCDate() - i)
+    dates.push(toDateStr(d))
+  }
+  return dates
+}
+
+// calcStreak / calcLongestStreak — imported from ./streak (canonical source)
 
 // ── actions ──────────────────────────────────────────────
 
@@ -138,26 +162,27 @@ async function getHeatmap(openid, data) {
     return fail('查询范围不能超过 400 天')
   }
 
-  // 1. 查询该用户所有活跃（未归档）习惯
-  const { data: habits } = await habitsCol
-    .where({ _openid: openid, isArchived: _.neq(true) })
-    .limit(100)
-    .get()
+  // 1. 查询该用户所有活跃（未归档）习惯（分页，防止 >100 个习惯被截断）
+  const habits = await paginatedGet(
+    habitsCol.where({ _openid: openid, isArchived: _.neq(true) })
+  )
 
   // 2. 查询日期范围内的打卡记录（排除冻结哨兵）
-  const checkIns = await batchGetCheckIns({
+  const checkInsResult = await batchGetCheckIns({
     _openid: openid,
     habitId: _.neq(FREEZE_HABIT_ID),
     date: _.gte(startDate).and(_.lte(endDate)),
   })
+  const checkIns = checkInsResult.records
 
   // 3. 查询日期范围内的冻结记录
-  const freezeRecords = await batchGetCheckIns({
+  const freezeResult = await batchGetCheckIns({
     _openid: openid,
     habitId: FREEZE_HABIT_ID,
     date: _.gte(startDate).and(_.lte(endDate)),
   })
-  const frozenDates = new Set(freezeRecords.map(r => r.date))
+  const frozenDates = new Set(freezeResult.records.map(r => r.date))
+  const truncated = checkInsResult.truncated || freezeResult.truncated
 
   // 4. 按日期聚合打卡次数
   const checkInsByDate = {}
@@ -175,17 +200,16 @@ async function getHeatmap(openid, data) {
     return { date, count, total, rate, frozen }
   })
 
-  return ok({ days })
+  return ok({ days, truncated })
 }
 
 async function getStreaks(openid) {
   const today = getTodayStr()
 
-  // 1. 查询所有活跃习惯
-  const { data: habits } = await habitsCol
-    .where({ _openid: openid, isArchived: _.neq(true) })
-    .limit(100)
-    .get()
+  // 1. 查询所有活跃习惯（分页，防止 >100 个习惯被静默截断）
+  const habits = await paginatedGet(
+    habitsCol.where({ _openid: openid, isArchived: _.neq(true) })
+  )
 
   if (habits.length === 0) {
     return ok({
@@ -197,8 +221,10 @@ async function getStreaks(openid) {
   }
 
   // 2. 查询过去365天的所有打卡记录
-  const lookbackDate = toDateStr(new Date(parseDate(today).getTime() - 365 * 24 * 3600 * 1000))
-  const [allCheckIns, freezeRecords] = await Promise.all([
+  const LOOKBACK = 365
+  const recentDates = getRecentDates(today, LOOKBACK)
+  const lookbackDate = recentDates[recentDates.length - 1]
+  const [allCheckInsResult, freezeResult] = await Promise.all([
     batchGetCheckIns({
       _openid: openid,
       habitId: _.neq(FREEZE_HABIT_ID),
@@ -211,7 +237,9 @@ async function getStreaks(openid) {
     }),
   ])
 
-  const frozenSet = new Set(freezeRecords.map(r => r.date))
+  const allCheckIns = allCheckInsResult.records
+  const frozenSet = new Set(freezeResult.records.map(r => r.date))
+  const truncated = allCheckInsResult.truncated || freezeResult.truncated
 
   // 按 habitId 分组打卡记录
   const checkInsByHabit = {}
@@ -224,65 +252,14 @@ async function getStreaks(openid) {
   let globalLongestStreak = 0
   const totalCheckIns = allCheckIns.length
 
-  // 3. 对每个习惯计算连续天数
+  // 3. 对每个习惯计算连续天数（使用 canonical calcStreak / calcLongestStreak）
   const habitStreaks = habits.map(habit => {
     const checkedDates = checkInsByHabit[habit._id] || new Set()
-    let currentStreak = 0
-    let longestStreak = 0
-    let tempStreak = 0
-
-    // 从今天往前遍历
-    const cursor = parseDate(today)
-    for (let i = 0; i < 365; i++) {
-      const dateStr = toDateStr(cursor)
-
-      // 只计算习惯在该日活跃的天数
-      if (isHabitActiveOnDate(habit, dateStr)) {
-        if (checkedDates.has(dateStr) || frozenSet.has(dateStr)) {
-          tempStreak++
-        } else {
-          // 连续中断
-          if (i === 0 || tempStreak > 0) {
-            // 如果第一天（今天）就没打卡，currentStreak = 0
-          }
-          if (tempStreak > longestStreak) longestStreak = tempStreak
-          if (currentStreak === 0 && tempStreak > 0) {
-            // 还没设过 currentStreak，说明刚计算完从今天开始的连续
-          }
-          tempStreak = 0
-        }
-      }
-      // 非活跃日不中断连续，直接跳过
-
-      cursor.setUTCDate(cursor.getUTCDate() - 1)
-    }
-    // 循环结束，处理未中断的连续
-    if (tempStreak > longestStreak) longestStreak = tempStreak
-
-    // 重新计算 currentStreak（从今天往前的连续）
-    // 如果今天是活跃日但尚未打卡，跳过今天（不算中断），从昨天开始计算
-    currentStreak = 0
-    const cursor2 = parseDate(today)
-    for (let i = 0; i < 365; i++) {
-      const dateStr = toDateStr(cursor2)
-      if (isHabitActiveOnDate(habit, dateStr)) {
-        if (checkedDates.has(dateStr) || frozenSet.has(dateStr)) {
-          currentStreak++
-        } else if (i === 0) {
-          // 今天还未打卡 — 不中断连续，跳过继续看昨天
-        } else {
-          break
-        }
-      }
-      // 非活跃日跳过，不中断
-      cursor2.setUTCDate(cursor2.getUTCDate() - 1)
-    }
+    const currentStreak = calcStreak(recentDates, checkedDates, frozenSet, habit, today)
+    const longestStreak = calcLongestStreak(recentDates, checkedDates, frozenSet, habit)
 
     if (currentStreak > globalCurrentStreak) globalCurrentStreak = currentStreak
     if (longestStreak > globalLongestStreak) globalLongestStreak = longestStreak
-
-    // streakLongest 现在由 checkIn/uncheckIn 实时维护，stats 仅使用历史计算值
-    // 不再信任存储的 streakLongest（可能因旧代码被意外膨胀）
 
     return {
       id: habit._id,
@@ -297,6 +274,7 @@ async function getStreaks(openid) {
     longestStreak: globalLongestStreak,
     totalCheckIns,
     habits: habitStreaks,
+    truncated,
   })
 }
 
@@ -314,18 +292,19 @@ async function getWeeklyComparison(openid) {
     new Date(parseDate(lastMonday).getTime() + elapsedDays * 24 * 3600 * 1000)
   )
 
-  // 查询活跃习惯
-  const { data: habits } = await habitsCol
-    .where({ _openid: openid, isArchived: _.neq(true) })
-    .limit(100)
-    .get()
+  // 查询活跃习惯（分页）
+  const habits = await paginatedGet(
+    habitsCol.where({ _openid: openid, isArchived: _.neq(true) })
+  )
 
   // 查询两周范围内的打卡记录
-  const checkIns = await batchGetCheckIns({
+  const checkInsResult = await batchGetCheckIns({
     _openid: openid,
     habitId: _.neq(FREEZE_HABIT_ID),
     date: _.gte(lastMonday).and(_.lte(today)),
   })
+  const checkIns = checkInsResult.records
+  const truncated = checkInsResult.truncated
 
   // 按日期分组打卡数
   const checkInsByDate = {}
@@ -356,10 +335,13 @@ async function getWeeklyComparison(openid) {
     : 0
   const improvement = Math.round((avgThis - avgLast) * 100) / 100
 
-  return ok({ thisWeek, lastWeek, improvement })
+  return ok({ thisWeek, lastWeek, improvement, truncated })
 }
 
 // ── main ─────────────────────────────────────────────────
+
+// Exposed for tests (internal helper — do not rely on stability)
+exports._test = { batchGetCheckIns }
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()

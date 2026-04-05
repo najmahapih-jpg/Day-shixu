@@ -140,3 +140,72 @@ describe('edge cases', () => {
     expect(res.message).toContain('未知操作')
   })
 })
+
+// ── Pagination (F2) ────────────────────────────────────
+// getStreaks must return every active habit even when user has >100
+// (the previous implementation silently capped at wx-server-sdk's 100 limit).
+describe('getStreaks pagination (F2 regression)', () => {
+  test('returns all habits when user has >100 active habits', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    const COUNT = 150
+    for (let i = 0; i < COUNT; i++) {
+      habitsCol.push({
+        _id: `h-${i}`,
+        _openid: OPENID,
+        name: `habit-${i}`,
+        frequency: 'daily',
+        isArchived: false,
+      })
+    }
+    const res = await main({ action: 'getStreaks' })
+    expect(res.code).toBe(0)
+    expect(res.data.habits.length).toBe(COUNT)
+  })
+})
+
+// ── batchGetCheckIns cap-hit (F3 regression) ───────────
+// When the maxRecords cap is crossed, caller MUST see truncated:true
+// so downstream UI can surface partial-data warnings. Silent truncation
+// is the bug we're guarding against.
+describe('batchGetCheckIns cap-hit signal', () => {
+  const { _test } = require('../index')
+  const { batchGetCheckIns } = _test
+
+  test('returns truncated:true when record count crosses the cap', async () => {
+    const checkInsCol = cloud.__getCol('check_ins')
+    // Seed 250 records — with cap=200 the 3rd page of 100 crosses the cap.
+    for (let i = 0; i < 250; i++) {
+      checkInsCol.push({
+        _id: `ci-cap-${i}`,
+        _openid: OPENID,
+        habitId: 'any',
+        date: '2026-03-01',
+        value: true,
+      })
+    }
+    const result = await batchGetCheckIns({ _openid: OPENID }, 200)
+    // Records shape is still [{ _id, _openid, ... }]
+    expect(Array.isArray(result.records)).toBe(true)
+    expect(result.records.length).toBeGreaterThanOrEqual(200)
+    expect(result.records[0]).toHaveProperty('_id')
+    expect(result.records[0]).toHaveProperty('_openid')
+    expect(result.truncated).toBe(true)
+  })
+
+  test('returns truncated:false when data fits under the cap', async () => {
+    const checkInsCol = cloud.__getCol('check_ins')
+    for (let i = 0; i < 50; i++) {
+      checkInsCol.push({
+        _id: `ci-nocap-${i}`,
+        _openid: OPENID,
+        habitId: 'any',
+        date: '2026-03-01',
+        value: true,
+      })
+    }
+    const result = await batchGetCheckIns({ _openid: OPENID }, 200)
+    expect(result.records.length).toBe(50)
+    expect(result.truncated).toBe(false)
+  })
+})
+

@@ -5,6 +5,8 @@ const _ = db.command
 const habitsCol = db.collection('habits')
 const checkInsCol = db.collection('check_ins')
 const boardCol = db.collection('board_notes')
+const streak = require('./streak')
+const { isHabitActiveOnDate, calcStreak, calcLongestStreak } = streak
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -75,57 +77,9 @@ async function paginatedGet(query, maxRecords = 400) {
   return all
 }
 
-/**
- * 判断习惯在指定日期是否需要打卡
- * Canonical source — keep in sync with stats/index.js isHabitActiveOnDate
- */
-function isHabitActiveOnDate(habit, dateStr) {
-  if (!habit || !habit.frequency || habit.frequency === 'daily') return true
-  const dt = parseDate(dateStr)
-  const wd = dt.getUTCDay() // 0=Sun ... 6=Sat
-  if (habit.frequency === 'weekdays') return wd >= 1 && wd <= 5
-  if (habit.frequency === 'weekends') return wd === 0 || wd === 6
-  if (habit.frequency === 'custom' && Array.isArray(habit.customDays)) {
-    const wd1to7 = wd === 0 ? 7 : wd
-    return habit.customDays.includes(wd1to7)
-  }
-  return true
-}
+// isHabitActiveOnDate, calcStreak, calcLongestStreak — imported from ./streak
+// (canonical source: cloudfunctions/_shared/streak.js, synced via scripts/sync-shared.js)
 
-/**
- * 频率感知的连续天数计算（非活跃日跳过，不中断连续）
- * Canonical source — keep in sync with ritual/index.js calcStreak
- */
-function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
-  let streak = 0
-  for (const date of recentDates) {
-    if (!isHabitActiveOnDate(habit, date)) continue // 非活跃日跳过
-    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
-      streak++
-    } else {
-      break
-    }
-  }
-  return streak
-}
-
-/**
- * 计算最长连续天数（遍历全部 recentDates 找最大连续段）
- */
-function calcLongestStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
-  let longest = 0
-  let current = 0
-  for (const date of recentDates) {
-    if (!isHabitActiveOnDate(habit, date)) continue
-    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
-      current++
-      if (current > longest) longest = current
-    } else {
-      current = 0
-    }
-  }
-  return longest
-}
 
 /** 过滤系统字段，防止客户端注入 */
 const SYSTEM_FIELDS = ['_id', '_openid', 'createdAt', 'updatedAt',
@@ -503,7 +457,8 @@ async function checkIn(openid, data) {
 
   const checkedSet = new Set(checkData.map(r => r.date))
   const frozenSet = new Set(freezeData.map(r => r.date))
-  const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit)
+  const today = toDateStr(new Date())
+  const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
 
   const updateData = { streakCurrent, updatedAt: db.serverDate() }
   if (streakCurrent > (habit.streakLongest || 0)) {
@@ -567,7 +522,8 @@ async function uncheckIn(openid, data) {
 
   const checkedSet = new Set(uncheckData.map(r => r.date))
   const frozenSet = new Set(freezeData2.map(r => r.date))
-  const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit)
+  const today = toDateStr(new Date())
+  const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
   const streakLongest = calcLongestStreak(recentDates, checkedSet, frozenSet, habit)
   await habitsCol.doc(habitId).update({
     data: { streakCurrent, streakLongest, updatedAt: db.serverDate() }

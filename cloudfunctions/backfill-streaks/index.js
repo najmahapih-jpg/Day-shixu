@@ -67,50 +67,9 @@ async function paginatedGet(query, maxRecords = 400) {
   return all
 }
 
-function isHabitActiveOnDate(habit, dateStr) {
-  if (!habit || !habit.frequency || habit.frequency === 'daily') return true
-  const dt = parseDate(dateStr)
-  const wd = dt.getUTCDay()
-  if (habit.frequency === 'weekdays') return wd >= 1 && wd <= 5
-  if (habit.frequency === 'weekends') return wd === 0 || wd === 6
-  if (habit.frequency === 'custom' && Array.isArray(habit.customDays)) {
-    const wd1to7 = wd === 0 ? 7 : wd
-    return habit.customDays.includes(wd1to7)
-  }
-  return true
-}
-
-function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit, today) {
-  let streak = 0
-  for (let i = 0; i < recentDates.length; i++) {
-    const date = recentDates[i]
-    if (!isHabitActiveOnDate(habit, date)) continue
-    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
-      streak++
-    } else if (date === today) {
-      // 今天是活跃日但尚未打卡 — 跳过，不中断连续（与 stats/getStreaks 一致）
-      continue
-    } else {
-      break
-    }
-  }
-  return streak
-}
-
-function calcLongestStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
-  let longest = 0
-  let current = 0
-  for (const date of recentDates) {
-    if (!isHabitActiveOnDate(habit, date)) continue
-    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
-      current++
-      if (current > longest) longest = current
-    } else {
-      current = 0
-    }
-  }
-  return longest
-}
+// isHabitActiveOnDate / calcStreak / calcLongestStreak — imported from ./streak
+// (canonical source: cloudfunctions/_shared/streak.js, synced via scripts/sync-shared.js)
+const { isHabitActiveOnDate, calcStreak, calcLongestStreak } = require('./streak')
 
 // ── Backfill logic ────────────────────────────────────
 

@@ -12,6 +12,11 @@ export interface HeatmapDay {
 
 export interface HeatmapResult {
   days: HeatmapDay[]
+  /**
+   * True when the server hit its internal record cap while aggregating.
+   * Consumers MUST surface a non-blocking partial-data warning when true.
+   */
+  truncated?: boolean
 }
 
 export interface HabitStreak {
@@ -26,6 +31,8 @@ export interface StreaksResult {
   longestStreak: number
   totalCheckIns: number
   habits: HabitStreak[]
+  /** See HeatmapResult.truncated */
+  truncated?: boolean
 }
 
 export interface DayRate {
@@ -37,6 +44,25 @@ export interface WeeklyComparison {
   thisWeek: DayRate[]
   lastWeek: DayRate[]
   improvement: number
+  /** See HeatmapResult.truncated */
+  truncated?: boolean
+}
+
+/**
+ * Shared partial-data warning for stats/heatmap consumers. Call after any
+ * stats service response whose shape includes `truncated`. Fires a
+ * non-blocking toast so the user knows the chart below is an under-count.
+ *
+ * Keeps messaging consistent across pages (stats-detail, habit-detail, etc.)
+ */
+export function warnIfTruncated(result: { truncated?: boolean } | null | undefined): void {
+  if (!result || !result.truncated) return
+  // uni-app global toast — non-blocking, auto-dismisses
+  uni.showToast({
+    title: '数据量过大，仅显示部分结果',
+    icon: 'none',
+    duration: 2500,
+  })
 }
 
 export async function getHeatmap(
