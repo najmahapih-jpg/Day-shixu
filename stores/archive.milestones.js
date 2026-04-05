@@ -40,4 +40,35 @@ function computeHistoricalMilestones(checkInsByHabit) {
   return result
 }
 
-module.exports = { computeHistoricalMilestones, MILESTONE_DAYS }
+/**
+ * Merge a freshly fetched batch into the existing archive list, deduping
+ * by day id and preserving descending date order. Pure so it can be
+ * unit-tested without a pinia runtime. Callers must run milestone
+ * recomputation on the returned list separately.
+ *
+ * @param {Array<{id: string, date: string}>} existing already-loaded archives
+ * @param {Array<{id: string, date: string}>} incoming newly aggregated batch
+ * @returns {Array<{id: string, date: string}>} merged list, desc by date
+ */
+function mergeArchiveBatch(existing, incoming) {
+  const seen = new Set(existing.map((a) => a.id))
+  const toAdd = incoming.filter((a) => !seen.has(a.id))
+  return [...existing, ...toAdd].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+/**
+ * Version-guard helper: a fetch captures its own version at start, and
+ * before writing state checks it still matches the current token. This
+ * is the 1-liner that would be inlined in the store, exported here so
+ * the stale-response contract has a testable surface.
+ */
+function shouldApplyFetchResult(capturedVersion, currentVersion) {
+  return capturedVersion === currentVersion
+}
+
+module.exports = {
+  computeHistoricalMilestones,
+  MILESTONE_DAYS,
+  mergeArchiveBatch,
+  shouldApplyFetchResult,
+}
