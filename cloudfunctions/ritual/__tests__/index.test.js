@@ -510,3 +510,228 @@ describe('cross-user authorization — ritual mutations', () => {
     expect(cloud.__getCol('check_ins').length).toBe(checkInsBefore)
   })
 })
+
+// ── execute hardening: dup-key retry, archived-habit skip, partial failure
+describe('ritual execute hardening', () => {
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID, APPID: 'test' })
+  })
+
+  test('double submit does NOT double-increment totalCompletions', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'h-dup',
+      _openid: OPENID,
+      name: '双提交',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '双提交仪式', habitIds: ['h-dup'] },
+    })
+    const ritualId = createRes.data._id
+
+    // First execute: creates record, totalCompletions → 1
+    const r1 = await main({
+      action: 'execute',
+      ritualId,
+      completedHabitIds: ['h-dup'],
+      date: '2026-04-05',
+    })
+    expect(r1.code).toBe(0)
+    // Second execute on same day: existing path, no inc
+    const r2 = await main({
+      action: 'execute',
+      ritualId,
+      completedHabitIds: ['h-dup'],
+      date: '2026-04-05',
+    })
+    expect(r2.code).toBe(0)
+    const h = cloud.__getCol('habits').find(x => x._id === 'h-dup')
+    expect(h.totalCompletions).toBe(1)
+    // And exactly one check_in row exists
+    const rows = cloud.__getCol('check_ins').filter(
+      c => c.habitId === 'h-dup' && c.date === '2026-04-05',
+    )
+    expect(rows.length).toBe(1)
+  })
+
+  test('archived habit inside ritual is skipped with partial-failure entry', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'h-active',
+      _openid: OPENID,
+      name: 'active',
+      frequency: 'daily',
+      isArchived: false,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+    habitsCol.push({
+      _id: 'h-arch',
+      _openid: OPENID,
+      name: 'archived',
+      frequency: 'daily',
+      isArchived: true,
+      streakCurrent: 0,
+      streakLongest: 0,
+      totalCompletions: 0,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '混合仪式', habitIds: ['h-active', 'h-arch'] },
+    })
+    const res = await main({
+      action: 'execute',
+      ritualId: createRes.data._id,
+      completedHabitIds: ['h-active', 'h-arch'],
+      date: '2026-04-05',
+    })
+    expect(res.code).toBe(0)
+    // Active habit succeeded
+    expect(res.data.checkIns.length).toBe(1)
+    expect(res.data.checkIns[0].habitId).toBe('h-active')
+    // Archived habit surfaced via errors[]
+    expect(res.data.errors).toBeDefined()
+    const archErr = res.data.errors.find(e => e.habitId === 'h-arch')
+    expect(archErr).toBeTruthy()
+    expect(archErr.error).toBe('archived')
+    // Archived habit untouched
+    const archived = cloud.__getCol('habits').find(x => x._id === 'h-arch')
+    expect(archived.totalCompletions).toBe(0)
+  })
+
+  test('rejects malformed date', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'h-d',
+      _openid: OPENID,
+      name: 'd',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '日期仪式', habitIds: ['h-d'] },
+    })
+    const res = await main({
+      action: 'execute',
+      ritualId: createRes.data._id,
+      completedHabitIds: ['h-d'],
+      date: 'not-a-date',
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('日期')
+  })
+})
+
+// ── All-failed semantics ───────────────────────────────
+// When every target habit fails, the response must NOT claim success.
+// Partial success (some ok, some failed) keeps code:0 with errors[].
+describe('ritual execute all-failed vs partial-success semantics', () => {
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID, APPID: 'test' })
+  })
+
+  test('all habits archived → code:-1 with errors[] in data', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'all-arch-1',
+      _openid: OPENID,
+      name: 'arch1',
+      frequency: 'daily',
+      isArchived: true,
+    })
+    habitsCol.push({
+      _id: 'all-arch-2',
+      _openid: OPENID,
+      name: 'arch2',
+      frequency: 'daily',
+      isArchived: true,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '全归档', habitIds: ['all-arch-1', 'all-arch-2'] },
+    })
+    const res = await main({
+      action: 'execute',
+      ritualId: createRes.data._id,
+      completedHabitIds: ['all-arch-1', 'all-arch-2'],
+      date: '2026-04-05',
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toBeTruthy()
+    expect(res.data).toBeDefined()
+    expect(res.data.checkIns.length).toBe(0)
+    expect(res.data.errors.length).toBe(2)
+    expect(res.data.errors.every(e => e.error === 'archived')).toBe(true)
+  })
+
+  test('partial success: 1 ok + 1 archived → code:0 with errors[]', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'ps-ok',
+      _openid: OPENID,
+      name: 'ok',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    habitsCol.push({
+      _id: 'ps-arch',
+      _openid: OPENID,
+      name: 'arch',
+      frequency: 'daily',
+      isArchived: true,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '部分成功', habitIds: ['ps-ok', 'ps-arch'] },
+    })
+    const res = await main({
+      action: 'execute',
+      ritualId: createRes.data._id,
+      completedHabitIds: ['ps-ok', 'ps-arch'],
+      date: '2026-04-05',
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.checkIns.length).toBe(1)
+    expect(res.data.errors.length).toBe(1)
+    expect(res.data.errors[0].habitId).toBe('ps-arch')
+  })
+
+  test('pure success: all ok → code:0 with empty errors[]', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'pure-1',
+      _openid: OPENID,
+      name: 'pure1',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    habitsCol.push({
+      _id: 'pure-2',
+      _openid: OPENID,
+      name: 'pure2',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    const createRes = await main({
+      action: 'create',
+      ritual: { name: '全成功', habitIds: ['pure-1', 'pure-2'] },
+    })
+    const res = await main({
+      action: 'execute',
+      ritualId: createRes.data._id,
+      completedHabitIds: ['pure-1', 'pure-2'],
+      date: '2026-04-05',
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.checkIns.length).toBe(2)
+    expect(res.data.errors.length).toBe(0)
+  })
+})

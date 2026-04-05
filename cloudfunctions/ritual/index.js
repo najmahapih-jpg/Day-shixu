@@ -9,8 +9,10 @@ const { isHabitActiveOnDate, calcStreak } = require('./streak')
 
 // ── helpers ──────────────────────────────────────────────
 
-function fail(message) {
-  return { code: -1, message }
+function fail(message, data) {
+  const res = { code: -1, message }
+  if (data !== undefined) res.data = data
+  return res
 }
 
 function ok(data) {
@@ -33,6 +35,20 @@ function toDateStr(d) {
 function parseDate(str) {
   const [y, m, d] = str.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d))
+}
+
+/** Strict YYYY-MM-DD validator — rejects malformed and non-roundtrip dates */
+const DATE_STR_RE = /^\d{4}-\d{2}-\d{2}$/
+function isValidDateStr(v) {
+  if (typeof v !== 'string' || !DATE_STR_RE.test(v)) return false
+  const [y, m, d] = v.split('-').map(Number)
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  )
 }
 
 function getRecentDates(baseDate, n) {
@@ -249,9 +265,13 @@ async function execute(openid, event) {
   const validIds = [...new Set(completedHabitIds)].filter(id => ritualHabitSet.has(id))
   if (validIds.length === 0) return fail('没有有效的习惯')
 
+  // Strict date validation at the entry boundary
+  if (date !== undefined && !isValidDateStr(date)) return fail('日期格式不合法')
+
   const dateStr = date ? toDateStr(date) : toDateStr(new Date())
   const today = toDateStr(new Date())
   const results = []
+  const errors = [] // per-habit partial-failure surface
 
   // Batch query: fetch all valid habits in one call instead of per-habit doc().get()
   const { data: habitDocs } = await habitsCol
@@ -263,70 +283,111 @@ async function execute(openid, event) {
 
   for (const habitId of validIds) {
     const habit = habitMap[habitId]
-    if (!habit) continue // 习惯不存在或不属于当前用户，跳过
+    if (!habit) {
+      errors.push({ habitId, error: 'not_found' })
+      continue // 习惯不存在或不属于当前用户，跳过
+    }
+    if (habit.isArchived) {
+      // Archived habits must not be mutated through ritual execution
+      errors.push({ habitId, error: 'archived' })
+      continue
+    }
 
-    // 查是否已有打卡记录
-    const { data: existing } = await checkInsCol
-      .where({ _openid: openid, habitId, date: dateStr })
-      .limit(1)
-      .get()
+    try {
+      // 查是否已有打卡记录
+      const { data: existing } = await checkInsCol
+        .where({ _openid: openid, habitId, date: dateStr })
+        .limit(1)
+        .get()
 
-    let checkInRecord
-    if (existing.length > 0) {
-      // 已存在 → 更新
-      await checkInsCol.doc(existing[0]._id).update({
-        data: { value: 1, updatedAt: db.serverDate() }
-      })
-      checkInRecord = { ...existing[0], value: 1 }
-    } else {
-      // 不存在 → 创建
-      const newRecord = {
-        _openid: openid,
-        habitId,
-        date: dateStr,
-        value: 1,
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate()
+      let checkInRecord
+      let wasNewRecord = false
+      if (existing.length > 0) {
+        // 已存在 → 更新，不 inc totalCompletions
+        await checkInsCol.doc(existing[0]._id).update({
+          data: { value: 1, updatedAt: db.serverDate() }
+        })
+        checkInRecord = { ...existing[0], value: 1 }
+      } else {
+        // 不存在 → 创建；unique index (_openid, habitId, date) protects us.
+        // On race: fall back to update path so totalCompletions is NOT inc'd twice.
+        const newRecord = {
+          _openid: openid,
+          habitId,
+          date: dateStr,
+          value: 1,
+          createdAt: db.serverDate(),
+          updatedAt: db.serverDate()
+        }
+        try {
+          const { _id } = await checkInsCol.add({ data: newRecord })
+          checkInRecord = { _id, ...newRecord }
+          wasNewRecord = true
+        } catch (dupErr) {
+          // 唯一索引冲突 → 并发请求已插入，回退到更新路径（不 inc）
+          const { data: raceExisting } = await checkInsCol
+            .where({ _openid: openid, habitId, date: dateStr })
+            .limit(1)
+            .get()
+          if (raceExisting.length > 0) {
+            await checkInsCol.doc(raceExisting[0]._id).update({
+              data: { value: 1, updatedAt: db.serverDate() }
+            })
+            checkInRecord = { ...raceExisting[0], value: 1 }
+          } else {
+            throw dupErr
+          }
+        }
+        if (wasNewRecord) {
+          // totalCompletions+1（仅真正的新记录才递增，避免重复计数）
+          await habitsCol.doc(habitId).update({
+            data: { totalCompletions: _.inc(1) }
+          })
+        }
       }
-      const { _id } = await checkInsCol.add({ data: newRecord })
-      checkInRecord = { _id, ...newRecord }
 
-      // totalCompletions+1（仅新记录）
-      await habitsCol.doc(habitId).update({
-        data: { totalCompletions: _.inc(1) }
-      })
+      // 重算连续天数（365 天回溯 + 冻结日，与 habit/checkIn 一致）
+      const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
+      const lookbackStart = recentDates[recentDates.length - 1]
+      const [checkData, freezeData] = await Promise.all([
+        paginatedGet(
+          checkInsCol
+            .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+            .orderBy('date', 'desc')
+        ),
+        paginatedGet(
+          checkInsCol
+            .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
+            .orderBy('date', 'desc')
+        ),
+      ])
+
+      const checkedSet = new Set(checkData.map(r => r.date))
+      const frozenSet = new Set(freezeData.map(r => r.date))
+      const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
+
+      const updateData = { streakCurrent, updatedAt: db.serverDate() }
+      if (streakCurrent > (habit.streakLongest || 0)) {
+        updateData.streakLongest = streakCurrent
+      }
+      await habitsCol.doc(habitId).update({ data: updateData })
+
+      results.push(checkInRecord)
+    } catch (err) {
+      // Per-habit failure: record and continue so other habits in the ritual
+      // still get processed. Caller sees exactly which habits failed.
+      console.warn('[ritual.execute] habit failed:', habitId, err && err.message)
+      errors.push({ habitId, error: err && err.message ? err.message : 'unknown' })
     }
-
-    // 重算连续天数（365 天回溯 + 冻结日，与 habit/checkIn 一致）
-    const recentDates = getRecentDates(dateStr, STREAK_LOOKBACK)
-    const lookbackStart = recentDates[recentDates.length - 1]
-    const [checkData, freezeData] = await Promise.all([
-      paginatedGet(
-        checkInsCol
-          .where({ _openid: openid, habitId, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-          .orderBy('date', 'desc')
-      ),
-      paginatedGet(
-        checkInsCol
-          .where({ _openid: openid, habitId: FREEZE_HABIT_ID, date: _.gte(lookbackStart).and(_.lte(dateStr)) })
-          .orderBy('date', 'desc')
-      ),
-    ])
-
-    const checkedSet = new Set(checkData.map(r => r.date))
-    const frozenSet = new Set(freezeData.map(r => r.date))
-    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
-
-    const updateData = { streakCurrent, updatedAt: db.serverDate() }
-    if (streakCurrent > (habit.streakLongest || 0)) {
-      updateData.streakLongest = streakCurrent
-    }
-    await habitsCol.doc(habitId).update({ data: updateData })
-
-    results.push(checkInRecord)
   }
 
-  return ok({ ritualId, checkIns: results, date: dateStr })
+  // All-failed guard: if no habit succeeded but we have errors, do not
+  // return a misleading success. Preserve partial-success (some results +
+  // some errors) and pure-success (no errors) as regular ok() responses.
+  if (results.length === 0 && errors.length > 0) {
+    return fail('仪式执行失败', { ritualId, checkIns: results, errors, date: dateStr })
+  }
+  return ok({ ritualId, checkIns: results, errors, date: dateStr })
 }
 
 // ── main ─────────────────────────────────────────────────
