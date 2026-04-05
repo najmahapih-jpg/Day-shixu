@@ -180,6 +180,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import type { Habit, RitualType } from '@/types'
 import { useHabitStore } from '@/stores/habit'
 import { executeRitual, getRitual } from '@/services/ritualService'
+import type { ExecuteFailure, ExecuteResult } from '@/services/ritualService'
+import { CloudError } from '@/services/cloud'
 import HfIcon from '@/components/base/HfIcon.vue'
 import HfFlipNumber from '@/components/base/HfFlipNumber.vue'
 import HabitCheckbox from '@/components/habit/HabitCheckbox.vue'
@@ -438,10 +440,29 @@ async function finishRitual() {
 
   const completedIds = completedRecords.value.map((r) => r.habitId)
   try {
-    await executeRitual(ritualData.value._id, completedIds)
+    const result = await executeRitual(ritualData.value._id, completedIds)
     await habitStore.fetchHabits()
-  } catch {
-    // Service already handles toast
+    // Partial success: some habits succeeded, others failed. Surface the
+    // failure count so the user knows not every check-in went through.
+    if (result?.errors && result.errors.length > 0) {
+      const succeeded = result.checkIns?.length ?? 0
+      uni.showToast({
+        title: `${succeeded} 个完成，${result.errors.length} 个失败`,
+        icon: 'none',
+        duration: 2500,
+      })
+    }
+  } catch (err) {
+    // All-failed path: server returns code:-1 with data.errors[]. Surface the
+    // count of per-habit failures if present; otherwise fall back to message.
+    if (err instanceof CloudError) {
+      const data = err.data as (ExecuteResult & { errors?: ExecuteFailure[] }) | undefined
+      const failed = data?.errors?.length ?? 0
+      const title = failed > 0
+        ? `${failed} 个习惯打卡失败`
+        : err.message || '仪式执行失败'
+      uni.showToast({ title, icon: 'none', duration: 2500 })
+    }
   }
 }
 
