@@ -7,10 +7,16 @@ export interface RitualDetail extends Ritual {
   habits: Habit[]
 }
 
+export interface ExecuteFailure {
+  habitId: string
+  error: string
+}
+
 export interface ExecuteResult {
   ritualId: string
   checkIns: CheckIn[]
   date: string
+  errors?: ExecuteFailure[]
 }
 
 export async function listRituals(): Promise<Ritual[]> {

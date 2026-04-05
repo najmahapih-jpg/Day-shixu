@@ -6,9 +6,11 @@ import { CLOUD_ENV_ID } from '@/utils/cloudEnv'
 
 export class CloudError extends Error {
   code: number
-  constructor(code: number, message: string) {
+  data?: unknown
+  constructor(code: number, message: string, data?: unknown) {
     super(message)
     this.code = code
+    this.data = data
     this.name = 'CloudError'
   }
 }
@@ -142,7 +144,8 @@ export async function callCloud<T>(
 
     if (result.code !== 0) {
       // Business error: server returned a non-zero code
-      throw new CloudError(result.code, result.message || '操作失败')
+      // Preserve structured payload (e.g. ritual.execute all-failed errors[])
+      throw new CloudError(result.code, result.message || '操作失败', result.data)
     }
 
     return result.data as T
