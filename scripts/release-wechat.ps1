@@ -31,11 +31,11 @@ mp-weixin build not found at:
 Please build in HBuilderX first (Run > Build > mp-weixin).
 "@
 }
-Write-Host "[1/5] mp-weixin build verified." -ForegroundColor Green
+Write-Host "[1/7] mp-weixin build verified." -ForegroundColor Green
 
 # ── Step 2: Install ALL cloud function dependencies ──
 $cfNames = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey')
-Write-Host "[2/6] Installing cloud function dependencies..."
+Write-Host "[2/7] Installing cloud function dependencies..."
 foreach ($cfName in $cfNames) {
   $cfDir = Join-Path $projectRoot "cloudfunctions\$cfName"
   $cfPkg = Join-Path $cfDir 'package.json'
@@ -50,16 +50,26 @@ foreach ($cfName in $cfNames) {
     }
   }
 }
-Write-Host "[2/6] All dependencies installed." -ForegroundColor Green
+Write-Host "[2/7] All dependencies installed." -ForegroundColor Green
 
-# ── Step 3: Deploy ALL cloud functions ──
-Write-Host "[3/6] Deploying all cloud functions..."
+# ── Step 3: Sync shared modules into each cloud function ──
+# Each cloud function packages independently, so _shared/streak.js must
+# be copied into habit/ritual/stats/backfill-streaks before deploy.
+# Skipping this step silently ships drifted streak copies.
+Write-Host "[3/7] Syncing shared modules into cloud functions..."
+$syncSharedScript = Join-Path $projectRoot 'cloudfunctions\scripts\sync-shared.js'
+node $syncSharedScript
+if ($LASTEXITCODE -ne 0) { throw "sync-shared.js failed" }
+Write-Host "[3/7] Shared modules synced." -ForegroundColor Green
+
+# ── Step 4: Deploy ALL cloud functions ──
+Write-Host "[4/7] Deploying all cloud functions..."
 $cfScript = Join-Path $scriptDirResolved 'cloudbase-fn.ps1'
 & $cfScript deployAll
-Write-Host "[3/6] All cloud functions deployed." -ForegroundColor Green
+Write-Host "[4/7] All cloud functions deployed." -ForegroundColor Green
 
-# ── Step 4: Prepare WeChat DevTools project ──
-Write-Host "[4/6] Running prepare:wechat..."
+# ── Step 5: Prepare WeChat DevTools project ──
+Write-Host "[5/7] Running prepare:wechat..."
 Push-Location $projectRoot
 try {
   npm run prepare:wechat 2>&1 | ForEach-Object { Write-Host "  $_" }
@@ -67,19 +77,19 @@ try {
 } finally {
   Pop-Location
 }
-Write-Host "[4/6] DevTools project prepared." -ForegroundColor Green
+Write-Host "[5/7] DevTools project prepared." -ForegroundColor Green
 
-# ── Step 5: Pre-flight checks ──
-Write-Host "[5/6] Running pre-flight checks..."
+# ── Step 6: Pre-flight checks ──
+Write-Host "[6/7] Running pre-flight checks..."
 $preflightScript = Join-Path $scriptDirResolved 'preflight-check.ps1'
 if (Test-Path $preflightScript) {
   & $preflightScript
   if ($LASTEXITCODE -ne 0) { throw "Pre-flight checks failed" }
 }
-Write-Host "[5/6] Pre-flight checks passed." -ForegroundColor Green
+Write-Host "[6/7] Pre-flight checks passed." -ForegroundColor Green
 
-# ── Step 6: Upload mini program ──
-Write-Host "[6/6] Uploading mini program..."
+# ── Step 7: Upload mini program ──
+Write-Host "[7/7] Uploading mini program..."
 $uploadScript = Join-Path $scriptDirResolved 'upload-miniprogram.js'
 $uploadArgs = @('--version', $Version, '--robot', $Robot)
 if (-not [string]::IsNullOrWhiteSpace($Desc)) {
@@ -87,7 +97,7 @@ if (-not [string]::IsNullOrWhiteSpace($Desc)) {
 }
 node $uploadScript @uploadArgs
 if ($LASTEXITCODE -ne 0) { throw "Mini program upload failed" }
-Write-Host "[6/6] Mini program uploaded." -ForegroundColor Green
+Write-Host "[7/7] Mini program uploaded." -ForegroundColor Green
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  Release complete!" -ForegroundColor Cyan

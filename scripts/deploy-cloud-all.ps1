@@ -34,6 +34,14 @@ try {
   Write-Host 'Step 2/5: install cloud function dependencies'
   & powershell -ExecutionPolicy Bypass -File $installDepsScript
 
+  Write-Host 'Step 2b/5: sync shared modules into cloud functions'
+  # Guarantee each cloud function carries byte-identical copies of
+  # cloudfunctions/_shared/* before deploy. Runs even when this script
+  # is invoked directly (bypassing npm pre* hooks).
+  $syncSharedScript = Join-Path $repoRoot 'cloudfunctions\scripts\sync-shared.js'
+  node $syncSharedScript
+  if ($LASTEXITCODE -ne 0) { throw 'sync-shared.js failed' }
+
   Write-Host 'Step 3/5: deploy all cloud functions via CloudBase CLI'
   & powershell -ExecutionPolicy Bypass -File $cloudbaseFnScript deployAll
 
