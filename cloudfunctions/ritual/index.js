@@ -5,6 +5,7 @@ const _ = db.command
 const ritualsCol = db.collection('rituals')
 const habitsCol = db.collection('habits')
 const checkInsCol = db.collection('check_ins')
+const { isHabitActiveOnDate, calcStreak } = require('./streak')
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -60,39 +61,8 @@ async function paginatedGet(query, maxRecords = 400) {
 const STREAK_LOOKBACK = 365
 const FREEZE_HABIT_ID = '__freeze__'
 
-/**
- * 判断习惯在指定日期是否需要打卡
- * Keep in sync with habit/index.js isHabitActiveOnDate (canonical source)
- */
-function isHabitActiveOnDate(habit, dateStr) {
-  if (!habit || !habit.frequency || habit.frequency === 'daily') return true
-  const dt = parseDate(dateStr)
-  const wd = dt.getUTCDay()
-  if (habit.frequency === 'weekdays') return wd >= 1 && wd <= 5
-  if (habit.frequency === 'weekends') return wd === 0 || wd === 6
-  if (habit.frequency === 'custom' && Array.isArray(habit.customDays)) {
-    const wd1to7 = wd === 0 ? 7 : wd
-    return habit.customDays.includes(wd1to7)
-  }
-  return true
-}
-
-/**
- * 频率感知的连续天数计算
- * Keep in sync with habit/index.js calcStreak (canonical source)
- */
-function calcStreak(recentDates, checkedDateSet, frozenDateSet, habit) {
-  let streak = 0
-  for (const date of recentDates) {
-    if (!isHabitActiveOnDate(habit, date)) continue
-    if (checkedDateSet.has(date) || (frozenDateSet && frozenDateSet.has(date))) {
-      streak++
-    } else {
-      break
-    }
-  }
-  return streak
-}
+// isHabitActiveOnDate, calcStreak — imported from ./streak
+// (canonical source: cloudfunctions/_shared/streak.js)
 
 const SYSTEM_FIELDS = ['_id', '_openid', 'createdAt', 'updatedAt']
 function sanitize(obj) {
@@ -280,6 +250,7 @@ async function execute(openid, event) {
   if (validIds.length === 0) return fail('没有有效的习惯')
 
   const dateStr = date ? toDateStr(date) : toDateStr(new Date())
+  const today = toDateStr(new Date())
   const results = []
 
   // Batch query: fetch all valid habits in one call instead of per-habit doc().get()
@@ -344,7 +315,7 @@ async function execute(openid, event) {
 
     const checkedSet = new Set(checkData.map(r => r.date))
     const frozenSet = new Set(freezeData.map(r => r.date))
-    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit)
+    const streakCurrent = calcStreak(recentDates, checkedSet, frozenSet, habit, today)
 
     const updateData = { streakCurrent, updatedAt: db.serverDate() }
     if (streakCurrent > (habit.streakLongest || 0)) {

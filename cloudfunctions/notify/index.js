@@ -171,8 +171,15 @@ async function scheduledRemind() {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  // 仅允许定时触发器调用（无 OPENID），拒绝用户直接调用
+  // 正向校验：仅允许定时触发器调用
+  //   1) 必须没有 OPENID（用户直接调用会携带 OPENID）
+  //   2) 必须带 event.Type === 'Timer'（定时触发器由微信云平台注入）
+  // 两条件都满足才放行，否则失败关闭 (fail-closed)
   if (OPENID) return fail('该接口不支持直接调用')
+  if (!event || event.Type !== 'Timer') {
+    console.warn('[notify] rejected: missing Timer trigger metadata', { type: event && event.Type })
+    return fail('仅支持定时触发器调用')
+  }
 
   const { action } = event
   try {

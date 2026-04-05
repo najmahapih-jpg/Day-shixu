@@ -444,3 +444,69 @@ describe('edge cases', () => {
     expect(res.code).toBe(-1)
   })
 })
+
+// ── Cross-user authorization (F5) ──────────────────────
+// Attacker cannot mutate a ritual that belongs to another user.
+describe('cross-user authorization — ritual mutations', () => {
+  const VICTIM = 'victim-openid'
+  const ATTACKER = 'attacker-openid'
+
+  function seedVictimRitual(overrides = {}) {
+    cloud.__getCol('rituals').push({
+      _id: 'victim-ritual',
+      _openid: VICTIM,
+      name: 'victim ritual',
+      type: 'morning',
+      habitIds: ['victim-habit-1'],
+      ...overrides,
+    })
+  }
+
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID: ATTACKER, APPID: 'test' })
+  })
+
+  test('update rejects attacker and leaves name intact', async () => {
+    seedVictimRitual()
+    const res = await main({
+      action: 'update',
+      id: 'victim-ritual',
+      ritual: { name: 'hijacked' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const after = cloud.__getCol('rituals').find((r) => r._id === 'victim-ritual')
+    expect(after.name).toBe('victim ritual')
+    expect(after._openid).toBe(VICTIM)
+  })
+
+  test('delete rejects attacker and leaves ritual intact', async () => {
+    seedVictimRitual()
+    const res = await main({ action: 'delete', id: 'victim-ritual' })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    const after = cloud.__getCol('rituals').find((r) => r._id === 'victim-ritual')
+    expect(after).toBeTruthy()
+  })
+
+  test('execute rejects attacker and creates no check-ins', async () => {
+    seedVictimRitual()
+    cloud.__getCol('habits').push({
+      _id: 'victim-habit-1',
+      _openid: VICTIM,
+      name: 'victim habit',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    const checkInsBefore = cloud.__getCol('check_ins').length
+    const res = await main({
+      action: 'execute',
+      ritualId: 'victim-ritual',
+      completedHabitIds: ['victim-habit-1'],
+      date: '2026-04-05',
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('无权')
+    expect(cloud.__getCol('check_ins').length).toBe(checkInsBefore)
+  })
+})
