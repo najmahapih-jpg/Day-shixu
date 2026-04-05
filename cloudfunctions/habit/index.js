@@ -46,6 +46,28 @@ function toIsoStr(d = new Date()) {
   return `${y}-${m}-${day}T${hh}:${mm}:${ss}+08:00`
 }
 
+/**
+ * Strict YYYY-MM-DD validator.
+ * Rejects malformed inputs, impossible months/days, and non-round-trip dates
+ * (e.g. 2026-02-30 → falls back to March via Date). Use at client-input
+ * boundaries BEFORE toDateStr to keep bogus data out of the DB.
+ */
+const DATE_STR_RE = /^\d{4}-\d{2}-\d{2}$/
+function isValidDateStr(v) {
+  if (typeof v !== 'string' || !DATE_STR_RE.test(v)) return false
+  const [y, m, d] = v.split('-').map(Number)
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  )
+}
+
+/** Max span for getCheckIns range queries (inclusive). Keep explicit. */
+const MAX_CHECKIN_RANGE_DAYS = 400
+
 /** 将 YYYY-MM-DD 解析为 UTC 午夜 Date（用于日期计算） */
 function parseDate(str) {
   const [y, m, d] = str.split('-').map(Number)
@@ -253,8 +275,16 @@ async function restore(openid, data) {
     .where({ _openid: openid, isArchived: _.neq(true) })
     .count()
 
+  // Reset streakCurrent on restore: while archived, the habit accrued gap
+  // days that would otherwise make the stale streak misrepresent current
+  // adherence. Preserve streakLongest so historical achievements survive.
   await habitsCol.doc(data.id).update({
-    data: { isArchived: false, order: total, updatedAt: db.serverDate() }
+    data: {
+      isArchived: false,
+      order: total,
+      streakCurrent: 0,
+      updatedAt: db.serverDate(),
+    },
   })
   return ok({ _id: data.id })
 }
@@ -267,6 +297,7 @@ const STREAK_LOOKBACK = 365
 // { _openid, habitId, date } in the cloud console to prevent duplicates at DB level.
 async function freeze(openid, data) {
   if (!data || !data.date) return fail('缺少日期')
+  if (!isValidDateStr(data.date)) return fail('日期格式不合法')
   const dateStr = toDateStr(data.date)
 
   // Only allow freezing today (no retroactive)
@@ -370,6 +401,9 @@ async function checkIn(openid, data) {
   }
   const { habitId, date, value } = data
 
+  // date 格式校验（严格 YYYY-MM-DD）
+  if (!isValidDateStr(date)) return fail('日期格式不合法')
+
   // value 校验：仅允许 boolean 或 0-9999 的数字
   if (value !== undefined) {
     if (typeof value === 'boolean') {
@@ -388,6 +422,7 @@ async function checkIn(openid, data) {
   // 校验习惯归属
   const { data: habit } = await habitsCol.doc(habitId).get()
   if (habit._openid !== openid) return fail('无权操作')
+  if (habit.isArchived) return fail('习惯已归档')
 
   // 查是否已有打卡记录
   const { data: existing } = await checkInsCol
@@ -478,11 +513,13 @@ async function uncheckIn(openid, data) {
     return fail('缺少 habitId 或 date')
   }
   const { habitId, date } = data
+  if (!isValidDateStr(date)) return fail('日期格式不合法')
   const dateStr = toDateStr(date)
 
   // 校验习惯归属
   const { data: habit } = await habitsCol.doc(habitId).get()
   if (habit._openid !== openid) return fail('无权操作')
+  if (habit.isArchived) return fail('习惯已归档')
 
   // 查找并删除打卡记录
   const { data: existing } = await checkInsCol
@@ -545,10 +582,22 @@ async function getCheckIns(openid, data) {
 
   if (data.date) {
     // 单日查询
+    if (!isValidDateStr(data.date)) return fail('日期格式不合法')
     where.date = toDateStr(data.date)
   } else if (data.startDate && data.endDate) {
     // 范围查询
-    where.date = _.gte(toDateStr(data.startDate)).and(_.lte(toDateStr(data.endDate)))
+    if (!isValidDateStr(data.startDate) || !isValidDateStr(data.endDate)) {
+      return fail('日期格式不合法')
+    }
+    const s = toDateStr(data.startDate)
+    const e = toDateStr(data.endDate)
+    if (s > e) return fail('startDate 不能晚于 endDate')
+    // Range clamp: reject oversized spans to protect the query path
+    const spanMs = parseDate(e).getTime() - parseDate(s).getTime()
+    if (spanMs > MAX_CHECKIN_RANGE_DAYS * 24 * 3600 * 1000) {
+      return fail('查询范围不能超过 ' + MAX_CHECKIN_RANGE_DAYS + ' 天')
+    }
+    where.date = _.gte(s).and(_.lte(e))
   } else {
     return fail('缺少 date 或 startDate+endDate')
   }

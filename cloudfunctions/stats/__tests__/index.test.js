@@ -209,3 +209,123 @@ describe('batchGetCheckIns cap-hit signal', () => {
   })
 })
 
+// ── Weekly comparison dedup ────────────────────────────
+// Duplicate rows for (habitId, date) — from legacy data or toggle-off-then-on
+// cycles — must NOT inflate the day's completion count.
+describe('getWeeklyComparison dedupes same-habit same-day records', () => {
+  function mondayOfThisWeek() {
+    const now = new Date()
+    const utc8 = new Date(now.getTime() + 8 * 3600 * 1000)
+    const wd = utc8.getUTCDay() // 0=Sun
+    const diff = wd === 0 ? -6 : 1 - wd
+    utc8.setUTCDate(utc8.getUTCDate() + diff)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${utc8.getUTCFullYear()}-${pad(utc8.getUTCMonth() + 1)}-${pad(utc8.getUTCDate())}`
+  }
+
+  test('two rows for same habit on same day count as one', async () => {
+    const habitsCol = cloud.__getCol('habits')
+    habitsCol.push({
+      _id: 'wc-h1',
+      _openid: OPENID,
+      name: 'weekly habit',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    const monday = mondayOfThisWeek()
+    // Seed two duplicate records for (wc-h1, monday) — simulating legacy drift
+    const checkInsCol = cloud.__getCol('check_ins')
+    checkInsCol.push({
+      _id: 'dup-1',
+      _openid: OPENID,
+      habitId: 'wc-h1',
+      date: monday,
+      value: true,
+    })
+    checkInsCol.push({
+      _id: 'dup-2',
+      _openid: OPENID,
+      habitId: 'wc-h1',
+      date: monday,
+      value: true,
+    })
+    const res = await main({ action: 'getWeeklyComparison' })
+    expect(res.code).toBe(0)
+    // Monday (index 0) has one habit active, one counted → rate = 1.0 not 2.0
+    const mondayData = res.data.thisWeek[0]
+    expect(mondayData.rate).toBe(1)
+  })
+})
+
+// ── Heatmap dedup parity with weekly-comparison ────────
+describe('getHeatmap dedupes same-habit same-day records', () => {
+  test('two rows for same (habit, date) count as one in day.count', async () => {
+    cloud.__getCol('habits').push({
+      _id: 'hm-h1',
+      _openid: OPENID,
+      name: 'heatmap habit',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    // Seed duplicate rows for (hm-h1, 2026-03-15)
+    const checkInsCol = cloud.__getCol('check_ins')
+    checkInsCol.push({
+      _id: 'hm-dup-1',
+      _openid: OPENID,
+      habitId: 'hm-h1',
+      date: '2026-03-15',
+      value: true,
+    })
+    checkInsCol.push({
+      _id: 'hm-dup-2',
+      _openid: OPENID,
+      habitId: 'hm-h1',
+      date: '2026-03-15',
+      value: true,
+    })
+    const res = await main({
+      action: 'getHeatmap',
+      data: { startDate: '2026-03-15', endDate: '2026-03-15' },
+    })
+    expect(res.code).toBe(0)
+    const day = res.data.days.find(d => d.date === '2026-03-15')
+    expect(day).toBeTruthy()
+    expect(day.count).toBe(1)   // deduped, not 2
+    expect(day.total).toBe(1)
+    expect(day.rate).toBe(1)    // caps at 1.0
+  })
+
+  test('two different habits on same day count as two', async () => {
+    cloud.__getCol('habits').push({
+      _id: 'hm-a',
+      _openid: OPENID,
+      name: 'a',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    cloud.__getCol('habits').push({
+      _id: 'hm-b',
+      _openid: OPENID,
+      name: 'b',
+      frequency: 'daily',
+      isArchived: false,
+    })
+    const checkInsCol = cloud.__getCol('check_ins')
+    checkInsCol.push({
+      _id: 'hm-a-1', _openid: OPENID, habitId: 'hm-a', date: '2026-03-15', value: true,
+    })
+    checkInsCol.push({
+      _id: 'hm-b-1', _openid: OPENID, habitId: 'hm-b', date: '2026-03-15', value: true,
+    })
+    const res = await main({
+      action: 'getHeatmap',
+      data: { startDate: '2026-03-15', endDate: '2026-03-15' },
+    })
+    expect(res.code).toBe(0)
+    const day = res.data.days.find(d => d.date === '2026-03-15')
+    expect(day.count).toBe(2)
+    expect(day.total).toBe(2)
+    expect(day.rate).toBe(1)
+  })
+})
+

@@ -824,3 +824,170 @@ describe('calcStreak open-day grace (F1 regression)', () => {
     expect(res.data.streakCurrent).toBe(3)
   })
 })
+
+// ── Archived habit guard ───────────────────────────────
+describe('archived habit guard (checkIn/uncheckIn)', () => {
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID, APPID: 'test' })
+    cloud.__getCol('habits').push({
+      _id: 'arch-h',
+      _openid: OPENID,
+      name: 'archived habit',
+      frequency: 'daily',
+      isArchived: true,
+      streakCurrent: 3,
+      streakLongest: 10,
+      totalCompletions: 30,
+    })
+  })
+
+  test('checkIn rejects archived habit', async () => {
+    const checkInsBefore = cloud.__getCol('check_ins').length
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'arch-h', date: '2026-04-05', value: true },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('已归档')
+    expect(cloud.__getCol('check_ins').length).toBe(checkInsBefore)
+    const h = cloud.__getCol('habits').find(x => x._id === 'arch-h')
+    expect(h.totalCompletions).toBe(30) // not incremented
+  })
+
+  test('uncheckIn rejects archived habit', async () => {
+    cloud.__getCol('check_ins').push({
+      _id: 'arch-ci',
+      _openid: OPENID,
+      habitId: 'arch-h',
+      date: '2026-04-05',
+      value: true,
+    })
+    const res = await main({
+      action: 'uncheckIn',
+      data: { habitId: 'arch-h', date: '2026-04-05' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('已归档')
+    const ci = cloud.__getCol('check_ins').find(c => c._id === 'arch-ci')
+    expect(ci).toBeTruthy()
+  })
+})
+
+// ── Restore resets streakCurrent ───────────────────────
+describe('restore resets streakCurrent (preserves longest)', () => {
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID, APPID: 'test' })
+  })
+
+  test('archive → long gap → restore zeroes streakCurrent but keeps longest', async () => {
+    cloud.__getCol('habits').push({
+      _id: 'restore-h',
+      _openid: OPENID,
+      name: 'restore habit',
+      frequency: 'daily',
+      isArchived: true,
+      streakCurrent: 7,
+      streakLongest: 20,
+      totalCompletions: 50,
+    })
+    const res = await main({ action: 'restore', data: { id: 'restore-h' } })
+    expect(res.code).toBe(0)
+    const h = cloud.__getCol('habits').find(x => x._id === 'restore-h')
+    expect(h.isArchived).toBe(false)
+    expect(h.streakCurrent).toBe(0)
+    expect(h.streakLongest).toBe(20)
+  })
+
+  test('first checkIn after restore starts streak at 1', async () => {
+    cloud.__getCol('habits').push({
+      _id: 'restore-h2',
+      _openid: OPENID,
+      name: 'restore habit 2',
+      frequency: 'daily',
+      isArchived: true,
+      streakCurrent: 7,
+      streakLongest: 20,
+      totalCompletions: 50,
+    })
+    await main({ action: 'restore', data: { id: 'restore-h2' } })
+    // Compute today in UTC+8
+    const now = new Date()
+    const utc8 = new Date(now.getTime() + 8 * 3600 * 1000)
+    const pad = (n) => String(n).padStart(2, '0')
+    const todayStr = `${utc8.getUTCFullYear()}-${pad(utc8.getUTCMonth() + 1)}-${pad(utc8.getUTCDate())}`
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'restore-h2', date: todayStr, value: true },
+    })
+    expect(res.code).toBe(0)
+    expect(res.data.streakCurrent).toBe(1)
+    // streakLongest must not regress
+    const h = cloud.__getCol('habits').find(x => x._id === 'restore-h2')
+    expect(h.streakLongest).toBe(20)
+  })
+})
+
+// ── Date validation / range clamp ──────────────────────
+describe('strict date validation', () => {
+  beforeEach(() => {
+    cloud.__setWXContext({ OPENID, APPID: 'test' })
+    cloud.__getCol('habits').push({
+      _id: 'date-h',
+      _openid: OPENID,
+      name: 'date habit',
+      frequency: 'daily',
+      isArchived: false,
+    })
+  })
+
+  test('checkIn rejects malformed date', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'date-h', date: '2026/04/05', value: true },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('日期')
+  })
+
+  test('checkIn rejects impossible date (2026-02-30)', async () => {
+    const res = await main({
+      action: 'checkIn',
+      data: { habitId: 'date-h', date: '2026-02-30', value: true },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('日期')
+  })
+
+  test('freeze rejects malformed date', async () => {
+    const res = await main({ action: 'freeze', data: { date: 'tomorrow' } })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('日期')
+  })
+
+  test('getCheckIns rejects oversized range', async () => {
+    const res = await main({
+      action: 'getCheckIns',
+      data: { habitId: 'date-h', startDate: '2020-01-01', endDate: '2026-01-01' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('400')
+  })
+
+  test('getCheckIns rejects reversed range', async () => {
+    const res = await main({
+      action: 'getCheckIns',
+      data: { habitId: 'date-h', startDate: '2026-04-05', endDate: '2026-03-01' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('startDate')
+  })
+
+  test('uncheckIn rejects malformed date', async () => {
+    const res = await main({
+      action: 'uncheckIn',
+      data: { habitId: 'date-h', date: 'bad-date' },
+    })
+    expect(res.code).toBe(-1)
+    expect(res.message).toContain('日期')
+  })
+})

@@ -184,10 +184,17 @@ async function getHeatmap(openid, data) {
   const frozenDates = new Set(freezeResult.records.map(r => r.date))
   const truncated = checkInsResult.truncated || freezeResult.truncated
 
-  // 4. 按日期聚合打卡次数
-  const checkInsByDate = {}
+  // 4. 按日期聚合打卡次数 — dedupe by (date, habitId) so duplicate rows
+  // (legacy data without unique index) cannot inflate the daily count.
+  // Matches getWeeklyComparison semantics.
+  const uniquePerDay = {} // date → Set<habitId>
   checkIns.forEach(ci => {
-    checkInsByDate[ci.date] = (checkInsByDate[ci.date] || 0) + 1
+    if (!uniquePerDay[ci.date]) uniquePerDay[ci.date] = new Set()
+    uniquePerDay[ci.date].add(ci.habitId)
+  })
+  const checkInsByDate = {}
+  Object.keys(uniquePerDay).forEach(d => {
+    checkInsByDate[d] = uniquePerDay[d].size
   })
 
   // 5. 生成每日数据
@@ -306,10 +313,17 @@ async function getWeeklyComparison(openid) {
   const checkIns = checkInsResult.records
   const truncated = checkInsResult.truncated
 
-  // 按日期分组打卡数
-  const checkInsByDate = {}
+  // 按日期分组打卡数 — dedupe by (date, habitId) so stray duplicate rows
+  // (legacy data without unique index, or toggle-off-then-on artifacts)
+  // don't inflate the day's completion count.
+  const uniquePerDay = {} // date → Set<habitId>
   checkIns.forEach(ci => {
-    checkInsByDate[ci.date] = (checkInsByDate[ci.date] || 0) + 1
+    if (!uniquePerDay[ci.date]) uniquePerDay[ci.date] = new Set()
+    uniquePerDay[ci.date].add(ci.habitId)
+  })
+  const checkInsByDate = {}
+  Object.keys(uniquePerDay).forEach(d => {
+    checkInsByDate[d] = uniquePerDay[d].size
   })
 
   // 计算每日完成率
