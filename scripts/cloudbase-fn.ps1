@@ -157,8 +157,27 @@ function Invoke-Tcb([string[]]$TcbArgs) {
   }
 }
 
+function Sync-SharedModules {
+  # Central guard: every cloud-function deploy path must first refresh
+  # the per-function copies of cloudfunctions/_shared/* so drift can't
+  # ship. Covers every caller — npm scripts, release-wechat.ps1,
+  # deploy-cloud-all.ps1, and direct `cloudbase-fn.ps1 deploy <name>`
+  # invocations. Idempotent and fast.
+  $syncScript = Join-Path $projectRoot 'cloudfunctions\scripts\sync-shared.js'
+  if (Test-Path $syncScript) {
+    Write-Output 'Syncing shared modules into cloud functions...'
+    node $syncScript
+    if ($LASTEXITCODE -ne 0) { throw 'sync-shared.js failed' }
+  }
+}
+
 Push-Location $projectRoot
 try {
+  # Run shared-sync before any action that actually deploys code. List
+  # actions stay read-only.
+  if ($Action -in @('deploy', 'deployAll', 'deployChanged')) {
+    Sync-SharedModules
+  }
   switch ($Action) {
     'list' {
       Invoke-Tcb -TcbArgs @('fn', 'list', '-e', $envId)
