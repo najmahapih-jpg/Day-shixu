@@ -3,10 +3,10 @@ from PIL import Image
 
 # === 路径配置 (已根据你的实际环境更新) ===
 # 原始图位置
-INPUT_DIR = r"C:\Users\ASUS\Desktop\小程序项目\星划pro\tabbar" 
+INPUT_DIR = r"C:\Users\ASUS\Desktop\小程序项目\Day时序\tabbar" 
 
 # 项目标准存放位置
-OUTPUT_DIR = r"C:\Users\ASUS\Desktop\小程序项目\星划pro\src\static\icons\tabbar"
+OUTPUT_DIR = r"C:\Users\ASUS\Desktop\小程序项目\Day时序\src\static\icons\tabbar"
 
 # 目标尺寸规范
 TARGET_SIZE = 81

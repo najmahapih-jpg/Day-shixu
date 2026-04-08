@@ -1,5 +1,5 @@
 {
-    "description":  "HabitFlow WeChat Mini Program",
+    "description":  "Day时序 WeChat Mini Program",
     "packOptions":  {
                         "ignore":  [
 
@@ -44,7 +44,7 @@
     "compileType":  "miniprogram",
     "libVersion":  "3.14.2",
     "appid":  "wx538aff9186f53281",
-    "projectname":  "HabitFlow",
+    "projectname":  "Day时序",
     "miniprogramRoot":  "unpackage/dist/dev/mp-weixin/",
     "cloudfunctionRoot":  "cloudfunctions/",
     "condition":  {

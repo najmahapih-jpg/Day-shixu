@@ -17,7 +17,7 @@ import type {
   NoteType,
 } from '@/types'
 
-const STORAGE_KEY = 'habitflow_board_notes'
+const STORAGE_KEY = 'daytixu_board_notes'
 const MAX_CHECK_ITEMS = 50
 const MAX_TAGS = 3
 const MAX_GROUP_ID_LENGTH = 24

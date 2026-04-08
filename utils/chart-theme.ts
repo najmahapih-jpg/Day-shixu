@@ -1,5 +1,5 @@
 /**
- * uCharts custom theme for HabitFlow
+ * uCharts custom theme for Day时序
  * Keep color values in sync with $brand-* / $neutral-* in @/styles/variables.scss
  */
 
@@ -45,4 +45,3 @@ export const chartTheme = {
     },
   },
 }
-
