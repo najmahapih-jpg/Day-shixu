@@ -1,7 +1,7 @@
 {
-    "name" : "HabitFlow",
+    "name" : "Day时序",
     "appid" : "__UNI__1F1B3B1",
-    "description" : "星划 — 习惯追踪与成长工具，支持打卡、仪式、旅程、灵感笔记",
+    "description" : "Day时序 — 习惯追踪与成长工具，支持打卡、仪式、旅程、灵感笔记",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,

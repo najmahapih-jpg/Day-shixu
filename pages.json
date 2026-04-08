@@ -127,7 +127,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "HabitFlow",
+    "navigationBarTitleText": "Day时序",
     "navigationBarBackgroundColor": "#FAF8F5",
     "backgroundColor": "#FAF8F5"
   },

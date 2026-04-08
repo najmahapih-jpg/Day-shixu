@@ -6,7 +6,7 @@
   >
     <view class="home-nav" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="home-nav__left">
-        <text class="home-nav__title">星划</text>
+        <text class="home-nav__title">Day时序</text>
         <text v-if="userStore.userInfo" class="home-nav__sub">{{ displayNickName }}，{{ todayFormatted }}</text>
         <text v-else class="home-nav__sub">{{ todayFormatted }}</text>
       </view>
@@ -1292,12 +1292,12 @@ function clearHeroIllustration() {
 
 // ── 分享能力 ──
 onShareAppMessage(() => ({
-  title: '星划 — 让好习惯自然发生',
+  title: 'Day时序 — 让好习惯自然发生',
   path: '/pages/index/index',
 }))
 
 onShareTimeline(() => ({
-  title: '星划 — 让好习惯自然发生',
+  title: 'Day时序 — 让好习惯自然发生',
 }))
 
 onShow(() => {

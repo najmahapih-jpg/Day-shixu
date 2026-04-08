@@ -1,5 +1,5 @@
 /**
- * Motion System — 星划动效系统统一出口
+ * Motion System — Day时序动效系统统一出口
  *
  * 使用方式:
  *   import { useSpring, useScrollReveal, Duration, Easing } from '@/composables/motion'

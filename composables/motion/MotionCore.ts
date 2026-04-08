@@ -1,5 +1,5 @@
 /**
- * MotionCore — 星划动效内核 v1.0
+ * MotionCore — Day时序动效内核 v1.0
  *
  * 统一管理全局动效参数：duration / easing / spring / depth / snap / velocity / motionLevel
  * 所有动效 composable 从此模块读取配置，确保全站动效语义一致。

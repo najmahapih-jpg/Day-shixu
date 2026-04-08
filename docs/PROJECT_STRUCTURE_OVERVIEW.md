@@ -1,4 +1,17 @@
-# 星划项目结构速览（Archive 版）
+# Day时序项目结构速览（Archive 版）
+
+## 文档入口导航
+
+| 文档 | 用途 |
+|------|------|
+| [README](../README.md) | 仓库入口，命令速查，阅读建议 |
+| [发布执行指南](RELEASE_GUIDE.md) | 发布全流程操作步骤 |
+| [功能验收测试清单](ACCEPTANCE_TEST_CHECKLIST.md) | 提审前验收清单 |
+| [v1.0.0 上线简报](v1.0.0-launch-brief.md) | 上线决策与检查 |
+| [v1.0.0 结项交接](v1.0.0-closeout.md) | 交付范围、延期事项、维护建议 |
+| [云函数 CLI 部署](CLOUDFUNCTIONS_CLI_WORKFLOW.md) | 云函数命令行部署工作流 |
+
+---
 
 ## 1. 当前状态
 
@@ -9,7 +22,7 @@
 ## 2. 核心目录
 
 ```text
-星划/
+Day时序/
 ├── App.vue
 ├── main.js
 ├── pages.json

@@ -189,7 +189,7 @@ async function handleExport() {
 
     // #ifdef MP-WEIXIN
     const fs = uni.getFileSystemManager()
-    const filePath = `${wx.env.USER_DATA_PATH}/habitflow-export.json`
+    const filePath = `${wx.env.USER_DATA_PATH}/daytixu-export.json`
     fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2), 'utf8')
 
     uni.showModal({

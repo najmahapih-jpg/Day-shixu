@@ -1,4 +1,13 @@
-# 星划 (HabitFlow) v1.0.0 发布执行指南
+# Day时序 v1.0.0 发布执行指南
+
+## 相关文档
+
+- [README](../README.md) — 仓库入口与命令速查
+- [v1.0.0 上线简报](v1.0.0-launch-brief.md) — 上线决策、Go/No-Go 检查、提审材料
+- [功能验收测试清单](ACCEPTANCE_TEST_CHECKLIST.md) — 验收测试逐项清单
+- [v1.0.0 结项交接](v1.0.0-closeout.md) — 交付范围与延期事项
+
+---
 
 ## 前置条件
 
@@ -36,8 +45,8 @@
 | 每日打卡提醒 | `vRh8S5mGFwJRclVVnG8pqK4l1wT1kXtjNzfp0xt20K0` | 习惯提醒 |
 
 如模板 ID 与上述不一致，需同步更新：
-- `cloudfunctions/notify/index.js` 第 110 行
-- `utils/constants.ts` 第 3-6 行
+- `cloudfunctions/notify/index.js`（搜索 `TEMPLATE_ID`）
+- `utils/constants.ts`（搜索 `SUBSCRIBE_TEMPLATE_IDS`）
 
 ### 1.3 服务类目
 **路径**: 设置 → 基本设置 → 服务类目
@@ -94,21 +103,24 @@ powershell -ExecutionPolicy Bypass -File scripts/release-wechat.ps1 `
   -Robot 1
 ```
 
-该脚本自动执行 6 步:
+该脚本自动执行 7 步:
 1. 验证 mp-weixin 构建存在
 2. 安装全部 7 个云函数依赖
-3. 部署全部 7 个云函数
-4. 准备开发者工具项目
-5. 运行预飞检查 (10 项)
-6. 通过 miniprogram-ci 上传
+3. 同步 shared 模块到各云函数
+4. 部署全部 7 个云函数
+5. 准备开发者工具项目
+6. 运行预飞检查 (10 项)
+7. 通过 miniprogram-ci 上传
 
 ### 2.2 手动分步执行 (备选)
+
+> 前提：先确认 HBuilderX 已构建成功（`unpackage/dist/dev/mp-weixin/app.json` 存在）。
 
 ```powershell
 # 1. 安装云函数依赖
 npm run cf:deps
 
-# 2. 部署全部云函数
+# 2. 部署全部云函数（自动触发 shared 模块同步）
 npm run cf:deploy:all
 
 # 3. 准备开发者工具项目
@@ -120,6 +132,8 @@ powershell -ExecutionPolicy Bypass -File scripts/preflight-check.ps1
 # 5. 上传
 npm run wx:upload -- --version 1.0.0 --desc "首次发布" --robot 1
 ```
+
+> 注：`cf:deploy:all` 通过 npm pre-hook 自动运行 `cf:sync:shared`，无需手动执行。
 
 ---
 
@@ -177,8 +191,8 @@ npm run wx:upload -- --version 1.0.0 --desc "首次发布" --robot 1
 
 ### 云函数回滚
 ```powershell
-# 回滚单个云函数到之前版本
-# (需在云开发控制台查看历史版本)
+# 先将本地代码回退到目标版本（cf:deploy:one 部署的是本地代码，非云端历史版本）
+git checkout <目标commit> -- cloudfunctions/<function_name>
 npm run cf:deploy:one -- <function_name>
 ```
 

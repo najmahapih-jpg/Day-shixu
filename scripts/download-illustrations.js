@@ -1,5 +1,5 @@
 /**
- * HabitFlow 插画素材获取与管理
+ * Day时序插画素材获取与管理
  * 
  * 从 unDraw (开源免费 MIT) 获取 SVG 插画
  * unDraw 不提供 API，所以这里预置经过筛选的 SVG 内容
@@ -65,7 +65,7 @@ function ensureDirs() {
 
 // 生成下载指引
 function generateGuide() {
-    let guide = '# HabitFlow 插画素材下载指引\n\n';
+    let guide = '# Day时序插画素材下载指引\n\n';
     guide += '> **颜色统一设置为 #E8725C (品牌珊瑚色)**\n\n';
     guide += '## 下载步骤\n\n';
     guide += '1. 访问 [unDraw](https://undraw.co/illustrations)\n';
@@ -122,7 +122,7 @@ function generatePlaceholder(desc, category) {
 
 // 主执行
 function main() {
-    console.log('🎨 HabitFlow 插画素材管理工具\n');
+    console.log('🎨 Day时序插画素材管理工具\n');
 
     // 创建目录结构
     ensureDirs();
