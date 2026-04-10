@@ -5,6 +5,9 @@
 | 文档 | 用途 |
 |------|------|
 | [README](../README.md) | 仓库入口，命令速查，阅读建议 |
+| [首页拆分线交接](HOME_INDEX_HANDOFF.md) | 首页 1~13 阶段拆分的职责边界、测试保护与手工回归重点 |
+| [时间轴拆分线交接](TIMELINE_INDEX_HANDOFF.md) | timeline 1~12 阶段拆分的职责边界、测试保护与手工回归重点 |
+| [工程治理总交接](ENGINEERING_GOVERNANCE_HANDOFF.md) | 云函数 TS 化、首页与 timeline 拆分线的总维护入口 |
 | [发布执行指南](RELEASE_GUIDE.md) | 发布全流程操作步骤 |
 | [功能验收测试清单](ACCEPTANCE_TEST_CHECKLIST.md) | 提审前验收清单 |
 | [v1.0.0 上线简报](v1.0.0-launch-brief.md) | 上线决策与检查 |
@@ -89,6 +92,7 @@ Day时序/
 当前启用的云函数：
 
 - `ai`
+- `board`
 - `habit`
 - `journey`
 - `notify`
@@ -98,4 +102,4 @@ Day时序/
 
 说明：
 
-- 当前部署配置仅保留 `ai`、`habit`、`journey`、`notify`、`ritual`、`stats`、`user`
+- 当前部署配置仅保留 `ai`、`board`、`habit`、`journey`、`notify`、`ritual`、`stats`、`user`

@@ -3,8 +3,6 @@
  * Focus: trigger-metadata validation, notifyEnabled enforcement,
  *        multi-page user pagination, DB error handling.
  */
-
-jest.mock('wx-server-sdk')
 const cloud = require('wx-server-sdk')
 const { main } = require('../index')
 

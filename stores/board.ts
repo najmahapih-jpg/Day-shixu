@@ -265,6 +265,7 @@ function sortNotes(list: BoardNote[], mode: BoardSortMode): BoardNote[] {
 function notifyLocalMode() {
   if (localModeNotified) return
   localModeNotified = true
+  uni.showToast({ title: '云端暂不可用，已切换到本地模式', icon: 'none', duration: 2500 })
 }
 
 export const useBoardStore = withDefaultPinia(defineStore('board', () => {
@@ -377,7 +378,7 @@ export const useBoardStore = withDefaultPinia(defineStore('board', () => {
       positionMode,
       noteShape: data.noteShape !== undefined ? normalizeShape(data.noteShape) : undefined,
       imageUrl: hasImageUrl ? normalizeImageUrl(data.imageUrl) : undefined,
-      noteType: data.noteType ? (data.noteType === 'checklist' ? 'checklist' : 'text') : undefined,
+      noteType: data.noteType ? (data.noteType === 'checklist' ? 'checklist' as const : 'text' as const) : undefined,
       checkItems: nextCheckItems,
       linkedHabitId: hasLinkedHabitId ? normalizeLinkedHabitId(data.linkedHabitId) : undefined,
       groupId: hasGroupId ? normalizeGroupId(data.groupId) : undefined,

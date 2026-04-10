@@ -4,7 +4,7 @@
 
 ## 1. 前置条件
 
-1. 安装 Node.js（项目 `package.json` 要求 `16.x`；如使用更高版本，需注意 `scripts/upload-miniprogram.js` 中的 less 兼容补丁是否仍有效）。
+1. 安装 Node.js（项目 `package.json` 要求 `18.x`；如使用更高版本，需注意 `scripts/upload-miniprogram.js` 中的 less 兼容补丁是否仍有效）。
 2. 项目根目录存在 `cloudbaserc.json`，其中已配置环境：
    - `envId: cloud-dev-01-2gvgeewv8b7147fb`
 

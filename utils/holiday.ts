@@ -1,4 +1,4 @@
-export type HolidayType = 'official' | 'traditional' | 'special' | 'international'
+export type HolidayType = 'official' | 'traditional' | 'special' | 'international' | 'term' | 'holiday'
 
 export interface HolidayInfo {
   name: string
@@ -106,6 +106,8 @@ const HOLIDAY_TYPE_PRIORITY: Record<HolidayType, number> = {
   traditional: 2,
   special: 3,
   international: 4,
+  term: 5,
+  holiday: 6,
 }
 
 export const HOLIDAY_TYPE_LABEL: Record<HolidayType, string> = {
@@ -113,6 +115,8 @@ export const HOLIDAY_TYPE_LABEL: Record<HolidayType, string> = {
   traditional: '传统节日',
   special: '节日纪念',
   international: '国际节日',
+  term: '节气',
+  holiday: '假期',
 }
 
 function pad(num: number): string {

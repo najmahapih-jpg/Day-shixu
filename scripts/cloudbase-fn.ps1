@@ -171,12 +171,24 @@ function Sync-SharedModules {
   }
 }
 
+function Build-TypeScriptCloudFunctions {
+  $tsConfig = Join-Path $projectRoot 'cloudfunctions\tsconfig.json'
+  if (-not (Test-Path $tsConfig)) {
+    return
+  }
+
+  Write-Output 'Building TypeScript cloud functions...'
+  npm.cmd run build:cloudfunctions:ts
+  if ($LASTEXITCODE -ne 0) { throw 'build:cloudfunctions:ts failed' }
+}
+
 Push-Location $projectRoot
 try {
   # Run shared-sync before any action that actually deploys code. List
   # actions stay read-only.
   if ($Action -in @('deploy', 'deployAll', 'deployChanged')) {
     Sync-SharedModules
+    Build-TypeScriptCloudFunctions
   }
   switch ($Action) {
     'list' {

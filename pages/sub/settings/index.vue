@@ -144,12 +144,12 @@ function setWeekStartsOn(val: 0 | 1) {
   syncToServer()
 }
 
-function onReduceMotionChange(e: { detail: { value: boolean } }) {
+function onReduceMotionChange(e: any) {
   appStore.setReduceMotion(!!e.detail?.value)
   syncToServer()
 }
 
-function onNotifyChange(e: { detail: { value: boolean } }) {
+function onNotifyChange(e: any) {
   appStore.setNotifyEnabled(!!e.detail?.value)
   syncToServer()
 }

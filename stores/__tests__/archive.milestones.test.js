@@ -2,7 +2,7 @@ const {
   computeHistoricalMilestones,
   mergeArchiveBatch,
   shouldApplyFetchResult,
-} = require('../archive.milestones')
+} = require('../archive.milestones.cjs')
 
 function seq(start, count) {
   const [y, m, d] = start.split('-').map(Number)

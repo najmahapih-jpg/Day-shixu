@@ -130,10 +130,7 @@ export async function callCloud<T>(
 
   // #ifdef MP-WEIXIN
   try {
-    // Compatibility payload:
-    // - Newer functions read flat fields from event (e.g. event.id)
-    // - Older functions read nested event.data
-    const payload = { ...data, action, data }
+    const payload = { action, data }
 
     const res = await wx.cloud.callFunction({
       name,

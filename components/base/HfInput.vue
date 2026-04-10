@@ -44,7 +44,7 @@ const emit = defineEmits<{
 
 const focused = ref(false)
 
-function onInput(e: { detail: { value: string } }) {
+function onInput(e: any) {
   emit('update:modelValue', e.detail.value)
 }
 </script>

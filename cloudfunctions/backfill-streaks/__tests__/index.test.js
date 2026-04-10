@@ -1,8 +1,7 @@
-/**
+﻿/**
  * backfill-streaks cloud function tests
  */
 
-jest.mock('wx-server-sdk')
 const cloud = require('wx-server-sdk')
 const { main } = require('../index')
 
@@ -65,7 +64,12 @@ describe('backfill-streaks', () => {
     seedCheckIn('h1', getToday())
     seedCheckIn('h1', daysAgo(1))
 
-    const res = await main({ dryRun: true, habitId: 'h1' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, habitId: 'h1'
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.dryRun).toBe(true)
     expect(res.data.processed).toBe(1)
@@ -84,7 +88,12 @@ describe('backfill-streaks', () => {
     seedCheckIn('h1', daysAgo(1))
     seedCheckIn('h1', daysAgo(2))
 
-    const res = await main({ dryRun: false, habitId: 'h1' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: false, habitId: 'h1'
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.changed).toBe(1)
 
@@ -98,7 +107,12 @@ describe('backfill-streaks', () => {
     seedHabit({ _id: 'archived', isArchived: true, streakCurrent: 0 })
     seedCheckIn('archived', '2026-04-02')
 
-    const res = await main({ dryRun: true, batchSize: 50 })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, batchSize: 50
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.processed).toBe(0)
   })
@@ -109,7 +123,12 @@ describe('backfill-streaks', () => {
     const days = ['2026-03-23', '2026-03-24', '2026-03-25', '2026-03-26', '2026-03-27', '2026-03-30']
     days.forEach(d => seedCheckIn('wd', d))
 
-    const res = await main({ dryRun: false, habitId: 'wd' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: false, habitId: 'wd'
+      },
+    })
     expect(res.code).toBe(0)
 
     const habitsCol = cloud.__getCol('habits')
@@ -123,7 +142,12 @@ describe('backfill-streaks', () => {
     seedCheckIn('correct', getToday())
     seedCheckIn('correct', daysAgo(1))
 
-    const res = await main({ dryRun: true, habitId: 'correct' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, habitId: 'correct'
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.changed).toBe(0)
     expect(res.data.unchanged).toBe(1)
@@ -134,7 +158,12 @@ describe('backfill-streaks', () => {
     seedHabit({ _id: 'grace', frequency: 'daily', streakCurrent: 1, streakLongest: 1 })
     seedCheckIn('grace', daysAgo(1))
 
-    const res = await main({ dryRun: true, habitId: 'grace' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, habitId: 'grace'
+      },
+    })
     expect(res.code).toBe(0)
     // streakCurrent should remain 1 (today is skipped, yesterday is checked)
     if (res.data.changed === 0) {
@@ -150,7 +179,12 @@ describe('backfill-streaks', () => {
     seedCheckIn('grace3', daysAgo(2))
     seedCheckIn('grace3', daysAgo(3))
 
-    const res = await main({ dryRun: true, habitId: 'grace3' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, habitId: 'grace3'
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.changed).toBe(0)
     expect(res.data.unchanged).toBe(1)
@@ -173,7 +207,12 @@ describe('backfill-streaks', () => {
       d++
     }
 
-    const res = await main({ dryRun: true, habitId: 'wd-grace' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, habitId: 'wd-grace'
+      },
+    })
     expect(res.code).toBe(0)
     // Whether today is a weekday or weekend, the streak from yesterday should be preserved
     if (res.data.changed > 0) {
@@ -186,7 +225,12 @@ describe('backfill-streaks', () => {
       seedHabit({ _id: `batch-${i}`, name: `习惯${i}` })
     }
 
-    const res = await main({ dryRun: true, batchSize: 3, skip: 0 })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, batchSize: 3, skip: 0
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.processed).toBe(3)
     expect(res.data.nextSkip).toBe(3)
@@ -195,7 +239,12 @@ describe('backfill-streaks', () => {
   test('returns null nextSkip when batch is not full', async () => {
     seedHabit({ _id: 'only-one' })
 
-    const res = await main({ dryRun: true, batchSize: 50 })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: true, batchSize: 50
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.nextSkip).toBeNull()
   })
@@ -207,7 +256,12 @@ describe('backfill-streaks', () => {
     seedCheckIn('inflated', daysAgo(1))
     seedCheckIn('inflated', daysAgo(2))
 
-    const res = await main({ dryRun: false, habitId: 'inflated' })
+    const res = await main({
+      action: 'run',
+      data: {
+        dryRun: false, habitId: 'inflated'
+      },
+    })
     expect(res.code).toBe(0)
     expect(res.data.changed).toBe(1)
 
@@ -216,11 +270,11 @@ describe('backfill-streaks', () => {
     expect(habit.streakLongest).toBe(3) // deflated from 10 to 3
   })
 
-  test('defaults to dryRun when no params given', async () => {
+  test('defaults to dryRun when action=run and data is omitted', async () => {
     seedHabit({ _id: 'safe', streakCurrent: 0 })
     seedCheckIn('safe', getToday())
 
-    const res = await main()
+    const res = await main({ action: 'run' })
     expect(res.code).toBe(0)
     expect(res.data.dryRun).toBe(true)
   })

@@ -296,7 +296,7 @@ async function handleSubmit() {
 
 async function loadEditData(id: string) {
   try {
-    const detail = await ritualStore.getRitualDetail(id)
+    const detail = await ritualStore.getRitual(id)
     form.name = detail.name
     form.type = detail.type
     form.habitIds = [...detail.habitIds]

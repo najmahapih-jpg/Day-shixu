@@ -3,7 +3,6 @@
  * Focus: date validation and range constraints
  */
 
-jest.mock('wx-server-sdk')
 const cloud = require('wx-server-sdk')
 const { main } = require('../index')
 

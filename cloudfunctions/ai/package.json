@@ -2,6 +2,8 @@
   "name": "ai",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
-

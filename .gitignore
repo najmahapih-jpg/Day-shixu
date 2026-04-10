@@ -18,5 +18,12 @@ nul
 # WeChat CI private keys
 .wxci/
 
+# HBuilderX private config (contains local paths and appid)
+project.private.config.json
+
+# Local orchestration/runtime state
+.omc/
+.omx/
+
 # Logs
 *.log

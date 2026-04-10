@@ -3,7 +3,6 @@
  * Focus: login defaults, metadata migration, and WeChat profile sync
  */
 
-jest.mock('wx-server-sdk')
 const cloud = require('wx-server-sdk')
 const { main } = require('../index')
 

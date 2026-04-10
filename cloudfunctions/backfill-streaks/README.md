@@ -17,6 +17,17 @@ tcb fn deploy backfill-streaks
 
 ## 参数说明
 
+调用协议统一为：
+
+```js
+{
+  "action": "run",
+  "data": {
+    // 下面这些业务参数都放这里
+  }
+}
+```
+
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `dryRun` | boolean | `true` | true = 只报告差异，不写入 |
@@ -32,8 +43,11 @@ tcb fn deploy backfill-streaks
 ```js
 // 微信开发者工具 → 云函数测试
 {
-  "dryRun": true,
-  "habitId": "某个已知习惯ID"
+  "action": "run",
+  "data": {
+    "dryRun": true,
+    "habitId": "某个已知习惯ID"
+  }
 }
 ```
 
@@ -43,8 +57,11 @@ tcb fn deploy backfill-streaks
 
 ```js
 {
-  "dryRun": true,
-  "batchSize": 10
+  "action": "run",
+  "data": {
+    "dryRun": true,
+    "batchSize": 10
+  }
 }
 ```
 
@@ -58,8 +75,11 @@ tcb fn deploy backfill-streaks
 
 ```js
 {
-  "dryRun": true,
-  "batchSize": 200
+  "action": "run",
+  "data": {
+    "dryRun": true,
+    "batchSize": 200
+  }
 }
 ```
 
@@ -67,9 +87,12 @@ tcb fn deploy backfill-streaks
 
 ```js
 {
-  "dryRun": true,
-  "batchSize": 200,
-  "skip": 200
+  "action": "run",
+  "data": {
+    "dryRun": true,
+    "batchSize": 200,
+    "skip": 200
+  }
 }
 ```
 
@@ -79,8 +102,11 @@ tcb fn deploy backfill-streaks
 
 ```js
 {
-  "dryRun": false,
-  "batchSize": 20
+  "action": "run",
+  "data": {
+    "dryRun": false,
+    "batchSize": 20
+  }
 }
 ```
 
@@ -90,9 +116,12 @@ tcb fn deploy backfill-streaks
 
 ```js
 {
-  "dryRun": false,
-  "batchSize": 200,
-  "skip": 0
+  "action": "run",
+  "data": {
+    "dryRun": false,
+    "batchSize": 200,
+    "skip": 0
+  }
 }
 ```
 
@@ -103,8 +132,11 @@ tcb fn deploy backfill-streaks
 ```js
 // 再次 dry-run 全量，确认 changed = 0
 {
-  "dryRun": true,
-  "batchSize": 200
+  "action": "run",
+  "data": {
+    "dryRun": true,
+    "batchSize": 200
+  }
 }
 ```
 
@@ -112,7 +144,7 @@ tcb fn deploy backfill-streaks
 
 ## 安全特性
 
-- **默认 dry-run**：不传参或 `dryRun: true` 时不会写入任何数据
+- **默认 dry-run**：`data` 里不传 `dryRun` 或显式传 `dryRun: true` 时不会写入任何数据
 - **幂等**：可安全重跑，已正确的值不会被修改
 - **有界批次**：batchSize 上限 200，避免超时
 - **分批续跑**：通过 `skip` + `nextSkip` 实现大数据量分批

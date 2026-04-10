@@ -12,10 +12,10 @@ import type {
   NoteShape,
 } from '@/types'
 
-const FN = 'habit'
+const FN = 'board'
 
 export async function getNotes(): Promise<BoardNote[]> {
-  return callCloud<BoardNote[]>(FN, 'boardList')
+  return callCloud<BoardNote[]>(FN, 'list')
 }
 
 export async function createNote(
@@ -41,16 +41,16 @@ export async function createNote(
     tags?: string[]
   },
 ): Promise<BoardNote> {
-  return callCloud<BoardNote>(FN, 'boardCreate', data)
+  return callCloud<BoardNote>(FN, 'create', data)
 }
 
 export async function updateNote(
   id: string,
   data: Partial<Omit<BoardNote, '_id' | '_openid' | 'createdAt' | 'updatedAt'>>,
 ): Promise<BoardNote> {
-  return callCloud<BoardNote>(FN, 'boardUpdate', { id, updates: data })
+  return callCloud<BoardNote>(FN, 'update', { id, updates: data })
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  return callCloud<void>(FN, 'boardDelete', { id })
+  return callCloud<void>(FN, 'delete', { id })
 }

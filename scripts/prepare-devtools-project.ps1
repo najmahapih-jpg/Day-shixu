@@ -10,10 +10,14 @@ if (-not $scriptDir) {
 
 $scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
 $repoRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
+$rootConfig = Join-Path $repoRoot 'project.config.json'
+$rootPrivateConfig = Join-Path $repoRoot 'project.private.config.json'
 $sourceDir = Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin'
 $sourceConfig = Join-Path $sourceDir 'project.config.json'
+$sourcePrivateConfig = Join-Path $sourceDir 'project.private.config.json'
 $targetDir = Join-Path $repoRoot '_mp_devtools'
 $targetConfig = Join-Path $targetDir 'project.config.json'
+$targetPrivateConfig = Join-Path $targetDir 'project.private.config.json'
 $targetAppJson = Join-Path $targetDir 'app.json'
 $memoSource = Join-Path $repoRoot 'components\board\MemoEditor.vue'
 $memoDistJs = Join-Path $sourceDir 'components\board\MemoEditor.js'
@@ -143,6 +147,58 @@ function Ensure-LazyCodeLoadingRequiredComponents {
   Write-Host "Patched: lazyCodeLoading='requiredComponents' in $AppJsonPath"
 }
 
+function Sync-ProjectIdentity {
+  param(
+    [Parameter(Mandatory = $true)][string]$RootConfigPath,
+    [Parameter(Mandatory = $true)][string[]]$ConfigPaths
+  )
+
+  if (-not (Test-Path $RootConfigPath)) {
+    return
+  }
+
+  $rootCfg = Get-Content -Raw -Encoding UTF8 $RootConfigPath | ConvertFrom-Json
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  foreach ($configPath in $ConfigPaths) {
+    if (-not (Test-Path $configPath)) {
+      continue
+    }
+
+    $cfg = Get-Content -Raw -Encoding UTF8 $configPath | ConvertFrom-Json
+    $cfg.projectname = $rootCfg.projectname
+    if ($null -ne $rootCfg.description) {
+      $cfg.description = $rootCfg.description
+    }
+
+    $fullPath = (Get-Item -LiteralPath $configPath).FullName
+    [System.IO.File]::WriteAllText($fullPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
+    Write-Host "Patched: synced project identity in $configPath"
+  }
+}
+
+function Sync-PrivateProjectConfig {
+  param(
+    [Parameter(Mandatory = $true)][string]$RootPrivateConfigPath,
+    [Parameter(Mandatory = $true)][string[]]$ConfigPaths
+  )
+
+  if (-not (Test-Path $RootPrivateConfigPath)) {
+    return
+  }
+
+  $privateCfg = Get-Content -Raw -Encoding UTF8 $RootPrivateConfigPath
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  foreach ($configPath in $ConfigPaths) {
+    $parentDir = Split-Path -Parent $configPath
+    if (-not (Test-Path $parentDir)) {
+      continue
+    }
+
+    [System.IO.File]::WriteAllText($configPath, $privateCfg, $utf8NoBom)
+    Write-Host "Patched: synced private project config in $configPath"
+  }
+}
+
 if (-not (Test-Path $sourceDir)) {
   throw "Source not found: $sourceDir. Please build mp-weixin first."
 }
@@ -186,6 +242,9 @@ $cfg.cloudfunctionRoot = 'cloudfunctions/'
 
 $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 [System.IO.File]::WriteAllText($targetConfigPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
+
+Sync-ProjectIdentity -RootConfigPath $rootConfig -ConfigPaths @($sourceConfig, $targetConfig)
+Sync-PrivateProjectConfig -RootPrivateConfigPath $rootPrivateConfig -ConfigPaths @($sourcePrivateConfig, $targetPrivateConfig)
 
 if (-not (Test-Path $targetAppJson)) {
   throw "Target app.json missing: $targetAppJson"

@@ -34,7 +34,7 @@ Please build in HBuilderX first (Run > Build > mp-weixin).
 Write-Host "[1/7] mp-weixin build verified." -ForegroundColor Green
 
 # ── Step 2: Install ALL cloud function dependencies ──
-$cfNames = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey')
+$cfNames = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey', 'board')
 Write-Host "[2/7] Installing cloud function dependencies..."
 foreach ($cfName in $cfNames) {
   $cfDir = Join-Path $projectRoot "cloudfunctions\$cfName"
