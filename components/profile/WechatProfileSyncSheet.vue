@@ -5,7 +5,7 @@
       <text class="wx-sync-desc">从微信导入你的头像</text>
 
       <view v-if="isDevtools" class="wx-sync-notice wx-sync-notice--warn">
-        <text>开发者工具无法完成微信头像同步，请在真机预览中完成集成。</text>
+        <text>当前预览环境暂不支持微信头像同步，请在微信内打开小程序后完成。</text>
       </view>
 
       <view v-if="phase === 'error'" class="wx-sync-notice wx-sync-notice--error">
@@ -18,7 +18,7 @@
         class="wx-sync-main-btn brutal-card"
         open-type="chooseAvatar"
         :disabled="isBusy"
-        @chooseavatar="onAvatarChosen"
+        @chooseavatar="handleAvatarChosen"
       >
         <text class="wx-sync-main-btn__text">点击同步微信头像</text>
       </button>
@@ -33,11 +33,6 @@
         <text class="wx-sync-status-card__text">头像同步完成</text>
       </view>
 
-      <!-- devtools 提示 -->
-      <view v-if="isDevtools && phase !== 'error'" class="wx-sync-notice wx-sync-notice--warn">
-        <text>微信头像同步需在真机完成</text>
-      </view>
-
       <!-- 关闭 / 返回 -->
       <view class="wx-sync-footer">
         <view class="wx-sync-close-btn" :class="{ 'is-disabled': isBusy }" @tap="handleFooterAction">
@@ -49,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useWechatProfileSync } from '@/composables/useWechatProfileSync'
 
@@ -73,14 +68,35 @@ const {
 } = useWechatProfileSync()
 
 const required = computed(() => userStore.needsWechatProfile)
+let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   reset()
 })
 
+onUnmounted(() => {
+  if (closeTimer) clearTimeout(closeTimer)
+})
+
 function handleMaskTap() {
   if (required.value || isBusy.value) return
   emit('close')
+}
+
+async function handleAvatarChosen(e: any) {
+  if (isBusy.value) return
+
+  await onAvatarChosen(e)
+  if (!avatarReady.value || phase.value === 'error') return
+
+  const saved = await save()
+  if (!saved) return
+
+  emit('synced')
+  if (closeTimer) clearTimeout(closeTimer)
+  closeTimer = setTimeout(() => {
+    emit('close')
+  }, 420)
 }
 
 function handleFooterAction() {
