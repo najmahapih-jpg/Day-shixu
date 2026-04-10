@@ -21,6 +21,8 @@
     "cf:deploy:user": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 deploy user",
     "wx:upload": "node scripts/upload-miniprogram.js",
     "release:wechat": "powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1",
+    "typecheck": "vue-tsc --noEmit && tsc --noEmit -p cloudfunctions/tsconfig.json",
+    "build:cloudfunctions:ts": "tsc -p cloudfunctions/tsconfig.json",
     "test": "jest",
     "test:habit": "jest cloudfunctions/habit",
     "test:user": "jest cloudfunctions/user",
@@ -37,7 +39,7 @@
     "pinia": "^3.0.4"
   },
   "engines": {
-    "node": "16.x"
+    "node": "18.x"
   },
   "devDependencies": {
     "@cloudbase/cli": "^2.12.4",
@@ -46,6 +48,8 @@
     "less": "^3.13.1",
     "miniprogram-ci": "^1.9.0",
     "sass": "^1.97.3",
-    "sass-loader": "^16.0.7"
+    "sass-loader": "^16.0.7",
+    "typescript": "^6.0.2",
+    "vue-tsc": "^3.2.6"
   }
 }

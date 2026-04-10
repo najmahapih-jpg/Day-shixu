@@ -89,10 +89,15 @@ export default defineComponent({
 
     const totalHeight = computed(() => props.list.length * 400 + 200)
 
+    // WXS module type shim — the real wxsModule is injected by
+    // <script module="wxsModule" lang="wxs"> at runtime.
+    const wxsModule = {} as { onScroll: (...args: any[]) => void }
+
     return {
       onIndexChange,
       onLoadMore,
       totalHeight,
+      wxsModule,
     }
   },
 })

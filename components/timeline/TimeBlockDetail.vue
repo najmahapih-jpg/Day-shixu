@@ -131,7 +131,7 @@ const checkActionBg = computed(() => ({
 }))
 
 function handleCheck() {
-  emit(props.isChecked ? 'uncheck' : 'check')
+  if (props.isChecked) emit('uncheck'); else emit('check')
   emit('close')
 }
 

@@ -384,13 +384,13 @@ function getSceneShellStyle(index: number) {
   const offset = getSceneOffset(index)
   const abs = Math.abs(offset)
   if (reduceMotion.value) {
-    return { opacity: index === activeIndex.value ? '1' : '0', transform: 'translate3d(0,0,0) scale(1)', zIndex: index === activeIndex.value ? '30' : '0', pointerEvents: index === activeIndex.value ? 'auto' : 'none' }
+    return { opacity: index === activeIndex.value ? '1' : '0', transform: 'translate3d(0,0,0) scale(1)', zIndex: index === activeIndex.value ? '30' : '0', pointerEvents: (index === activeIndex.value ? 'auto' : 'none') as 'auto' | 'none' }
   }
   return {
     opacity: clamp(1 - abs * 0.68, 0, 1).toFixed(3),
     transform: `translate3d(${toRpx(offset * motionValue(160, 112))}, ${toRpx(abs * motionValue(32, 14))}, 0) scale(${(1 - Math.min(abs * motionValue(0.12, 0.05), motionValue(0.2, 0.1))).toFixed(3)}) rotate(${(offset * -1.2).toFixed(2)}deg)`,
     zIndex: String(60 - Math.round(abs * 10)),
-    pointerEvents: abs < (liteMotion.value ? 0.72 : 0.6) ? 'auto' : 'none',
+    pointerEvents: (abs < (liteMotion.value ? 0.72 : 0.6) ? 'auto' : 'none') as 'auto' | 'none',
   }
 }
 

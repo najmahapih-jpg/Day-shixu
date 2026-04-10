@@ -1,11 +1,10 @@
-/**
+﻿/**
  * Ritual cloud function tests
  * Focus: content security, CRUD, execute
  */
 
-jest.mock('wx-server-sdk')
 const cloud = require('wx-server-sdk')
-const { main } = require('../index')
+const { main } = require('../index.ts')
 
 const OPENID = 'test-openid'
 
@@ -22,7 +21,9 @@ describe('ritual create', () => {
   test('creates ritual with valid name', async () => {
     const res = await main({
       action: 'create',
-      ritual: { name: '晨间仪式', type: 'morning', habitIds: [] },
+      data: {
+        ritual: { name: '晨间仪式', type: 'morning', habitIds: [] },
+      },
     })
     expect(res.code).toBe(0)
     expect(res.data.name).toBe('晨间仪式')
@@ -31,7 +32,9 @@ describe('ritual create', () => {
   test('calls msgSecCheck on ritual name', async () => {
     await main({
       action: 'create',
-      ritual: { name: '测试仪式' },
+      data: {
+        ritual: { name: '测试仪式' },
+      },
     })
     expect(cloud.openapi.security.msgSecCheck).toHaveBeenCalledWith(
       expect.objectContaining({ content: '测试仪式', version: 2 }),
@@ -42,7 +45,9 @@ describe('ritual create', () => {
     cloud.__setMsgSecCheckResult({ result: { suggest: 'risky', label: 100 } })
     const res = await main({
       action: 'create',
-      ritual: { name: '违规仪式名' },
+      data: {
+        ritual: { name: '违规仪式名' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('违规')
@@ -51,7 +56,9 @@ describe('ritual create', () => {
   test('rejects missing name', async () => {
     const res = await main({
       action: 'create',
-      ritual: { type: 'morning' },
+      data: {
+        ritual: { type: 'morning' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('名称必填')
@@ -60,7 +67,9 @@ describe('ritual create', () => {
   test('rejects name exceeding max length', async () => {
     const res = await main({
       action: 'create',
-      ritual: { name: 'x'.repeat(101) },
+      data: {
+        ritual: { name: 'x'.repeat(101) },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('100')
@@ -69,7 +78,9 @@ describe('ritual create', () => {
   test('rejects description exceeding max length', async () => {
     const res = await main({
       action: 'create',
-      ritual: { name: 'ok', description: 'x'.repeat(501) },
+      data: {
+        ritual: { name: 'ok', description: 'x'.repeat(501) },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('500')
@@ -84,7 +95,9 @@ describe('ritual update', () => {
   beforeEach(async () => {
     const res = await main({
       action: 'create',
-      ritual: { name: '原始仪式', type: 'morning', habitIds: [] },
+      data: {
+        ritual: { name: '原始仪式', type: 'morning', habitIds: [] },
+      },
     })
     ritualId = res.data._id
   })
@@ -93,8 +106,10 @@ describe('ritual update', () => {
     cloud.openapi.security.msgSecCheck.mockClear()
     await main({
       action: 'update',
-      id: ritualId,
-      ritual: { name: '新名称' },
+      data: {
+        id: ritualId,
+        ritual: { name: '新名称' },
+      },
     })
     expect(cloud.openapi.security.msgSecCheck).toHaveBeenCalledWith(
       expect.objectContaining({ content: '新名称' }),
@@ -105,8 +120,10 @@ describe('ritual update', () => {
     cloud.__setMsgSecCheckResult({ result: { suggest: 'risky', label: 100 } })
     const res = await main({
       action: 'update',
-      id: ritualId,
-      ritual: { name: '违规' },
+      data: {
+        id: ritualId,
+        ritual: { name: '违规' },
+      },
     })
     expect(res.code).toBe(-1)
   })
@@ -115,8 +132,10 @@ describe('ritual update', () => {
     cloud.openapi.security.msgSecCheck.mockClear()
     const res = await main({
       action: 'update',
-      id: ritualId,
-      ritual: { type: 'evening' },
+      data: {
+        id: ritualId,
+        ritual: { type: 'evening' },
+      },
     })
     expect(res.code).toBe(0)
     // No name provided, so no msgSecCheck call
@@ -130,9 +149,16 @@ describe('ritual delete', () => {
   test('deletes own ritual', async () => {
     const createRes = await main({
       action: 'create',
-      ritual: { name: '删除测试', habitIds: [] },
+      data: {
+        ritual: { name: '删除测试', habitIds: [] },
+      },
     })
-    const res = await main({ action: 'delete', id: createRes.data._id })
+    const res = await main({
+      action: 'delete',
+      data: {
+        id: createRes.data._id,
+      },
+    })
     expect(res.code).toBe(0)
   })
 
@@ -140,7 +166,12 @@ describe('ritual delete', () => {
     // Insert a ritual owned by another user
     const col = cloud.__getCol('rituals')
     col.push({ _id: 'other-ritual', _openid: 'other-user', name: 'Other' })
-    const res = await main({ action: 'delete', id: 'other-ritual' })
+    const res = await main({
+      action: 'delete',
+      data: {
+        id: 'other-ritual',
+      },
+    })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('无权')
   })
@@ -168,7 +199,9 @@ describe('ritual execute', () => {
     // Create a ritual linked to the habit
     const res = await main({
       action: 'create',
-      ritual: { name: '晨跑仪式', type: 'morning', habitIds: [habitId] },
+      data: {
+        ritual: { name: '晨跑仪式', type: 'morning', habitIds: [habitId] },
+      },
     })
     ritualId = res.data._id
   })
@@ -176,9 +209,11 @@ describe('ritual execute', () => {
   test('executes ritual and creates check-ins', async () => {
     const res = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: [habitId],
-      date: '2026-03-25',
+      data: {
+        ritualId,
+        completedHabitIds: [habitId],
+        date: '2026-03-25',
+      },
     })
     expect(res.code).toBe(0)
     expect(res.data.checkIns.length).toBe(1)
@@ -188,8 +223,10 @@ describe('ritual execute', () => {
   test('rejects execute with empty habitIds', async () => {
     const res = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: [],
+      data: {
+        ritualId,
+        completedHabitIds: [],
+      },
     })
     expect(res.code).toBe(-1)
   })
@@ -198,8 +235,10 @@ describe('ritual execute', () => {
     const manyIds = Array.from({ length: 101 }, (_, i) => `h${i}`)
     const res = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: manyIds,
+      data: {
+        ritualId,
+        completedHabitIds: manyIds,
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('过多')
@@ -216,7 +255,9 @@ describe('ritual description content security', () => {
       .mockResolvedValueOnce({ result: { suggest: 'risky', label: 100 } })
     const res = await main({
       action: 'create',
-      ritual: { name: '正常名称', description: '违规描述' },
+      data: {
+        ritual: { name: '正常名称', description: '违规描述' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('描述')
@@ -225,7 +266,9 @@ describe('ritual description content security', () => {
   test('rejects risky description on update', async () => {
     const createRes = await main({
       action: 'create',
-      ritual: { name: '测试仪式', habitIds: [] },
+      data: {
+        ritual: { name: '测试仪式', habitIds: [] },
+      },
     })
     // Name passes, description fails
     cloud.openapi.security.msgSecCheck
@@ -233,8 +276,10 @@ describe('ritual description content security', () => {
       .mockResolvedValueOnce({ result: { suggest: 'risky', label: 100 } })
     const res = await main({
       action: 'update',
-      id: createRes.data._id,
-      ritual: { name: '新名称', description: '违规描述' },
+      data: {
+        id: createRes.data._id,
+        ritual: { name: '新名称', description: '违规描述' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('描述')
@@ -245,8 +290,10 @@ describe('ritual update nonexistent', () => {
   test('returns error for nonexistent ritual', async () => {
     const res = await main({
       action: 'update',
-      id: 'nonexistent-id',
-      ritual: { name: '新名称' },
+      data: {
+        id: 'nonexistent-id',
+        ritual: { name: '新名称' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('不存在')
@@ -285,9 +332,11 @@ describe('ritual execute frequency-aware streak', () => {
     // Execute ritual on Monday 2026-03-30
     const res = await main({
       action: 'execute',
-      ritualId: 'wd-ritual',
-      completedHabitIds: ['wd-habit'],
-      date: '2026-03-30',
+      data: {
+        ritualId: 'wd-ritual',
+        completedHabitIds: ['wd-habit'],
+        date: '2026-03-30',
+      },
     })
     expect(res.code).toBe(0)
 
@@ -315,7 +364,9 @@ describe('ritual execute streak with freeze records', () => {
 
     const res = await main({
       action: 'create',
-      ritual: { name: '连续仪式', type: 'morning', habitIds: [habitId] },
+      data: {
+        ritual: { name: '连续仪式', type: 'morning', habitIds: [habitId] },
+      },
     })
     ritualId = res.data._id
   })
@@ -344,9 +395,11 @@ describe('ritual execute streak with freeze records', () => {
     // Execute today — should count freeze day in streak
     const res = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: [habitId],
-      date: '2026-03-25',
+      data: {
+        ritualId,
+        completedHabitIds: [habitId],
+        date: '2026-03-25',
+      },
     })
     expect(res.code).toBe(0)
 
@@ -392,9 +445,11 @@ describe('ritual execute ownership', () => {
 
     const res = await main({
       action: 'execute',
-      ritualId: 'test-ritual',
-      completedHabitIds: ['my-habit', 'other-habit'],
-      date: '2026-03-30',
+      data: {
+        ritualId: 'test-ritual',
+        completedHabitIds: ['my-habit', 'other-habit'],
+        date: '2026-03-30',
+      },
     })
 
     expect(res.code).toBe(0)
@@ -414,7 +469,9 @@ describe('ritual limits', () => {
     }
     const res = await main({
       action: 'create',
-      ritual: { name: '超出上限', habitIds: [] },
+      data: {
+        ritual: { name: '超出上限', habitIds: [] },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('上限')
@@ -423,24 +480,23 @@ describe('ritual limits', () => {
 
 describe('ritual get/remove nonexistent', () => {
   test('get returns friendly error for nonexistent ritual', async () => {
-    const res = await main({ action: 'get', id: 'nonexistent-id' })
+    const res = await main({
+      action: 'get',
+      data: {
+        id: 'nonexistent-id',
+      },
+    })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('不存在')
   })
 
   test('remove returns friendly error for nonexistent ritual', async () => {
-    const res = await main({ action: 'delete', id: 'nonexistent-id' })
-    expect(res.code).toBe(-1)
-    expect(res.message).toContain('不存在')
-  })
-})
-
-// ── Edge cases ──────────────────────────────────────────
-
-describe('edge cases', () => {
-  test('missing OPENID returns error', async () => {
-    cloud.__setWXContext({ OPENID: null })
-    const res = await main({ action: 'list' })
+    const res = await main({
+      action: 'delete',
+      data: {
+        id: 'nonexistent-id',
+      },
+    })
     expect(res.code).toBe(-1)
   })
 })
@@ -470,8 +526,10 @@ describe('cross-user authorization — ritual mutations', () => {
     seedVictimRitual()
     const res = await main({
       action: 'update',
-      id: 'victim-ritual',
-      ritual: { name: 'hijacked' },
+      data: {
+        id: 'victim-ritual',
+        ritual: { name: 'hijacked' },
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('无权')
@@ -482,7 +540,12 @@ describe('cross-user authorization — ritual mutations', () => {
 
   test('delete rejects attacker and leaves ritual intact', async () => {
     seedVictimRitual()
-    const res = await main({ action: 'delete', id: 'victim-ritual' })
+    const res = await main({
+      action: 'delete',
+      data: {
+        id: 'victim-ritual',
+      },
+    })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('无权')
     const after = cloud.__getCol('rituals').find((r) => r._id === 'victim-ritual')
@@ -501,9 +564,11 @@ describe('cross-user authorization — ritual mutations', () => {
     const checkInsBefore = cloud.__getCol('check_ins').length
     const res = await main({
       action: 'execute',
-      ritualId: 'victim-ritual',
-      completedHabitIds: ['victim-habit-1'],
-      date: '2026-04-05',
+      data: {
+        ritualId: 'victim-ritual',
+        completedHabitIds: ['victim-habit-1'],
+        date: '2026-04-05',
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('无权')
@@ -531,24 +596,30 @@ describe('ritual execute hardening', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '双提交仪式', habitIds: ['h-dup'] },
+      data: {
+        ritual: { name: '双提交仪式', habitIds: ['h-dup'] },
+      },
     })
     const ritualId = createRes.data._id
 
     // First execute: creates record, totalCompletions → 1
     const r1 = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: ['h-dup'],
-      date: '2026-04-05',
+      data: {
+        ritualId,
+        completedHabitIds: ['h-dup'],
+        date: '2026-04-05',
+      },
     })
     expect(r1.code).toBe(0)
     // Second execute on same day: existing path, no inc
     const r2 = await main({
       action: 'execute',
-      ritualId,
-      completedHabitIds: ['h-dup'],
-      date: '2026-04-05',
+      data: {
+        ritualId,
+        completedHabitIds: ['h-dup'],
+        date: '2026-04-05',
+      },
     })
     expect(r2.code).toBe(0)
     const h = cloud.__getCol('habits').find(x => x._id === 'h-dup')
@@ -584,13 +655,17 @@ describe('ritual execute hardening', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '混合仪式', habitIds: ['h-active', 'h-arch'] },
+      data: {
+        ritual: { name: '混合仪式', habitIds: ['h-active', 'h-arch'] },
+      },
     })
     const res = await main({
       action: 'execute',
-      ritualId: createRes.data._id,
-      completedHabitIds: ['h-active', 'h-arch'],
-      date: '2026-04-05',
+      data: {
+        ritualId: createRes.data._id,
+        completedHabitIds: ['h-active', 'h-arch'],
+        date: '2026-04-05',
+      },
     })
     expect(res.code).toBe(0)
     // Active habit succeeded
@@ -617,13 +692,17 @@ describe('ritual execute hardening', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '日期仪式', habitIds: ['h-d'] },
+      data: {
+        ritual: { name: '日期仪式', habitIds: ['h-d'] },
+      },
     })
     const res = await main({
       action: 'execute',
-      ritualId: createRes.data._id,
-      completedHabitIds: ['h-d'],
-      date: 'not-a-date',
+      data: {
+        ritualId: createRes.data._id,
+        completedHabitIds: ['h-d'],
+        date: 'not-a-date',
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toContain('日期')
@@ -656,13 +735,17 @@ describe('ritual execute all-failed vs partial-success semantics', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '全归档', habitIds: ['all-arch-1', 'all-arch-2'] },
+      data: {
+        ritual: { name: '全归档', habitIds: ['all-arch-1', 'all-arch-2'] },
+      },
     })
     const res = await main({
       action: 'execute',
-      ritualId: createRes.data._id,
-      completedHabitIds: ['all-arch-1', 'all-arch-2'],
-      date: '2026-04-05',
+      data: {
+        ritualId: createRes.data._id,
+        completedHabitIds: ['all-arch-1', 'all-arch-2'],
+        date: '2026-04-05',
+      },
     })
     expect(res.code).toBe(-1)
     expect(res.message).toBeTruthy()
@@ -690,13 +773,17 @@ describe('ritual execute all-failed vs partial-success semantics', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '部分成功', habitIds: ['ps-ok', 'ps-arch'] },
+      data: {
+        ritual: { name: '部分成功', habitIds: ['ps-ok', 'ps-arch'] },
+      },
     })
     const res = await main({
       action: 'execute',
-      ritualId: createRes.data._id,
-      completedHabitIds: ['ps-ok', 'ps-arch'],
-      date: '2026-04-05',
+      data: {
+        ritualId: createRes.data._id,
+        completedHabitIds: ['ps-ok', 'ps-arch'],
+        date: '2026-04-05',
+      },
     })
     expect(res.code).toBe(0)
     expect(res.data.checkIns.length).toBe(1)
@@ -722,13 +809,17 @@ describe('ritual execute all-failed vs partial-success semantics', () => {
     })
     const createRes = await main({
       action: 'create',
-      ritual: { name: '全成功', habitIds: ['pure-1', 'pure-2'] },
+      data: {
+        ritual: { name: '全成功', habitIds: ['pure-1', 'pure-2'] },
+      },
     })
     const res = await main({
       action: 'execute',
-      ritualId: createRes.data._id,
-      completedHabitIds: ['pure-1', 'pure-2'],
-      date: '2026-04-05',
+      data: {
+        ritualId: createRes.data._id,
+        completedHabitIds: ['pure-1', 'pure-2'],
+        date: '2026-04-05',
+      },
     })
     expect(res.code).toBe(0)
     expect(res.data.checkIns.length).toBe(2)

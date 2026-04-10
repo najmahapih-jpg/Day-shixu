@@ -105,9 +105,9 @@ powershell -ExecutionPolicy Bypass -File scripts/release-wechat.ps1 `
 
 该脚本自动执行 7 步:
 1. 验证 mp-weixin 构建存在
-2. 安装全部 7 个云函数依赖
+2. 安装全部 8 个云函数依赖
 3. 同步 shared 模块到各云函数
-4. 部署全部 7 个云函数
+4. 部署全部 8 个云函数
 5. 准备开发者工具项目
 6. 运行预飞检查 (10 项)
 7. 通过 miniprogram-ci 上传

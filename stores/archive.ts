@@ -7,8 +7,21 @@ import * as habitService from '@/services/habitService'
 import type { BoardNote, CheckIn, Habit } from '@/types'
 import { getToday } from '@/services/cloud'
 // Canonical milestone computation (pure JS, unit-tested under jest).
-// @ts-expect-error — plain JS sibling module without explicit .d.ts
-import { computeHistoricalMilestones as computeHistoricalMilestonesJs, mergeArchiveBatch as mergeArchiveBatchJs } from './archive.milestones.js'
+// @ts-ignore — plain JS sibling module without explicit .d.ts
+import archiveMilestonesModule from './archive.milestones.cjs'
+
+const {
+  computeHistoricalMilestones: computeHistoricalMilestonesJs,
+  mergeArchiveBatch: mergeArchiveBatchJs,
+} = archiveMilestonesModule as {
+  computeHistoricalMilestones: (
+    checkInsByHabit: Map<string, string[]>,
+  ) => Map<string, Set<string>>
+  mergeArchiveBatch: (
+    existing: DailyArchive[],
+    incoming: DailyArchive[],
+  ) => DailyArchive[]
+}
 
 export interface DailyArchive {
   id: string

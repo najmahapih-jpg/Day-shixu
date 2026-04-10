@@ -3,5 +3,8 @@
   "dependencies": {
     "grapheme-splitter": "1.0.4",
     "wx-server-sdk": "~2.6.3"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }

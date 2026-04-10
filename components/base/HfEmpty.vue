@@ -49,7 +49,7 @@ const TYPE_CONFIG: Record<string, { icon: string; message: string }> = {
 }
 
 const props = withDefaults(defineProps<{
-  type?: 'habit' | 'archive' | 'checkin' | 'data' | 'search' | 'network' | 'journey' | 'note'
+  type?: 'habit' | 'archive' | 'checkin' | 'data' | 'search' | 'network' | 'journey' | 'note' | 'stats'
   message?: string
   actionText?: string
 }>(), {

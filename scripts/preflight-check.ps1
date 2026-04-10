@@ -19,7 +19,7 @@ Write-Host "==================`n"
 
 # ── 1. Content Security Check ──
 Write-Host "1. Content Security (msgSecCheck)" -ForegroundColor White
-$cfFiles = @('habit', 'user', 'ritual')
+$cfFiles = @('habit', 'user', 'ritual', 'board')
 foreach ($cf in $cfFiles) {
   $path = Join-Path $projectRoot "cloudfunctions\$cf\index.js"
   if (Test-Path $path) {
@@ -93,7 +93,7 @@ if ($settingsContent -match 'open-type="feedback"') {
 
 # ── 8. Cloud Function Dependencies ──
 Write-Host "`n8. Cloud Function Dependencies" -ForegroundColor White
-$allCfs = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey')
+$allCfs = @('user', 'habit', 'ritual', 'stats', 'ai', 'notify', 'journey', 'board')
 foreach ($cf in $allCfs) {
   $nmPath = Join-Path $projectRoot "cloudfunctions\$cf\node_modules"
   if (Test-Path $nmPath) {
