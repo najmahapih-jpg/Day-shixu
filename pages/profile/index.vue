@@ -52,7 +52,7 @@
                 class="hero-bar__wx-btn"
                 @tap.stop="openWxSync(true)"
               >
-                <text class="hero-bar__wx-label">{{ userStore.needsWechatProfile ? '集成微信头像' : '同步头像' }}</text>
+                <text class="hero-bar__wx-label">{{ userStore.needsWechatProfile ? '同步微信头像' : '同步头像' }}</text>
               </view>
             </view>
             <view class="hero-bar__meta">
@@ -63,7 +63,7 @@
           <view class="hero-zone__bottom">
             <view class="hero-zone__version">{{ profileCopy.heroVersion }}</view>
             <view class="hero-zone__edit-link" @tap="openWxSync(true)">
-              <text class="edit-link__label">{{ userStore.needsWechatProfile ? '完成头像集成后继续查看' : '编辑头像昵称' }}</text>
+              <text class="edit-link__label">{{ userStore.needsWechatProfile ? '完成头像同步后继续查看' : '编辑头像昵称' }}</text>
             </view>
           </view>
         </view>
@@ -389,7 +389,7 @@ const completionRate = computed(() => habitStore.completionRate)
 const currentStreak = computed(() => userStore.userInfo?.stats?.currentStreak ?? 0)
 const pendingCount = computed(() => habitStore.pendingHabits.length)
 const resolvedProfileSlogan = computed(() => {
-  if (userStore.needsWechatProfile) return '完成微信头像集成后可继续查看个人页。'
+  if (userStore.needsWechatProfile) return '完成微信头像同步后可继续查看个人页。'
   if (totalHabits.value === 0) return '资料已准备好，现在可以开始创建你的第一个习惯。'
   if (currentStreak.value >= 21) return '你的近期记录保持稳定，继续按当前安排进行即可。'
   if (currentStreak.value >= 7) return '本周记录持续更新中，当前进度表现不错。'
@@ -398,7 +398,7 @@ const resolvedProfileSlogan = computed(() => {
 })
 
 const myFocusText = computed(() => {
-  if (userStore.needsWechatProfile) return '等待头像集成 / Avatar Required'
+  if (userStore.needsWechatProfile) return '等待头像同步 / Avatar Required'
   if (totalHabits.value === 0) return profileCopy.focusReady
   if (completionRate.value >= 85) return profileCopy.focusPeak
   if (completionRate.value >= 50) return profileCopy.focusStable

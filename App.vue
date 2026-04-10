@@ -13,9 +13,18 @@ app.config.errorHandler = (err, _vm, info) => {
   // #endif
 }
 
+function clearObsoleteLocalState() {
+  try {
+    uni.removeStorageSync('hf_home_custom_image')
+  } catch {
+    // ignore storage cleanup failures
+  }
+}
+
 onLaunch(() => {
   const { init: initNetwork } = useNetwork()
   initNetwork()
+  clearObsoleteLocalState()
 
   // #ifdef MP-WEIXIN
   try {
