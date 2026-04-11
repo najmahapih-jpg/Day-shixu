@@ -1,5 +1,14 @@
 # Day时序项目结构速览（Archive 版）
 
+## Timeline ???????2026-04?
+
+- ?? owner?`pages/timeline/index.vue`
+- ?? view?`TimelineTopBar`?`TimelineDateStrip`?`TimelineRubatoStrip`?`TimelineCodaDesk`?`TimelineLaneBoard`?`TimelineLaneTicket`?`TimelineCalendarDetail`?`TimelineHolidayAlmanac`?`TimelineCalendarNav`?`TimelineCalendarGrid`
+- ?? composable?`useTimelineLaneView`?`useTimelineLaneInteractionShell`?`useTimelineLaneInteractionFlow`?`useTimelineLaneContainer`?`useTimelineModeUiShell`?`useTimelineScrollFeedback`?`useTimelineLayoutShell`?`useTimelineClockShell`?`useTimelineDateDisplay`?`useTimelineDateInteractionFlow`?`useTimelinePageDataFlow`?`useTimelineCalendarShell`
+- ?????[`TIMELINE_INDEX_HANDOFF.md`](TIMELINE_INDEX_HANDOFF.md)
+- ?????????? timeline???? overlap / ritual group / old block ??????????
+
+
 ## 文档入口导航
 
 | 文档 | 用途 |
