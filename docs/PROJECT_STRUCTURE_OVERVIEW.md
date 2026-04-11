@@ -1,5 +1,12 @@
 # Day时序项目结构速览（Archive 版）
 
+## ??????????2026-04?
+
+- ??????`release:check` ? `check:gate` / `release:guarded`
+- ???????`cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
+- ???????`project.private.config.json`?`.wxci/private.<appid>.key`
+- ?????[`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md)
+
 ## Timeline 当前维护状态（2026-04）
 
 - 页面 owner：`pages/timeline/index.vue`
