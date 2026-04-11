@@ -302,7 +302,6 @@ import { useAppStore } from '@/stores/app'
 import { useHabitStore } from '@/stores/habit'
 import { useUserStore } from '@/stores/user'
 import { useRitualStore } from '@/stores/ritual'
-import * as habitService from '@/services/habitService'
 import {
   getToday,
   getBeijingDateParts,
@@ -323,6 +322,7 @@ import Grandorrery from '@/components/calendar/Grandorrery.vue'
 import { useTimelineClockShell } from '@/composables/useTimelineClockShell'
 import { useTimelineDateDisplay } from '@/composables/useTimelineDateDisplay'
 import { useTimelineDateInteractionFlow } from '@/composables/useTimelineDateInteractionFlow'
+import { useTimelinePageDataFlow } from '@/composables/useTimelinePageDataFlow'
 import { useTimelineLaneContainer } from '@/composables/useTimelineLaneContainer'
 import { useTimelineLaneInteractionFlow } from '@/composables/useTimelineLaneInteractionFlow'
 import { useTimelineLaneInteractionShell } from '@/composables/useTimelineLaneInteractionShell'
@@ -450,7 +450,7 @@ const isNeoTheme = computed(() => isNeo.value)
 
 // Timeline page owner responsibilities:
 // 1) compose extracted timeline modules into the two view modes
-// 2) keep business entrypoints plus page-level data loading in one place
+// 2) keep business entrypoints plus stable cross-shell assembly in one place
 // 3) retain only the remaining cross-section/calendar owner logic here
 
 // Motion helpers stay at page level because they coordinate page-wide feedback layers.
@@ -960,6 +960,28 @@ const {
   hapticCelebration: () => haptic.celebration(),
 })
 
+const {
+  loadDateData,
+  loadPageEntryData,
+  refreshPageData,
+} = useTimelinePageDataFlow({
+  selectedDate,
+  todayStr,
+  dateRange: DATE_RANGE,
+  setLoading: (value) => {
+    loading.value = value
+  },
+  setRangeCounts: (counts) => {
+    rangeCounts.value = counts
+  },
+  triggerBlocksEntry,
+  setCurrentDate: (date) => {
+    habitStore.setCurrentDate(date)
+  },
+  fetchHabits: () => habitStore.fetchHabits(),
+  offsetDate,
+})
+
 const totalActiveHabits = computed(() =>
   habitStore.todayHabits.length,
 )
@@ -1301,47 +1323,6 @@ const remainingText = computed(() => {
   return `?? ${count} ????`
 })
 
-// --- Data loading ---
-
-async function loadDateData(isInitial = false, _forceRefreshHabits = false) {
-  if (isInitial) loading.value = true
-  try {
-    // Keep store date strictly aligned with selectedDate to avoid timeline stale state.
-    habitStore.setCurrentDate(selectedDate.value)
-    // Fetch habits + selected-date check-ins from store
-    await habitStore.fetchHabits()
-  } catch {
-    // noop 閳?error toasts handled in store
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadRangeCounts() {
-  try {
-    const today = todayStr.value
-    const startDate = offsetDate(today, -DATE_RANGE)
-    const endDate = offsetDate(today, DATE_RANGE)
-    // Get all check-ins for the visible date range (pass empty habitId to get all)
-    const checkIns = await habitService.getCheckInRange('', startDate, endDate)
-    // Count unique habitIds per date
-    const counts = new Map<string, Set<string>>()
-    for (const ci of checkIns) {
-      if (!ci.habitId || !ci.date) continue
-      const set = counts.get(ci.date) || new Set<string>()
-      set.add(ci.habitId)
-      counts.set(ci.date, set)
-    }
-    const result = new Map<string, number>()
-    for (const [date, set] of counts) {
-      result.set(date, set.size)
-    }
-    rangeCounts.value = result
-  } catch {
-    rangeCounts.value = new Map()
-  }
-}
-
 // --- Lifecycle ---
 
 onShow(() => {
@@ -1352,10 +1333,7 @@ onShow(() => {
   resetScrollFeedback()
   resetClockShell()
   calcScrollHeight()
-  loadDateData(true, true).then(() => {
-    triggerBlocksEntry()
-  })
-  loadRangeCounts()
+  loadPageEntryData()
   startMinuteTimer()
 })
 
@@ -1379,7 +1357,7 @@ onBeforeUnmount(() => {
 
 onPullDownRefresh(async () => {
   try {
-    await Promise.all([loadDateData(false, true), loadRangeCounts()])
+    await refreshPageData()
   } finally {
     uni.stopPullDownRefresh()
   }
