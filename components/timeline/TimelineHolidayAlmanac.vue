@@ -2,8 +2,8 @@
           <view class="almanac-panel">
             <view class="almanac-serrated"></view>
             <view class="almanac-header">
-              <text class="almanac-header__title">????</text>
-              <text class="almanac-header__sub">?????</text>
+              <text class="almanac-header__title">节日年鉴</text>
+              <text class="almanac-header__sub">本月与未来</text>
             </view>
 
             <view class="almanac-body">
