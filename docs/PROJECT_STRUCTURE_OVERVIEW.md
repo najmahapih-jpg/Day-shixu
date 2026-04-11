@@ -1,12 +1,12 @@
 # Day时序项目结构速览（Archive 版）
 
-## Timeline ???????2026-04?
+## Timeline 当前维护状态（2026-04）
 
-- ?? owner?`pages/timeline/index.vue`
-- ?? view?`TimelineTopBar`?`TimelineDateStrip`?`TimelineRubatoStrip`?`TimelineCodaDesk`?`TimelineLaneBoard`?`TimelineLaneTicket`?`TimelineCalendarDetail`?`TimelineHolidayAlmanac`?`TimelineCalendarNav`?`TimelineCalendarGrid`
-- ?? composable?`useTimelineLaneView`?`useTimelineLaneInteractionShell`?`useTimelineLaneInteractionFlow`?`useTimelineLaneContainer`?`useTimelineModeUiShell`?`useTimelineScrollFeedback`?`useTimelineLayoutShell`?`useTimelineClockShell`?`useTimelineDateDisplay`?`useTimelineDateInteractionFlow`?`useTimelinePageDataFlow`?`useTimelineCalendarShell`
-- ?????[`TIMELINE_INDEX_HANDOFF.md`](TIMELINE_INDEX_HANDOFF.md)
-- ?????????? timeline???? overlap / ritual group / old block ??????????
+- 页面 owner：`pages/timeline/index.vue`
+- 稳定 view：`TimelineTopBar`、`TimelineDateStrip`、`TimelineRubatoStrip`、`TimelineCodaDesk`、`TimelineLaneBoard`、`TimelineLaneTicket`、`TimelineCalendarDetail`、`TimelineHolidayAlmanac`、`TimelineCalendarNav`、`TimelineCalendarGrid`
+- 稳定 composable：`useTimelineLaneView`、`useTimelineLaneInteractionShell`、`useTimelineLaneInteractionFlow`、`useTimelineLaneContainer`、`useTimelineModeUiShell`、`useTimelineScrollFeedback`、`useTimelineLayoutShell`、`useTimelineClockShell`、`useTimelineDateDisplay`、`useTimelineDateInteractionFlow`、`useTimelinePageDataFlow`、`useTimelineCalendarShell`
+- 交接入口：[`TIMELINE_INDEX_HANDOFF.md`](TIMELINE_INDEX_HANDOFF.md)
+- 如果未来还要继续重构 timeline，优先从 overlap / ritual group / old block 旧主体逻辑单独立题。
 
 
 ## 文档入口导航
@@ -15,7 +15,7 @@
 |------|------|
 | [README](../README.md) | 仓库入口，命令速查，阅读建议 |
 | [首页拆分线交接](HOME_INDEX_HANDOFF.md) | 首页 1~13 阶段拆分的职责边界、测试保护与手工回归重点 |
-| [时间轴拆分线交接](TIMELINE_INDEX_HANDOFF.md) | timeline 1~12 阶段拆分的职责边界、测试保护与手工回归重点 |
+| [时间轴当前维护交接](TIMELINE_INDEX_HANDOFF.md) | timeline 当前职责边界、测试保护、手工回归重点与后续重构建议 |
 | [工程治理总交接](ENGINEERING_GOVERNANCE_HANDOFF.md) | 云函数 TS 化、首页与 timeline 拆分线的总维护入口 |
 | [发布执行指南](RELEASE_GUIDE.md) | 发布全流程操作步骤 |
 | [功能验收测试清单](ACCEPTANCE_TEST_CHECKLIST.md) | 提审前验收清单 |
