@@ -295,7 +295,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { onShow, onHide, onPullDownRefresh } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
@@ -304,7 +304,6 @@ import { useUserStore } from '@/stores/user'
 import { useRitualStore } from '@/stores/ritual'
 import {
   getToday,
-  getBeijingDateParts,
   getWeekdayFromDateStr,
   getWeekday1to7FromDateStr,
 } from '@/services/cloud'
@@ -320,6 +319,7 @@ import TimelineRubatoStrip from '@/components/timeline/TimelineRubatoStrip.vue'
 import TimelineCodaDesk from '@/components/timeline/TimelineCodaDesk.vue'
 import Grandorrery from '@/components/calendar/Grandorrery.vue'
 import { useTimelineClockShell } from '@/composables/useTimelineClockShell'
+import { useTimelineCalendarShell } from '@/composables/useTimelineCalendarShell'
 import { useTimelineDateDisplay } from '@/composables/useTimelineDateDisplay'
 import { useTimelineDateInteractionFlow } from '@/composables/useTimelineDateInteractionFlow'
 import { useTimelinePageDataFlow } from '@/composables/useTimelinePageDataFlow'
@@ -335,7 +335,7 @@ import { useScrollReveal, useHaptic, useParallax } from '@/composables/motion'
 import {
   RITUAL_TYPE_COLORS,
 } from '@/utils/constants'
-import { getHolidayInfo, getLunarDate, getSolarTerm, getUpcomingHolidays, HOLIDAY_TYPE_LABEL, type HolidayType, type UpcomingHoliday } from '@/utils/holiday'
+import { getHolidayInfo, HOLIDAY_TYPE_LABEL } from '@/utils/holiday'
 import { getDisplayNickName } from '@/utils/nickName'
 import type { Habit, HabitCategory } from '@/types'
 
@@ -599,231 +599,26 @@ const canvasHoliday = computed(() => {
 
 // --- Calendar State ---
 
-const beijingNow = getBeijingDateParts()
-const calYear = ref(beijingNow.year)
-const calMonth = ref(beijingNow.month)
-const calSelectedDate = ref('')
-const calHabitsExpanded = ref(true)
-function toggleCalHabits() {
-  calHabitsExpanded.value = !calHabitsExpanded.value
-}
-const calDateCheckSet = ref<Set<string>>(new Set())
-
-// Page Flip Animation State
-const flipClass = ref('')
-let flipTimeout: any = null
-
-function triggerFlip(direction: 'left' | 'right') {
-  if (flipTimeout) clearTimeout(flipTimeout)
-  // Reset first so re-applying the same class actually restarts the animation
-  flipClass.value = ''
-  nextTick(() => {
-    flipClass.value = `flip-${direction}`
-    flipTimeout = setTimeout(() => {
-      flipClass.value = ''
-    }, 300) // Match CSS animation duration
-  })
-}
-
-function prevMonth() {
-  triggerFlip('right')
-  if (calMonth.value === 1) {
-    calMonth.value = 12
-    calYear.value--
-  } else {
-    calMonth.value--
-  }
-  calSelectedDate.value = ''
-}
-
-function nextMonth() {
-  triggerFlip('left')
-  if (calMonth.value === 12) {
-    calMonth.value = 1
-    calYear.value++
-  } else {
-    calMonth.value++
-  }
-  calSelectedDate.value = ''
-}
-
-function selectCalDate(dateStr: string) {
-  const isToggleOff = calSelectedDate.value === dateStr
-  calSelectedDate.value = isToggleOff ? '' : dateStr
-  if (!isToggleOff) calHabitsExpanded.value = true
-}
-
-interface CalendarDay {
-  dateStr: string
-  day: number
-  isToday: boolean
-  isCurrentMonth: boolean
-  isWeekend: boolean
-  holidayFull: string
-  holidayType: HolidayType | ''
-  lunarText: string
-  solarTerm: string
-  total: number
-  completed: number
-  rate: number
-}
-
-const LUNAR_DAY_NAMES = [
-  '', '鍒濅竴', '鍒濅簩', '鍒濅笁', '鍒濆洓', '鍒濅簲', '鍒濆叚', '鍒濅竷', '鍒濆叓', '鍒濅節', '鍒濆崄',
-  '鍗佷竴', '鍗佷簩', '鍗佷笁', '鍗佸洓', '鍗佷簲', '鍗佸叚', '鍗佷竷', '鍗佸叓', '鍗佷節', '浜屽崄',
-  '寤夸竴', '寤夸簩', '寤夸笁', '寤垮洓', '寤夸簲', '寤垮叚', '寤夸竷', '寤垮叓', '寤夸節', '涓夊崄',
-]
-const LUNAR_MONTH_NAMES = ['', '姝ｆ湀', '浜屾湀', '涓夋湀', '鍥涙湀', '浜旀湀', '鍏湀', '涓冩湀', '鍏湀', '涔濇湀', '鍗佹湀', '鍐湀', '鑵婃湀']
-
-function getLunarText(dateStr: string): string {
-  const lunar = getLunarDate(dateStr)
-  if (!lunar) return ''
-  if (lunar.day === 1) return LUNAR_MONTH_NAMES[lunar.month] || ''
-  return LUNAR_DAY_NAMES[lunar.day] || ''
-}
-
-const calendarDays = computed<CalendarDay[]>(() => {
-  const y = calYear.value
-  const m = calMonth.value
-  const today = todayStr.value
-
-  const firstDay = new Date(Date.UTC(y, m - 1, 1)).getUTCDay()
-  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate()
-  const daysInPrevMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate()
-
-  const days: CalendarDay[] = []
-
-  // Previous month fill
-  for (let i = firstDay - 1; i >= 0; i--) {
-    const d = daysInPrevMonth - i
-    const prevM = m === 1 ? 12 : m - 1
-    const prevY = m === 1 ? y - 1 : y
-    const dateStr = `${prevY}-${String(prevM).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    days.push({
-      dateStr, day: d, isToday: dateStr === today, isCurrentMonth: false,
-      isWeekend: getWeekdayFromDateStr(dateStr) === 0 || getWeekdayFromDateStr(dateStr) === 6,
-      holidayFull: '', holidayType: '', lunarText: getLunarText(dateStr), solarTerm: getSolarTerm(dateStr) || '',
-      total: 0, completed: 0, rate: 0,
-    })
-  }
-
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const holidayInfo = getHolidayInfo(dateStr)
-    const count = rangeCounts.value.get(dateStr) ?? 0
-    const total = totalActiveHabits.value
-    const rate = total > 0 ? Math.min(count / total, 1) : 0
-    days.push({
-      dateStr, day: d, isToday: dateStr === today, isCurrentMonth: true,
-      isWeekend: getWeekdayFromDateStr(dateStr) === 0 || getWeekdayFromDateStr(dateStr) === 6,
-      holidayFull: holidayInfo?.name || '', holidayType: holidayInfo?.type || '',
-      lunarText: getLunarText(dateStr), solarTerm: getSolarTerm(dateStr) || '',
-      total, completed: count, rate,
-    })
-  }
-
-  // Next month fill
-  const remaining = 42 - days.length
-  for (let d = 1; d <= remaining; d++) {
-    const nextM = m === 12 ? 1 : m + 1
-    const nextY = m === 12 ? y + 1 : y
-    const dateStr = `${nextY}-${String(nextM).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    days.push({
-      dateStr, day: d, isToday: dateStr === today, isCurrentMonth: false,
-      isWeekend: getWeekdayFromDateStr(dateStr) === 0 || getWeekdayFromDateStr(dateStr) === 6,
-      holidayFull: '', holidayType: '', lunarText: getLunarText(dateStr), solarTerm: getSolarTerm(dateStr) || '',
-      total: 0, completed: 0, rate: 0,
-    })
-  }
-
-  return days
-})
-
-const calDateDisplay = computed(() => {
-  if (calSelectedDate.value) {
-    const [, m, d] = calSelectedDate.value.split('-').map(Number)
-    const weekday = WEEKDAY_LABELS[getWeekdayFromDateStr(calSelectedDate.value)]
-    return `${m}月${d}日 · 周${weekday}`
-  }
-  const midStr = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-15`
-  const solarTerm = getSolarTerm(midStr)
-  return solarTerm || `${calMonth.value}月节律`
-})
-const calSelectedSubtitle = computed(() => {
-  if (!calSelectedDate.value) return '????'
-  const day = calendarDays.value.find((item) => item.dateStr === calSelectedDate.value)
-  const completed = day?.completed ?? 0
-  const total = day?.total ?? 0
-  const countText = total > 0 ? `${completed}/${total} ???` : '?????'
-  if (day?.holidayFull) return `${countText} ? ${day.holidayFull}`
-  if (day?.isWeekend) return `${countText} ? ??`
-  return countText
-})
-
-const upcomingHolidays = computed(() => {
-  return getUpcomingHolidays(calYear.value, calMonth.value, todayStr.value)
-})
-
-function countdownLabel(daysUntil: number): string {
-  if (daysUntil === 0) return '??'
-  if (daysUntil === 1) return '??'
-  if (daysUntil === 2) return '??'
-  if (daysUntil > 0) return `${daysUntil}??`
-  if (daysUntil === -1) return '??'
-  return `${Math.abs(daysUntil)}??`
-}
-function holidayIconClass(h: UpcomingHoliday): string {
-  const iconMap: Record<string, string> = {
-    // SOLAR_OFFICIAL
-    '鍏冩棪': 'stamp-icon--firework',
-    '鍔冲姩': 'stamp-icon--hammer',
-    '鍥藉簡': 'stamp-icon--flag',
-    // LUNAR_OFFICIAL
-    '鏄ヨ妭': 'stamp-icon--chunlian',
-    '绔崍': 'stamp-icon--dragonboat',
-    '涓': 'stamp-icon--moon',
-    // LUNAR_TRADITIONAL
-    '鍏冨': 'stamp-icon--lantern',
-    '???': 'stamp-icon--dragon',
-    '涓婂烦': 'stamp-icon--ripple',
-    '涓冨': 'stamp-icon--magpie',
-    '涓厓': 'stamp-icon--lotus',
-    '閲嶉槼': 'stamp-icon--mountain',
-    '鑵婂叓': 'stamp-icon--bowl',
-    '灏忓勾': 'stamp-icon--broom',
-    // Dynamic lunar
-    '闄ゅ': 'stamp-icon--firecracker',
-    '娓呮槑': 'stamp-icon--willow',
-    '瀵掗': 'stamp-icon--ember',
-    // SOLAR_SPECIAL
-    '鎯呬汉': 'stamp-icon--heart',
-    '濡囧コ': 'stamp-icon--flower',
-    '妞嶆爲': 'stamp-icon--seedling',
-    '闈掑勾': 'stamp-icon--flame',
-    '鍎跨': 'stamp-icon--balloon',
-    '涓冧竴': 'stamp-icon--badge',
-    '鍏竴': 'stamp-icon--shield',
-    '鏁欏笀': 'stamp-icon--book',
-    '绾康': 'stamp-icon--monument',
-    '鍙?1': 'stamp-icon--bars',
-    '骞冲畨': 'stamp-icon--bell',
-    '鍦ｈ癁': 'stamp-icon--tree',
-    '璺ㄥ勾': 'stamp-icon--hourglass',
-    // WEEK_BASED (international)
-    '姣嶄翰': 'stamp-icon--carnation',
-    '鐖朵翰': 'stamp-icon--crown',
-    '鎰熸仼': 'stamp-icon--maple',
-  }
-  return iconMap[h.shortName] || 'stamp-icon--star'
-}
-
-watch(calSelectedDate, (date) => {
-  if (!date) {
-    calDateCheckSet.value = new Set()
-    return
-  }
-  calDateCheckSet.value = new Set()
+const {
+  calYear,
+  calMonth,
+  calSelectedDate,
+  calHabitsExpanded,
+  flipClass,
+  calendarDays,
+  calSelectedSubtitle,
+  upcomingHolidays,
+  toggleCalHabits,
+  prevMonth,
+  nextMonth,
+  selectCalDate,
+  countdownLabel,
+  holidayIconClass,
+} = useTimelineCalendarShell({
+  todayStr,
+  rangeCounts,
+  totalActiveHabits: computed(() => habitStore.todayHabits.length),
+  weekdayLabels: WEEKDAY_LABELS,
 })
 
 // --- Next habit text (stats bar) ---
