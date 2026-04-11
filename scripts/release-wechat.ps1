@@ -21,6 +21,15 @@ Write-Host "  Release WeChat Mini Program" -ForegroundColor Cyan
 Write-Host "  Version: $Version  Robot: $Robot" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
+# Step 0: release context checks
+Write-Host "[0/7] Running release context checks..."
+$contextCheckScript = Join-Path $scriptDirResolved 'release-context-check.ps1'
+if (Test-Path $contextCheckScript) {
+  & $contextCheckScript
+  if ($LASTEXITCODE -ne 0) { throw "Release context checks failed" }
+}
+Write-Host "[0/7] Release context checks passed." -ForegroundColor Green
+
 # ── Step 1: Validate mp-weixin build exists ──
 $distAppJson = Join-Path $projectRoot 'unpackage\dist\dev\mp-weixin\app.json'
 if (-not (Test-Path $distAppJson)) {
