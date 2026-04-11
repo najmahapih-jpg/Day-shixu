@@ -5,11 +5,7 @@
               <view id="cal-habit-header" class="ticket-header" @tap="emitToggleHabits">
                 <text class="ticket-subtitle">{{ subtitle }}</text>
                 <view class="ticket-toggle" :class="{ 'ticket-toggle--open': habitsExpanded }">
-                  <text class="ticket-toggle__label">
-                      ? (habitsExpanded ? '??' : `${todayHabits.length} ?`)
-                      : (habitsExpanded ? '??' : '??') }}
-                      : (habitsExpanded ? '??' : '??') }}
-                  </text>
+                  <text class="ticket-toggle__label">{{ toggleLabel }}</text>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M7 10l5 5 5-5z"/>
                   </svg>
@@ -43,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { CheckIn, Habit } from '@/types'
 import HabitListItem from '@/components/habit/HabitListItem.vue'
 
@@ -77,6 +74,12 @@ function emitUncheck(habitId: string) {
 function emitDelete(habitId: string) {
   emit('delete', habitId)
 }
+
+const toggleLabel = computed(() => {
+  if (props.habitsExpanded) return '收起'
+  if (props.selectedDate === props.todayStr && props.todayHabits.length > 0) return `${props.todayHabits.length} 项`
+  return '展开'
+})
 </script>
 
 <style lang="scss" scoped>

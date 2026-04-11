@@ -1,4 +1,4 @@
-import { computed, nextTick, ref, unref, watch, type ComputedRef, type Ref } from 'vue'
+import { computed, nextTick, ref, unref, type ComputedRef, type Ref } from 'vue'
 import { getBeijingDateParts, getWeekdayFromDateStr } from '@/services/cloud'
 import {
   getHolidayInfo,
@@ -95,7 +95,6 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
   const calMonth = ref(initialDateParts.month)
   const calSelectedDate = ref('')
   const calHabitsExpanded = ref(true)
-  const calDateCheckSet = ref<Set<string>>(new Set())
   const flipClass = ref('')
 
   let flipTimeout: unknown = null
@@ -229,17 +228,6 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
     return days
   })
 
-  const calDateDisplay = computed(() => {
-    if (calSelectedDate.value) {
-      const [, month, day] = calSelectedDate.value.split('-').map(Number)
-      const weekday = options.weekdayLabels[getWeekday(calSelectedDate.value)]
-      return `${month}æœˆ${day}æ—¥ Â· å‘¨${weekday}`
-    }
-    const midStr = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-15`
-    const solarTerm = getSolar(midStr)
-    return solarTerm || `${calMonth.value}æœˆèŠ‚å¾‹`
-  })
-
   const calSelectedSubtitle = computed(() => {
     if (!calSelectedDate.value) return '????'
     const day = calendarDays.value.find((item) => item.dateStr === calSelectedDate.value)
@@ -303,14 +291,6 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
     return iconMap[holiday.shortName] || 'stamp-icon--star'
   }
 
-  watch(calSelectedDate, (date) => {
-    if (!date) {
-      calDateCheckSet.value = new Set()
-      return
-    }
-    calDateCheckSet.value = new Set()
-  })
-
   return {
     calYear,
     calMonth,
@@ -318,7 +298,6 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
     calHabitsExpanded,
     flipClass,
     calendarDays,
-    calDateDisplay,
     calSelectedSubtitle,
     upcomingHolidays,
     toggleCalHabits,

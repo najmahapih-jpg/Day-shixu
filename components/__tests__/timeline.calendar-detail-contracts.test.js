@@ -30,6 +30,7 @@ describe('timeline calendar detail/almanac contracts', () => {
     expect(html).toContain('2/4 完成')
     expect(html).toContain('habit-list-item-stub')
     expect(html).toContain('Focus')
+    expect(html).toContain('ticket-toggle__label')
     expect(getEmitNames(component)).toEqual(expect.arrayContaining(['toggle-habits', 'check', 'uncheck', 'delete']))
 
     const emitted = []
@@ -67,6 +68,7 @@ describe('timeline calendar detail/almanac contracts', () => {
     })
 
     expect(html).toContain('cal-habit-empty')
+    expect(html).toContain('ticket-toggle__label')
     expect(html).not.toContain('habit-list-item-stub')
   })
 

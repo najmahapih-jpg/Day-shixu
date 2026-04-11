@@ -241,7 +241,6 @@ import { useScrollReveal, useHaptic, useParallax } from '@/composables/motion'
 import {
   RITUAL_TYPE_COLORS,
 } from '@/utils/constants'
-import { getHolidayInfo } from '@/utils/holiday'
 import { getDisplayNickName } from '@/utils/nickName'
 import type { Habit, HabitCategory } from '@/types'
 
@@ -257,8 +256,6 @@ const timelineRenderHeightRpx = timelineHeightRpx + TIMELINE_TAIL_RPX
 const TABBAR_HEIGHT_RPX = 110
 const TIMELINE_STATS_BAR_RPX = 96
 const TIMELINE_BOTTOM_GAP_RPX = 24
-const DEFAULT_DURATION = 30 // minutes
-const MAX_VISIBLE_COLUMNS = 3
 const DATE_RANGE = 7 // +/- 7 days
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 const LABEL_COL_WIDTH_RPX = 80 // Width of the time label column (rpx)
@@ -347,7 +344,7 @@ interface RitualGroup {
 
 const appStore = useAppStore()
 const userStore = useUserStore()
-const { isDark, isNeo } = storeToRefs(appStore)
+const { isNeo } = storeToRefs(appStore)
 const habitStore = useHabitStore()
 const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '鐢ㄦ埛'))
 const ritualStore = useRitualStore()
@@ -355,9 +352,9 @@ const { entered: pageEntered } = usePageTransition()
 const isNeoTheme = computed(() => isNeo.value)
 
 // Timeline page owner responsibilities:
-// 1) compose extracted timeline modules into the two view modes
-// 2) keep business entrypoints plus stable cross-shell assembly in one place
-// 3) retain only the remaining cross-section/calendar owner logic here
+// 1) compose stable timeline/calendar modules into the two page modes
+// 2) keep business entrypoints plus page-level data loading in one place
+// 3) retain the conservative legacy overlap / ritual / block logic here
 
 // Motion helpers stay at page level because they coordinate page-wide feedback layers.
 const haptic = useHaptic()
@@ -493,15 +490,6 @@ const dayCompletedCount = computed(() => habitStore.completedHabits.length)
 const dayTotalCount = computed(() =>
   habitStore.todayHabits.length,
 )
-
-// --- Canvas View State ---
-
-const canvasSelectedDate = computed(() => selectedDate.value || todayStr.value)
-
-const canvasHoliday = computed(() => {
-  return getHolidayInfo(canvasSelectedDate.value)
-})
-
 
 // --- Calendar State ---
 
@@ -870,35 +858,6 @@ function deriveCardColors(hex: string): CardColors {
     brandDark:  `#${toHex(r * 0.65)}${toHex(g * 0.65)}${toHex(b * 0.65)}`,
     brandLight: `#${toHex(r + (255 - r) * 0.45)}${toHex(g + (255 - g) * 0.45)}${toHex(b + (255 - b) * 0.45)}`,
     brandGlow:  hex + '4D',
-  }
-}
-
-// --- Block styles ---
-
-// NOTE: Currently unused 閳?template uses cardGroupStyle instead.
-// Kept for potential future direct-block usage.
-function blockStyle(block: TimeBlock): Record<string, string> {
-  const minutesSinceStart = (block.startHour * 60 + block.startMinute) - START_HOUR * 60
-  const topRpx = Math.max((minutesSinceStart / 60) * HOUR_HEIGHT, 0)
-  const remainingMinutes = Math.max(END_HOUR * 60 - (block.startHour * 60 + block.startMinute), 0)
-  const maxHeightRpx = (remainingMinutes / 60) * HOUR_HEIGHT
-  const minHeight = 64
-  const desiredHeightRpx = Math.max((block.duration / 60) * HOUR_HEIGHT, minHeight)
-  const heightRpx = maxHeightRpx > 0 ? Math.min(desiredHeightRpx, maxHeightRpx) : desiredHeightRpx
-  const alpha = block.completed ? (isDark.value ? 0.2 : 0.09) : (isDark.value ? 0.1 : 0.06)
-  const colors = deriveCardColors(block.color)
-
-  // Stacking logic handles the horizontal shift within the CSS class using --stack-idx.
-  // We leave width out to allow right anchors to naturally manage boundaries.
-
-  return {
-    transform: `translateY(${topRpx}rpx)`,
-    height: `${heightRpx}rpx`,
-    '--brand-color': colors.brandColor,
-    '--brand-dark':  colors.brandDark,
-    '--brand-light': colors.brandLight,
-    '--brand-glow':  colors.brandGlow,
-    '--stack-idx':   String(block.stackIndex || 0),
   }
 }
 
