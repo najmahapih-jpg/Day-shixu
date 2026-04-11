@@ -1,4 +1,5 @@
-// Single source of truth for Mini Program cloud env.
-// Keep this in sync with cloudbaserc.json envId.
-// 当前唯一环境即正式环境（开发与生产共用同一 envId）。
+// Generated / maintained by scripts/set-cloud-env.ps1.
+// Keep these values aligned with cloudbaserc.json and config/release-environments.json.
+
+export const CLOUD_ENV_NAME = 'dev'
 export const CLOUD_ENV_ID = 'cloud-dev-01-2gvgeewv8b7147fb'

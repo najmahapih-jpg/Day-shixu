@@ -1,0 +1,20 @@
+{
+  "defaultEnvironment": "dev",
+  "environments": {
+    "dev": {
+      "label": "Current shared development environment",
+      "cloudEnvId": "cloud-dev-01-2gvgeewv8b7147fb",
+      "miniprogramAppId": "wx538aff9186f53281"
+    },
+    "staging": {
+      "label": "Reserved for future staging split",
+      "cloudEnvId": "",
+      "miniprogramAppId": ""
+    },
+    "prod": {
+      "label": "Reserved for future production split",
+      "cloudEnvId": "",
+      "miniprogramAppId": ""
+    }
+  }
+}
