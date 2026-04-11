@@ -1,4 +1,13 @@
-# Day时序项目结构速览（Archive 版）
+# Day?????????Archive ??
+
+## Release and environment current state (2026-04)
+
+- Release entrypoints: `release:check` -> `check:gate` / `release:guarded`
+- Environment sources of truth: `config/release-environments.json` + `cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
+- Local/private files: `project.private.config.json`, `.wxci/private.<appid>.key`, optional `config/release-environments.local.json`
+- Handoff docs: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
+
+
 
 ## ??????????2026-04?
 

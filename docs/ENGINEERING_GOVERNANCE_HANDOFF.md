@@ -1,4 +1,15 @@
-# 工程治理总交接说明（阶段性收官）
+# ????????????????
+
+## Release / environment engineering entrypoints (2026-04)
+
+Current engineering hardening now centers on release control and explicit environment context:
+
+- Release guard: `npm run release:check`
+- Environment entrypoints: `npm run env:list` / `npm run env:use -- -Name dev`
+- Formal release entrypoint: `npm run release:guarded`
+- Handoff docs: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
+
+
 
 ## ?????????2026-04?
 

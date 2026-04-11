@@ -1,4 +1,13 @@
-# 云函数命令行部署（替代开发者工具逐个上传）
+# ?????????????????????
+
+## 2026-04 environment notes
+
+- CloudBase CLI source of truth: `cloudbaserc.json`
+- Runtime cloud env source of truth: `utils/cloudEnv.ts`
+- Named environment map: `config/release-environments.json`
+- Run `npm run release:check` before release to verify they are aligned
+
+
 
 ## 2026-04 ??????
 

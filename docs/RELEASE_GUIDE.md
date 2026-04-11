@@ -1,4 +1,12 @@
-# Day时序 v1.0.0 发布执行指南
+# Day?? v1.0.0 ??????
+
+## 2026-04 release hardening updates
+
+- Run `npm run release:check` before any real upload
+- Recommended order: `npm run env:list` -> `npm run check:gate` -> `npm run release:check` -> `npm run release:guarded`
+- Release / environment handoff: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
+
+
 
 ## 2026-04 ????????
 

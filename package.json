@@ -5,6 +5,8 @@
     "prepare:devtools": "powershell -ExecutionPolicy Bypass -File ./scripts/prepare-devtools-project.ps1",
     "prepare:wechat": "npm run fix:mp-config && npm run prepare:devtools",
     "set:cloud-env": "powershell -ExecutionPolicy Bypass -File ./scripts/set-cloud-env.ps1",
+    "env:list": "powershell -ExecutionPolicy Bypass -File ./scripts/set-cloud-env.ps1 -ListAvailable",
+    "env:use": "powershell -ExecutionPolicy Bypass -File ./scripts/set-cloud-env.ps1",
     "cf:list": "powershell -ExecutionPolicy Bypass -File ./scripts/cloudbase-fn.ps1 list",
     "cf:deps": "powershell -ExecutionPolicy Bypass -File ./scripts/install-cloudfunction-deps.ps1",
     "cf:sync:shared": "node cloudfunctions/scripts/sync-shared.js",

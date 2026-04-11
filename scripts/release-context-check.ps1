@@ -5,7 +5,8 @@
 .DESCRIPTION
   This script is a non-destructive release guard. It checks the current
   branch/worktree, the tracked cloud env source of truth, WeChat upload
-  credentials, and whether the mp-weixin build output exists.
+  credentials, build outputs, and whether the current envId/appid pair
+  maps to a known named environment.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -41,33 +42,67 @@ if ($statusLines.Count -gt 0) {
 Write-Host "`n2. Release environment source of truth" -ForegroundColor White
 $cloudbaseRcPath = Join-Path $projectRoot 'cloudbaserc.json'
 $cloudEnvTsPath = Join-Path $projectRoot 'utils\cloudEnv.ts'
+$releaseEnvConfigPath = Join-Path $projectRoot 'config\release-environments.json'
 $projectConfigPath = Join-Path $projectRoot 'project.config.json'
+
+$cloudbaseEnvId = ''
+$runtimeEnvName = ''
+$runtimeEnvId = ''
+$activeNamedEnvironment = ''
+$activeNamedStatus = ''
+$projectAppId = ''
 
 if (-not (Test-Path $cloudbaseRcPath)) {
   Fail 'cloudbaserc.json is missing'
 } else {
   $cloudbaseRc = Get-Content -Path $cloudbaseRcPath -Raw -Encoding UTF8 | ConvertFrom-Json
-  if ([string]::IsNullOrWhiteSpace($cloudbaseRc.envId)) {
+  $cloudbaseEnvId = [string]$cloudbaseRc.envId
+  if ([string]::IsNullOrWhiteSpace($cloudbaseEnvId)) {
     Fail 'cloudbaserc.json envId is empty'
   } else {
-    Pass ("cloudbaserc envId: " + $cloudbaseRc.envId)
+    Pass ("cloudbaserc envId: " + $cloudbaseEnvId)
   }
+}
 
-  if (Test-Path $cloudEnvTsPath) {
-    $cloudEnvTs = Get-Content -Path $cloudEnvTsPath -Raw -Encoding UTF8
-    if ($cloudEnvTs -match "CLOUD_ENV_ID\s*=\s*'([^']+)'") {
-      $runtimeEnvId = $Matches[1]
-      if ($runtimeEnvId -eq $cloudbaseRc.envId) {
-        Pass ("utils/cloudEnv.ts matches envId: " + $runtimeEnvId)
-      } else {
-        Fail ("utils/cloudEnv.ts envId mismatch: " + $runtimeEnvId + " != " + $cloudbaseRc.envId)
-      }
+if (Test-Path $cloudEnvTsPath) {
+  $cloudEnvTs = Get-Content -Path $cloudEnvTsPath -Raw -Encoding UTF8
+  if ($cloudEnvTs -match "CLOUD_ENV_NAME\s*=\s*'([^']+)'") {
+    $runtimeEnvName = $Matches[1]
+    Pass ("utils/cloudEnv.ts env name: " + $runtimeEnvName)
+  } else {
+    Warn 'utils/cloudEnv.ts exists but CLOUD_ENV_NAME could not be parsed'
+  }
+  if ($cloudEnvTs -match "CLOUD_ENV_ID\s*=\s*'([^']+)'") {
+    $runtimeEnvId = $Matches[1]
+    if ($runtimeEnvId -eq $cloudbaseEnvId) {
+      Pass ("utils/cloudEnv.ts matches envId: " + $runtimeEnvId)
     } else {
-      Warn 'utils/cloudEnv.ts exists but CLOUD_ENV_ID could not be parsed'
+      Fail ("utils/cloudEnv.ts envId mismatch: " + $runtimeEnvId + " != " + $cloudbaseEnvId)
     }
   } else {
-    Warn 'utils/cloudEnv.ts is missing'
+    Warn 'utils/cloudEnv.ts exists but CLOUD_ENV_ID could not be parsed'
   }
+} else {
+  Warn 'utils/cloudEnv.ts is missing'
+}
+
+if (Test-Path $releaseEnvConfigPath) {
+  $releaseEnvConfig = Get-Content -Path $releaseEnvConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $defaultEnv = [string]$releaseEnvConfig.defaultEnvironment
+  if ([string]::IsNullOrWhiteSpace($defaultEnv)) {
+    Fail 'config/release-environments.json defaultEnvironment is empty'
+  } else {
+    Pass ("default environment: " + $defaultEnv)
+  }
+
+  $configuredNames = @($releaseEnvConfig.environments.PSObject.Properties.Name)
+  if ($configuredNames.Count -eq 0) {
+    Fail 'config/release-environments.json has no environments'
+  } else {
+    Pass ("named environments: " + ($configuredNames -join ', '))
+  }
+} else {
+  Fail 'config/release-environments.json is missing'
 }
 
 # 3) WeChat project identity and local-only config
@@ -76,10 +111,11 @@ if (-not (Test-Path $projectConfigPath)) {
   Fail 'project.config.json is missing'
 } else {
   $projectConfig = Get-Content -Path $projectConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-  if ([string]::IsNullOrWhiteSpace($projectConfig.appid)) {
+  $projectAppId = [string]$projectConfig.appid
+  if ([string]::IsNullOrWhiteSpace($projectAppId)) {
     Fail 'project.config.json appid is empty'
   } else {
-    Pass ("project.config.json appid: " + $projectConfig.appid)
+    Pass ("project.config.json appid: " + $projectAppId)
   }
 
   if ($projectConfig.miniprogramRoot) {
@@ -102,13 +138,45 @@ if (-not (Test-Path $projectConfigPath)) {
   }
 
   $envKeyPath = [Environment]::GetEnvironmentVariable('WECHAT_CI_PRIVATE_KEY_PATH')
-  $fallbackKeyPath = Join-Path $projectRoot (".wxci\private." + $projectConfig.appid + ".key")
+  $fallbackKeyPath = Join-Path $projectRoot (".wxci\private." + $projectAppId + ".key")
   if (-not [string]::IsNullOrWhiteSpace($envKeyPath) -and (Test-Path $envKeyPath)) {
     Pass ("WeChat CI private key found via WECHAT_CI_PRIVATE_KEY_PATH: " + $envKeyPath)
   } elseif (Test-Path $fallbackKeyPath) {
     Pass ("WeChat CI private key found in repo-local .wxci: " + $fallbackKeyPath)
   } else {
     Fail 'No WeChat CI private key found (set WECHAT_CI_PRIVATE_KEY_PATH or place .wxci/private.<appid>.key)'
+  }
+}
+
+if (Test-Path $releaseEnvConfigPath) {
+  $releaseEnvConfig = Get-Content -Path $releaseEnvConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  foreach ($prop in $releaseEnvConfig.environments.PSObject.Properties) {
+    $envName = [string]$prop.Name
+    $envNode = $prop.Value
+    $envCloudId = [string]$envNode.cloudEnvId
+    $envAppId = [string]$envNode.miniprogramAppId
+    if ([string]::IsNullOrWhiteSpace($envCloudId)) { continue }
+    if ($envCloudId -eq $cloudbaseEnvId -and ([string]::IsNullOrWhiteSpace($envAppId) -or $envAppId -eq $projectAppId)) {
+      $activeNamedEnvironment = $envName
+      $activeNamedStatus = if ([string]::IsNullOrWhiteSpace([string]$envNode.status)) { 'UNCONFIGURED' } else { [string]$envNode.status }
+      break
+    }
+  }
+
+  if ([string]::IsNullOrWhiteSpace($activeNamedEnvironment)) {
+    Fail 'Current envId/appid does not match any named environment in config/release-environments.json'
+  } else {
+    if ($activeNamedStatus -eq 'READY') {
+      Pass ("active named environment: " + $activeNamedEnvironment)
+    } elseif ($activeNamedStatus -eq 'INVALID') {
+      Fail ("active named environment is INVALID: " + $activeNamedEnvironment)
+    } else {
+      Warn ("active named environment is not READY: " + $activeNamedEnvironment + " [" + $activeNamedStatus + "]")
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($runtimeEnvName) -and $runtimeEnvName -ne $activeNamedEnvironment) {
+      Fail ("utils/cloudEnv.ts env name mismatch: " + $runtimeEnvName + " != " + $activeNamedEnvironment)
+    }
   }
 }
 
@@ -136,7 +204,7 @@ if (Test-Path $packageJsonPath) {
   $packageJson = Get-Content -Path $packageJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
   $scripts = $packageJson.scripts
 
-  foreach ($scriptName in @('check:gate', 'release:check', 'release:guarded')) {
+  foreach ($scriptName in @('check:gate', 'release:check', 'release:guarded', 'env:list', 'env:use')) {
     if ($scripts.PSObject.Properties.Name -contains $scriptName) {
       Pass ("npm script exists: " + $scriptName)
     } else {
