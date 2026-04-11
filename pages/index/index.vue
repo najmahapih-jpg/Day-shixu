@@ -160,6 +160,7 @@ import { useHomeWeekComparisonState } from '@/composables/useHomeWeekComparisonS
 import { useHomeStarMapDisplay } from '@/composables/useHomeStarMapDisplay'
 import { useHomeStarMapRuntime } from '@/composables/useHomeStarMapRuntime'
 import { useHomeWeekShowcaseFan } from '@/composables/useHomeWeekShowcaseFan'
+import { useHomePageDataBus } from '@/composables/useHomePageDataBus'
 import { useFLIPGroup, useHaptic } from '@/composables/motion'
 import { getToday } from '@/services/cloud'
 import { PUBLIC_COPY } from '@/utils/publicCopy'
@@ -180,7 +181,7 @@ const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.ni
 // Home page owner responsibilities:
 // 1) compose extracted home modules into one screen
 // 2) keep business entrypoints and cross-section coordination in one place
-// 3) retain only the main request chains and StarMap easter-egg state machine here
+// 3) retain only the remaining business entrypoints and StarMap easter-egg state machine here
 
 // Motion helpers stay at page level because they coordinate across sections.
 const haptic = useHaptic()
@@ -310,6 +311,23 @@ const {
 } = useHomeStarMapRuntime({
   initialLogs: starMapCopy.initialLogs,
   rotatingLogs: starMapCopy.rotatingLogs,
+})
+
+const {
+  loadHomeOnShowData,
+  refreshHomeData,
+} = useHomePageDataBus({
+  resetDynamicLogs,
+  startDynamicLogs,
+  refreshDateIfNeeded: () => habitStore.refreshDateIfNeeded(),
+  fetchHabits: () => habitStore.fetchHabits(),
+  loadWeekComparison,
+  fetchUserJourneys: () => journeyStore.fetchUserJourneys(),
+  refreshAiInsightFromCache,
+  runSafe,
+  stopPullDownRefresh: () => {
+    uni.stopPullDownRefresh()
+  },
 })
 
 
@@ -449,13 +467,7 @@ function handleDelete(habitId: string) {
 }
 
 function onRefresh() {
-  runSafe(async () => {
-    await habitStore.fetchHabits()
-    await loadWeekComparison()
-    refreshAiInsightFromCache()
-  }).finally(() => {
-    uni.stopPullDownRefresh()
-  })
+  void refreshHomeData()
 }
 
 // ── 分享能力 ──
@@ -471,16 +483,7 @@ onShareTimeline(() => ({
 onShow(() => {
   appStore.switchTab('index')
   if (initializeEntryEffects()) return
-  habitStore.refreshDateIfNeeded()
-  resetDynamicLogs()
-  startDynamicLogs()
-  runSafe(async () => {
-    await habitStore.fetchHabits()
-    await loadWeekComparison()
-  })
-  journeyStore.fetchUserJourneys().catch(() => {
-    // ignore
-  })
+  loadHomeOnShowData()
 })
 
 onHide(() => {
