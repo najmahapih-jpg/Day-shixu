@@ -31,7 +31,8 @@
     "clean:dev-artifacts": "powershell -ExecutionPolicy Bypass -File ./scripts/clean-dev-artifacts.ps1",
     "check:hygiene": "powershell -ExecutionPolicy Bypass -File ./scripts/check-hygiene.ps1",
     "check:gate": "npm test && powershell -ExecutionPolicy Bypass -File ./scripts/preflight-check.ps1 && npm run check:hygiene",
-    "release:guarded": "npm run clean:dev-artifacts && npm run check:gate && powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1"
+    "release:check": "powershell -ExecutionPolicy Bypass -File ./scripts/release-context-check.ps1",
+    "release:guarded": "npm run clean:dev-artifacts && npm run check:gate && npm run release:check && powershell -ExecutionPolicy Bypass -File ./scripts/release-wechat.ps1"
   },
   "dependencies": {
     "@qiun/ucharts": "^2.5.0-20230101",

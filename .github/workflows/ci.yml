@@ -17,6 +17,9 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: Cloud functions TypeScript build
+        run: npm run build:cloudfunctions:ts
+
       - name: TypeScript type check
         run: npm run typecheck
 
