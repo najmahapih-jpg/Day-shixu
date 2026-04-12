@@ -52,8 +52,12 @@ foreach ($cfName in $cfNames) {
     Write-Host "  -> $cfName" -ForegroundColor DarkGray
     Push-Location $cfDir
     try {
+      $prevEAP = $ErrorActionPreference
+      $ErrorActionPreference = 'Continue'
       npm install --omit=dev --no-audit --no-fund 2>&1 | Out-Null
-      if ($LASTEXITCODE -ne 0) { throw "npm install failed in cloudfunctions/$cfName" }
+      $npmExit = $LASTEXITCODE
+      $ErrorActionPreference = $prevEAP
+      if ($npmExit -ne 0) { throw "npm install failed in cloudfunctions/$cfName (exit $npmExit)" }
     } finally {
       Pop-Location
     }
