@@ -101,6 +101,14 @@ npm.cmd run check:repo-safety
 - 不执行凭据轮换
 - 把历史清理保留为单独安全任务，仅在未来仓库治理要求更严格时再启动
 
+如果未来需要启动历史清理，应作为独立任务按以下方式处理：
+
+1. 使用 `git filter-repo`（推荐）或 `BFG Repo-Cleaner` 删除目标路径的历史记录
+2. 在独立工作分支上执行，验证后再 force push 到 main
+3. 所有协作者在 force push 后须重新 clone 或执行 `git fetch --all && git reset --hard origin/main`
+4. 清理完成后轮换任何曾暴露的真实凭据（如适用）
+5. 此为破坏性操作，须提前团队对齐，不应在日常开发周期内附带执行
+
 ## `release:check` 当前覆盖内容
 
 当前 guard 会检查：
