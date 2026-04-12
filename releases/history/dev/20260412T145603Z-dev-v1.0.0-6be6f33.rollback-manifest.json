@@ -1,0 +1,31 @@
+﻿{
+    "schemaVersion":  1,
+    "manifestType":  "rollback",
+    "rollbackId":  "20260412T145603Z-dev-v1.0.0-6be6f33-rollback",
+    "generatedAt":  "2026-04-12T14:56:03.4315461Z",
+    "sourceRelease":  {
+                          "releaseId":  "20260412T145603Z-dev-v1.0.0-6be6f33",
+                          "version":  "1.0.0",
+                          "phase":  "uploaded",
+                          "branch":  "main",
+                          "commit":  "6be6f336b7ce4396f3f474cc83f0eb3c501d4151"
+                      },
+    "environment":  {
+                        "name":  "dev",
+                        "status":  "READY",
+                        "envId":  "cloud-dev-01-2gvgeewv8b7147fb",
+                        "appid":  "wx538aff9186f53281"
+                    },
+    "rollbackTarget":  {
+                           "releaseId":  null,
+                           "version":  null,
+                           "branch":  null,
+                           "commit":  null,
+                           "generatedAt":  null,
+                           "note":  "No previous recorded release exists for this environment yet. The first cut only establishes the rollback anchor schema."
+                       },
+    "manualRecovery":  {
+                           "cloudFunctions":  "git checkout \u003ctargetCommit\u003e -- cloudfunctions/\u003cfunction_name\u003e \u0026\u0026 npm run cf:deploy:one -- \u003cfunction_name\u003e",
+                           "miniProgram":  "WeChat console -\u003e Version Management -\u003e Rollback, or upload a hotfix build and resubmit."
+                       }
+}
