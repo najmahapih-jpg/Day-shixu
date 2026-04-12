@@ -98,7 +98,7 @@ if (Test-Path $preflightScript) {
 Write-Host "[6/7] Pre-flight checks passed." -ForegroundColor Green
 
 # ── Step 7: Upload mini program ──
-Write-Host "[7/7] Uploading mini program..."
+Write-Host "[7/8] Uploading mini program..."
 $uploadScript = Join-Path $scriptDirResolved 'upload-miniprogram.js'
 $uploadArgs = @('--version', $Version, '--robot', $Robot)
 if (-not [string]::IsNullOrWhiteSpace($Desc)) {
@@ -106,7 +106,24 @@ if (-not [string]::IsNullOrWhiteSpace($Desc)) {
 }
 node $uploadScript @uploadArgs
 if ($LASTEXITCODE -ne 0) { throw "Mini program upload failed" }
-Write-Host "[7/7] Mini program uploaded." -ForegroundColor Green
+Write-Host "[7/8] Mini program uploaded." -ForegroundColor Green
+
+# Step 8: Write structured release / rollback manifests
+Write-Host "[8/8] Writing structured release records..."
+$recordScript = Join-Path $scriptDirResolved 'write-release-record.ps1'
+if (Test-Path $recordScript) {
+  try {
+    & $recordScript -Version $Version -Desc $Desc -Robot $Robot -ReleasePhase 'uploaded'
+    if ($LASTEXITCODE -ne 0) {
+      throw "write-release-record.ps1 failed"
+    }
+    Write-Host "[8/8] Release records written." -ForegroundColor Green
+  } catch {
+    Write-Host ("[WARN] Upload succeeded, but release record generation failed: " + $_.Exception.Message) -ForegroundColor Yellow
+  }
+} else {
+  Write-Host "[WARN] Structured release record script is missing; skipping release record generation." -ForegroundColor Yellow
+}
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  Release complete!" -ForegroundColor Cyan

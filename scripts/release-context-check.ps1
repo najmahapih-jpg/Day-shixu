@@ -204,7 +204,7 @@ if (Test-Path $packageJsonPath) {
   $packageJson = Get-Content -Path $packageJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
   $scripts = $packageJson.scripts
 
-  foreach ($scriptName in @('check:gate', 'release:check', 'release:guarded', 'env:list', 'env:use')) {
+  foreach ($scriptName in @('check:gate', 'release:check', 'release:record', 'release:guarded', 'env:list', 'env:use')) {
     if ($scripts.PSObject.Properties.Name -contains $scriptName) {
       Pass ("npm script exists: " + $scriptName)
     } else {

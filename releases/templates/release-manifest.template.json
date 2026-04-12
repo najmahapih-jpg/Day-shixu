@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "manifestType": "release",
+  "releaseId": "<timestamp-env-version-commit>",
+  "generatedAt": "<ISO-8601>",
+  "release": {
+    "channel": "wechat-mini-program",
+    "phase": "uploaded",
+    "version": "<versionName>",
+    "versionCode": "<versionCode>",
+    "description": "<release description>",
+    "robot": 1
+  },
+  "environment": {
+    "name": "<dev|staging|prod>",
+    "status": "<READY|UNCONFIGURED|INVALID>",
+    "envId": "<cloud env id>",
+    "appid": "<wechat appid>"
+  },
+  "git": {
+    "branch": "<branch>",
+    "commit": "<full sha>",
+    "shortCommit": "<short sha>"
+  },
+  "rollbackAnchor": {
+    "strategy": "previous-release-for-same-environment",
+    "targetReleaseId": "<previous release id or null>",
+    "targetVersion": "<previous version or null>",
+    "targetCommit": "<previous commit or null>",
+    "targetBranch": "<previous branch or null>",
+    "targetGeneratedAt": "<previous generatedAt or null>"
+  },
+  "artifacts": {
+    "releaseManifestPath": "releases/history/<environment>/<file>.release-manifest.json",
+    "rollbackManifestPath": "releases/history/<environment>/<file>.rollback-manifest.json"
+  }
+}

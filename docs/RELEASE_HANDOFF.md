@@ -1,133 +1,139 @@
-# 发布链与环境交接说明
+# 发布链与交接说明
 
 ## 文档目的
 
-这份文档不是“如何点按钮”的操作手册，而是当前发布链的工程化交接面。  
+这份文档解释当前发布链的工程边界，而不是逐步操作手册。
+
 它回答的是：
 
-1. 当前发布链的唯一入口是什么  
-2. 哪些配置是版本控制内的事实来源  
-3. 哪些文件是本地私有 / 不应提交  
-4. 回滚入口在哪里  
-5. 上线前最少需要跑哪些校验  
+1. 当前发布链的正式入口是什么
+2. 哪些文件是“受版本控制的事实来源”
+3. 哪些文件是本地私有配置
+4. guard 现在能拦什么
+5. 结构化 release / rollback manifest 放在哪里
+6. 当前回滚是怎样被追踪的
 
-> 如果你需要理解“当前环境是如何被命名、映射、切换与校验”的细节，请继续阅读：
-> [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
-
----
-
-## 当前发布链的推荐入口
+## 当前推荐入口
 
 ### 只做校验，不做发布
+
 ```bash
-npm run release:check
+npm.cmd run release:check
 ```
 
-适用场景：
-- 想确认本地是否具备发布条件
-- 想在真正上传前检查环境、密钥、构建产物、工作区状态
-- 想让维护者先理解“现在差什么”，而不是直接跑发布脚本
+### 标准正式入口
 
-### 标准发布前质量门禁
 ```bash
-npm run check:gate
+npm.cmd run release:guarded
 ```
 
-覆盖：
-- 测试
-- 预飞检查
-- hygiene 检查
+### 手工补记发布记录
 
-### 带防呆的正式发布入口
 ```bash
-npm run release:guarded
+npm.cmd run release:record -- --Version 1.0.0 --Desc "说明"
 ```
 
-当前链路：
-1. 清理开发产物
-2. 质量门禁
-3. release context 校验
-4. `release-wechat.ps1`
+## 受版本控制的事实来源
 
----
+| 文件 | 作用 |
+| --- | --- |
+| `config/release-environments.json` | 命名环境定义与状态 |
+| `cloudbaserc.json` | CloudBase 当前 `envId` |
+| `utils/cloudEnv.ts` | 前端运行时环境常量 |
+| `project.config.json` | 微信项目 `appid`、根目录配置 |
+| `manifest.json` | 版本号与版本编码 |
+| `releases/history/` | 结构化发布记录与回滚记录 |
 
-## 当前环境边界（务必先认清）
+维护原则：
 
-### 版本控制内的环境事实来源
+- 不要让 `cloudbaserc.json` 和 `utils/cloudEnv.ts` 漂移
+- 不要在没有更新命名环境配置的情况下手工改 `appid`
+- 不要把 release record 放到临时目录或个人笔记里
 
-#### 1. `cloudbaserc.json`
-- CloudBase CLI 当前主环境入口
-- 当前仓库只跟踪了一个 `envId`
+## 本地私有配置
 
-#### 2. `utils/cloudEnv.ts`
-- 小程序运行时显式引用的 cloud env 常量
-- 必须与 `cloudbaserc.json` 保持一致
+以下内容允许缺失，也不应被当成仓库事实来源：
 
-#### 3. `project.config.json`
-- 微信小程序项目基础配置
-- 包含 `appid`、`miniprogramRoot`、`cloudfunctionRoot`
+- `project.private.config.json`
+- `.wxci/private.<appid>.key`
+- 可选 `config/release-environments.local.json`
 
-### 本地私有 / 可缺失文件
+说明：
 
-#### 1. `project.private.config.json`
-- 本地开发者工具私有配置
-- 可以不提交
-- 若缺失，`prepare:wechat` / `prepare-devtools-project.ps1` 仍可继续生成 dist / DevTools 项目
+- 没有私钥时，发布 guard 应该失败
+- 没有 `project.private.config.json` 时，脚本可以给出警告，但不代表工程配置错误
 
-#### 2. `.wxci/private.<appid>.key`
-- 小程序上传私钥
-- 本地可存放在 `.wxci/`
-- 或通过环境变量 `WECHAT_CI_PRIVATE_KEY_PATH` 提供
-- **严禁提交到仓库**
+## `release:check` 当前覆盖内容
 
----
+当前 guard 会检查：
 
-## `release:check` 现在会检查什么
+1. 当前 git 分支是否可识别
+2. 工作区是否干净
+3. `cloudbaserc.json` 是否存在且含可解析 `envId`
+4. `utils/cloudEnv.ts` 是否与当前 `envId` 对齐
+5. `project.config.json` 是否存在且 `appid` / root 可解析
+6. 当前 `envId + appid` 是否对应到命名环境
+7. 当前命名环境状态是否为 `READY`
+8. 构建产物是否存在
+9. 上传私钥是否存在
+10. 发布入口脚本是否齐全
 
-`scripts/release-context-check.ps1` 当前检查：
+## 结构化发布记录第一刀
 
-1. 当前 git 分支与工作区是否干净
-2. `cloudbaserc.json` 是否存在且 `envId` 可解析
-3. `utils/cloudEnv.ts` 是否存在，且是否与 `cloudbaserc.json` 一致
-4. `project.config.json` 是否存在，且 `appid` / root 配置可解析
-5. `project.private.config.json` 是否存在（缺失仅警告）
-6. 上传私钥是否存在（环境变量或 `.wxci/`）
-7. `unpackage/dist/dev/mp-weixin/app.json` 是否已生成
-8. `_mp_devtools/app.json` 是否存在（缺失仅警告）
-9. `package.json` 中关键发布入口是否齐全：
-   - `check:gate`
-   - `release:check`
-   - `release:guarded`
+### 输出目录
 
-这让发布链从“记住一堆前提条件”变成“先跑一次 guard”。
+```text
+releases/history/<environment>/
+```
 
----
+### 当前文件
+
+- `*.release-manifest.json`
+- `*.rollback-manifest.json`
+
+### 当前字段最小集
+
+- 版本号
+- 版本编码
+- 环境名
+- 环境状态
+- `envId`
+- `appid`
+- `branch`
+- `commit`
+- 记录时间
+- rollback anchor
+
+### rollback anchor 的含义
+
+当前第一刀不是“自动回滚平台”，而是“可回滚追踪”：
+
+- 同环境下，如果已有上一条 release manifest，则把它记录为本次回滚锚点
+- 如果这是该环境第一条记录，则锚点为空，并在 rollback manifest 中明确说明
 
 ## 当前回滚入口
 
+### 小程序版本回滚
+
+- 在微信后台版本管理中执行回滚
+- 或重新上传修复版并走审核流程
+
 ### 云函数回滚
-- 先把本地代码切回目标 commit
-- 再通过：
+
 ```bash
-npm run cf:deploy:one -- <function_name>
+git checkout <targetCommit> -- cloudfunctions/<function_name>
+npm.cmd run cf:deploy:one -- <function_name>
 ```
-重新部署目标函数代码
 
-### 小程序回滚
-- 微信后台版本管理里执行版本回滚
-- 或重新上传修复版并走审核 / 发布流程
+## 当前明确限制
 
-### 结论
-当前回滚仍不是“按钮级自动化”，但入口已经明确、文档化，并且不再完全依赖口口相传。
-
----
+- 当前只有 `dev` 真正可用
+- `staging` / `prod` 还不能作为真实发布目标
+- 结构化 manifest 只解决“记录层”，没有接管审批流和自动回滚执行
 
 ## 维护建议
 
-1. 不要直接跳过 `release:check`
-2. 不要把私钥或私有配置纳入版本控制
-3. 不要让 `cloudbaserc.json` 与 `utils/cloudEnv.ts` 漂移
-4. 如果未来继续工程化，优先推进：
-   - 环境分层（dev/staging/prod）
-   - 更清晰的回滚版本约定
-   - 可机读的发布记录 / release manifest
+1. 不要跳过 `release:check`
+2. 不要直接手改多处环境事实来源
+3. 不要把发布结果只留在微信群、口头或截图里
+4. 如果发布成功但记录写入失败，应优先补记 `release manifest`
