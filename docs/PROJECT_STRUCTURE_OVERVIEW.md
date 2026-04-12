@@ -1,120 +1,64 @@
-# Day?????????Archive ??
+# 项目结构总览
 
-## Release and environment current state (2026-04)
+## 文档目的
 
-- Release entrypoints: `release:check` -> `check:gate` / `release:guarded`
-- Environment sources of truth: `config/release-environments.json` + `cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
-- Local/private files: `project.private.config.json`, `.wxci/private.<appid>.key`, optional `config/release-environments.local.json`
-- Handoff docs: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
+这份文档只回答一个问题：**仓库现在长什么样，各层职责分别放在哪里。**
 
+它不是发布手册，也不是治理总交接。第一次接手项目时，请先看 [`../README.md`](../README.md)，再用本文件建立目录地图。
 
+## 当前状态摘要
 
-## Release and environment current state (2026-04)
+- 前端页面与状态层已经进入“稳定维护”阶段
+- 云函数 TypeScript 化已经阶段性收官
+- 发布链已经具备 guard、命名环境、结构化发布记录第一刀
+- `staging` / `prod` 仍未配置完成，不要误判为可用环境
 
-- Release entrypoints: `release:check` ? `check:gate` / `release:guarded`
-- Environment sources of truth: `config/release-environments.json` + `cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
-- Local/private files: `project.private.config.json`, `.wxci/private.<appid>.key`, optional `config/release-environments.local.json`
-- Handoff docs: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
-
-## Timeline 当前维护状态（2026-04）
-
-- 页面 owner：`pages/timeline/index.vue`
-- 稳定 view：`TimelineTopBar`、`TimelineDateStrip`、`TimelineRubatoStrip`、`TimelineCodaDesk`、`TimelineLaneBoard`、`TimelineLaneTicket`、`TimelineCalendarDetail`、`TimelineHolidayAlmanac`、`TimelineCalendarNav`、`TimelineCalendarGrid`
-- 稳定 composable：`useTimelineLaneView`、`useTimelineLaneInteractionShell`、`useTimelineLaneInteractionFlow`、`useTimelineLaneContainer`、`useTimelineModeUiShell`、`useTimelineScrollFeedback`、`useTimelineLayoutShell`、`useTimelineClockShell`、`useTimelineDateDisplay`、`useTimelineDateInteractionFlow`、`useTimelinePageDataFlow`、`useTimelineCalendarShell`
-- 交接入口：[`TIMELINE_INDEX_HANDOFF.md`](TIMELINE_INDEX_HANDOFF.md)
-- 如果未来还要继续重构 timeline，优先从 overlap / ritual group / old block 旧主体逻辑单独立题。
-
-
-## 文档入口导航
-
-| 文档 | 用途 |
-|------|------|
-| [README](../README.md) | 仓库入口，命令速查，阅读建议 |
-| [首页拆分线交接](HOME_INDEX_HANDOFF.md) | 首页 1~13 阶段拆分的职责边界、测试保护与手工回归重点 |
-| [时间轴当前维护交接](TIMELINE_INDEX_HANDOFF.md) | timeline 当前职责边界、测试保护、手工回归重点与后续重构建议 |
-| [工程治理总交接](ENGINEERING_GOVERNANCE_HANDOFF.md) | 云函数 TS 化、首页与 timeline 拆分线的总维护入口 |
-| [发布执行指南](RELEASE_GUIDE.md) | 发布全流程操作步骤 |
-| [功能验收测试清单](ACCEPTANCE_TEST_CHECKLIST.md) | 提审前验收清单 |
-| [v1.0.0 上线简报](v1.0.0-launch-brief.md) | 上线决策与检查 |
-| [v1.0.0 结项交接](v1.0.0-closeout.md) | 交付范围、延期事项、维护建议 |
-| [云函数 CLI 部署](CLOUDFUNCTIONS_CLI_WORKFLOW.md) | 云函数命令行部署工作流 |
-
----
-
-## 1. 当前状态
-
-- 技术栈：`uni-app` + `Vue 3 Composition API` + `TypeScript` + `Pinia` + `SCSS`
-- 目标端：微信小程序（`mp-weixin`）
-- 当前内容链路已统一为 `Archive`，仓库已完成旧内容链路清理
-
-## 2. 核心目录
+## 顶层目录
 
 ```text
 Day时序/
-├── App.vue
-├── main.js
-├── pages.json
-├── pages/                # 页面层（tab + sub pages）
-├── components/           # 组件层（base / archive / board / home 等）
-├── stores/               # Pinia 状态层
-├── services/             # 云函数调用与业务接口封装
-├── cloudfunctions/       # 云函数后端
-├── styles/               # 设计变量、全局样式、动画
-├── static/               # 图标、插画、静态资源
-├── types/                # 全局类型定义
-├── utils/                # 工具函数与静态映射
-└── scripts/              # 本地脚本与资源生成脚本
+├─ pages/                    # 页面层（tab 页 + 分包页）
+├─ components/               # UI 组件
+├─ stores/                   # Pinia 状态层
+├─ services/                 # 前端服务封装 / 云函数调用入口
+├─ cloudfunctions/           # 云函数源码
+├─ styles/                   # 全局样式与设计变量
+├─ static/                   # 静态资源
+├─ utils/                    # 工具函数与运行时常量
+├─ scripts/                  # 工程脚本、发布脚本、检查脚本
+├─ config/                   # 工程配置（含命名环境）
+├─ docs/                     # 文档入口与专项 handoff
+└─ releases/                 # 结构化发布记录与模板
 ```
 
-## 3. 页面结构
+## 前端主结构
 
-- Tab 页：
-  - `pages/index/index`
-  - `pages/timeline/index`
-  - `pages/board/index`
-  - `pages/profile/index`
-- 关键分包页：
-  - `pages/sub/archive/index`
-  - `pages/sub/journey-list/index`
-  - `pages/sub/journey-detail/index`
-  - `pages/sub/journey-complete/index`
-  - `pages/sub/habit-detail/index`
-  - `pages/sub/habit-archive/index`
-  - `pages/sub/ritual-edit/index`
-  - `pages/sub/ritual-execute/index`
-  - `pages/sub/stats-detail/index`
-  - `pages/sub/ai-insight/index`
-  - `pages/sub/card-detail/index`
-  - `pages/sub/settings/index`
-  - `pages/sub/onboarding/index`
+### 页面层
 
-说明：
+- `pages/index/index.vue`：首页 owner
+- `pages/timeline/index.vue`：timeline owner
+- `pages/board/index.vue`：灵感板主入口
+- `pages/profile/index.vue`：个人页主入口
 
-- `Archive` 是当前承接“完成旅程后沉淀内容”的唯一页面
+常见分包页位于 `pages/sub/`，包括归档、旅程、习惯详情、仪式执行、统计详情、AI 洞察、设置、onboarding 等。
 
-## 4. 状态与服务
+### 状态层
 
-- `stores/habit.ts`：习惯列表、归档、打卡、冻结等核心状态
-- `stores/board.ts`：灵感板便签与编辑状态
-- `stores/journey.ts`：旅程预设、旅程进度、步骤完成
-- `stores/archive.ts`：按日期聚合 `check_ins` 与 `board_notes`，生成 Archive 视图数据
-- `stores/user.ts`：登录态与用户设置
-- `stores/app.ts` / `stores/ritual.ts`：应用级配置与仪式流
+- `stores/habit.ts`：习惯、打卡、冻结、归档
+- `stores/board.ts`：灵感板与便签
+- `stores/journey.ts`：旅程进度与步骤
+- `stores/archive.ts`：归档聚合视图
+- `stores/user.ts`：用户态与设置
+- `stores/app.ts` / `stores/ritual.ts`：应用级与仪式流状态
 
-- `services/habitService.ts`：习惯、打卡、归档相关接口
-- `services/boardService.ts`：便签与灵感板接口
-- `services/journeyService.ts`：旅程开始、步骤完成、详情查询
-- `services/ritualService.ts`：仪式流接口
-- `services/statsService.ts`：统计与热力图接口
-- `services/aiService.ts`：AI 洞察接口
+### 服务层
 
-说明：
+- `services/*Service.ts`：前端对云函数或业务接口的调用入口
+- 这里是页面层与云函数层之间的缓冲区，不建议把页面 owner 的业务逻辑直接塞回服务层
 
-- Archive 没有独立云函数；当前由前端基于 `habits`、`check_ins`、`board_notes` 聚合生成
+## 云函数结构
 
-## 5. 云函数
-
-当前启用的云函数：
+当前主要云函数：
 
 - `ai`
 - `board`
@@ -127,4 +71,39 @@ Day时序/
 
 说明：
 
-- 当前部署配置仅保留 `ai`、`board`、`habit`、`journey`、`notify`、`ritual`、`stats`、`user`
+- 云函数主维护入口已切到 TypeScript
+- `_shared` 通过同步脚本维护，不建议手工复制粘贴
+- 相关部署入口见 [`CLOUDFUNCTIONS_CLI_WORKFLOW.md`](CLOUDFUNCTIONS_CLI_WORKFLOW.md)
+
+## 发布与环境相关结构
+
+### 配置来源
+
+- `config/release-environments.json`：命名环境清单与状态
+- `cloudbaserc.json`：CloudBase 当前 `envId`
+- `utils/cloudEnv.ts`：前端运行时环境常量
+- `project.config.json`：微信小程序 `appid` 与根目录配置
+- `manifest.json`：版本号与版本编码
+
+### 记录与脚本
+
+- `scripts/release-context-check.ps1`：发布 guard
+- `scripts/release-wechat.ps1`：发布上传主脚本
+- `scripts/write-release-record.ps1`：结构化发布记录 / 回滚记录生成
+- `releases/history/<environment>/`：发布记录输出目录
+
+## 本地私有 / 不应入库的内容
+
+- `project.private.config.json`
+- `.wxci/private.<appid>.key`
+- 可选 `config/release-environments.local.json`
+- 本地 orchestration/runtime 目录（如 `.omx/`）
+
+## 相关文档入口
+
+- 总入口：[`../README.md`](../README.md)
+- 工程治理交接：[`ENGINEERING_GOVERNANCE_HANDOFF.md`](ENGINEERING_GOVERNANCE_HANDOFF.md)
+- 发布执行：[`RELEASE_GUIDE.md`](RELEASE_GUIDE.md)
+- 发布链 handoff：[`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md)
+- 环境分层：[`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
+- 首页 / timeline 专项：[`HOME_INDEX_HANDOFF.md`](HOME_INDEX_HANDOFF.md) / [`TIMELINE_INDEX_HANDOFF.md`](TIMELINE_INDEX_HANDOFF.md)

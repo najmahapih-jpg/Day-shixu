@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "manifestType": "rollback",
+  "rollbackId": "<releaseId>-rollback",
+  "generatedAt": "<ISO-8601>",
+  "sourceRelease": {
+    "releaseId": "<current release id>",
+    "version": "<current version>",
+    "phase": "uploaded",
+    "branch": "<current branch>",
+    "commit": "<current commit>"
+  },
+  "environment": {
+    "name": "<dev|staging|prod>",
+    "status": "<READY|UNCONFIGURED|INVALID>",
+    "envId": "<cloud env id>",
+    "appid": "<wechat appid>"
+  },
+  "rollbackTarget": {
+    "releaseId": "<previous release id or null>",
+    "version": "<previous version or null>",
+    "branch": "<previous branch or null>",
+    "commit": "<previous commit or null>",
+    "generatedAt": "<previous generatedAt or null>",
+    "note": "<rollback note>"
+  },
+  "manualRecovery": {
+    "cloudFunctions": "git checkout <targetCommit> -- cloudfunctions/<function_name> && npm run cf:deploy:one -- <function_name>",
+    "miniProgram": "WeChat console -> Version Management -> Rollback, or upload a hotfix build and resubmit."
+  }
+}
