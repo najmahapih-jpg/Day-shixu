@@ -38,6 +38,20 @@ if ($statusLines.Count -gt 0) {
   Pass 'Git worktree is clean'
 }
 
+# 1.5) public repo safety
+Write-Host "`n1.5 Public repo safety" -ForegroundColor White
+$repoSafetyScript = Join-Path $PSScriptRoot 'check-public-repo-safety.ps1'
+if (Test-Path $repoSafetyScript) {
+  & $repoSafetyScript
+  if ($LASTEXITCODE -ne 0) {
+    Fail 'Public-repo safety audit failed'
+  } else {
+    Pass 'Public-repo safety audit completed'
+  }
+} else {
+  Warn 'check-public-repo-safety.ps1 is missing'
+}
+
 # 2) tracked release env
 Write-Host "`n2. Release environment source of truth" -ForegroundColor White
 $cloudbaseRcPath = Join-Path $projectRoot 'cloudbaserc.json'
@@ -140,9 +154,9 @@ if (-not (Test-Path $projectConfigPath)) {
   $envKeyPath = [Environment]::GetEnvironmentVariable('WECHAT_CI_PRIVATE_KEY_PATH')
   $fallbackKeyPath = Join-Path $projectRoot (".wxci\private." + $projectAppId + ".key")
   if (-not [string]::IsNullOrWhiteSpace($envKeyPath) -and (Test-Path $envKeyPath)) {
-    Pass ("WeChat CI private key found via WECHAT_CI_PRIVATE_KEY_PATH: " + $envKeyPath)
+    Pass 'WeChat CI private key found via WECHAT_CI_PRIVATE_KEY_PATH'
   } elseif (Test-Path $fallbackKeyPath) {
-    Pass ("WeChat CI private key found in repo-local .wxci: " + $fallbackKeyPath)
+    Pass 'WeChat CI private key found in repo-local .wxci'
   } else {
     Fail 'No WeChat CI private key found (set WECHAT_CI_PRIVATE_KEY_PATH or place .wxci/private.<appid>.key)'
   }
@@ -204,7 +218,7 @@ if (Test-Path $packageJsonPath) {
   $packageJson = Get-Content -Path $packageJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
   $scripts = $packageJson.scripts
 
-  foreach ($scriptName in @('check:gate', 'release:check', 'release:record', 'release:guarded', 'env:list', 'env:use')) {
+  foreach ($scriptName in @('check:gate', 'check:repo-safety', 'release:check', 'release:record', 'release:guarded', 'env:list', 'env:use')) {
     if ($scripts.PSObject.Properties.Name -contains $scriptName) {
       Pass ("npm script exists: " + $scriptName)
     } else {
