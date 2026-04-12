@@ -24,20 +24,6 @@ if (-not $scriptDir) {
 $scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
 $repoRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
 
-function Set-OrAddProperty {
-  param(
-    [Parameter(Mandatory = $true)]$Target,
-    [Parameter(Mandatory = $true)][string]$Name,
-    [Parameter(Mandatory = $true)]$Value
-  )
-
-  if ($Target.PSObject.Properties.Name -contains $Name) {
-    $Target.$Name = $Value
-  } else {
-    $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
-  }
-}
-
 function Write-JsonNoBom {
   param(
     [Parameter(Mandatory = $true)][string]$Path,
@@ -53,11 +39,31 @@ function Write-JsonNoBom {
   [System.IO.File]::WriteAllText($fullPath, $json, $utf8NoBom)
 }
 
-function Resolve-EnvironmentConfig {
+function Set-OrAddProperty {
   param(
-    [Parameter(Mandatory = $true)][string]$EnvironmentName,
-    [Parameter(Mandatory = $true)][string]$ResolvedConfigPath
+    [Parameter(Mandatory = $true)]$Target,
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)]$Value
   )
+
+  if ($Target.PSObject.Properties.Name -contains $Name) {
+    $Target.$Name = $Value
+  } else {
+    $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
+  }
+}
+
+function Resolve-EnvironmentConfigPath {
+  param([string]$ConfigPath)
+
+  if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    return (Join-Path $repoRoot 'config\release-environments.json')
+  }
+  return (Join-Path $repoRoot $ConfigPath)
+}
+
+function Load-EnvironmentConfig {
+  param([string]$ResolvedConfigPath)
 
   if (-not (Test-Path $ResolvedConfigPath)) {
     throw "Environment config not found: $ResolvedConfigPath"
@@ -68,33 +74,33 @@ function Resolve-EnvironmentConfig {
     throw "Invalid environment config: missing environments in $ResolvedConfigPath"
   }
 
-  $envNode = $cfg.environments.$EnvironmentName
+  return $cfg
+}
+
+function Resolve-EnvironmentNode {
+  param(
+    [Parameter(Mandatory = $true)][string]$EnvironmentName,
+    [Parameter(Mandatory = $true)]$Config
+  )
+
+  $envNode = $Config.environments.$EnvironmentName
   if (-not $envNode) {
-    throw "Environment '$EnvironmentName' not found in $ResolvedConfigPath"
+    throw "Environment '$EnvironmentName' not found in release environment config."
   }
 
   return $envNode
 }
 
-$resolvedConfigPath = if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
-  Join-Path $repoRoot 'config\release-environments.json'
-} else {
-  Join-Path $repoRoot $ConfigPath
-}
+$resolvedConfigPath = Resolve-EnvironmentConfigPath -ConfigPath $ConfigPath
+$config = Load-EnvironmentConfig -ResolvedConfigPath $resolvedConfigPath
 
 if ($ListAvailable) {
-  if (-not (Test-Path $resolvedConfigPath)) {
-    throw "Environment config not found: $resolvedConfigPath"
-  }
-
-  $cfg = Get-Content -Raw -Encoding UTF8 $resolvedConfigPath | ConvertFrom-Json
-  $defaultName = [string]$cfg.defaultEnvironment
-
+  $defaultName = [string]$config.defaultEnvironment
   Write-Host "Available environments from: $resolvedConfigPath"
-  foreach ($prop in $cfg.environments.PSObject.Properties) {
+  foreach ($prop in $config.environments.PSObject.Properties) {
     $envName = [string]$prop.Name
     $envNode = $prop.Value
-    $status = if ([string]::IsNullOrWhiteSpace([string]$envNode.cloudEnvId)) { 'UNCONFIGURED' } else { 'READY' }
+    $status = if ([string]::IsNullOrWhiteSpace([string]$envNode.status)) { 'UNCONFIGURED' } else { [string]$envNode.status }
     $defaultSuffix = if ($envName -eq $defaultName) { ' (default)' } else { '' }
     Write-Host ("- {0}{1} [{2}] envId={3} appid={4}" -f $envName, $defaultSuffix, $status, $envNode.cloudEnvId, $envNode.miniprogramAppId)
   }
@@ -102,20 +108,27 @@ if ($ListAvailable) {
 }
 
 $resolvedName = ''
+$resolvedStatus = ''
 $resolvedEnvId = ''
 $resolvedAppId = ''
 
 if (-not [string]::IsNullOrWhiteSpace($Name)) {
   $resolvedName = $Name
-  $envNode = Resolve-EnvironmentConfig -EnvironmentName $Name -ResolvedConfigPath $resolvedConfigPath
+  $envNode = Resolve-EnvironmentNode -EnvironmentName $Name -Config $config
+  $resolvedStatus = [string]$envNode.status
   $resolvedEnvId = [string]$envNode.cloudEnvId
   $resolvedAppId = [string]$envNode.miniprogramAppId
 
-  if ([string]::IsNullOrWhiteSpace($resolvedEnvId)) {
-    throw "Environment '$Name' is reserved but not configured yet (missing cloudEnvId)."
+  if ($resolvedStatus -eq 'INVALID') {
+    throw "Environment '$Name' is marked INVALID and cannot be applied."
+  }
+
+  if ([string]::IsNullOrWhiteSpace($resolvedEnvId) -or [string]::IsNullOrWhiteSpace($resolvedAppId)) {
+    throw "Environment '$Name' is not fully configured yet (missing cloudEnvId or miniprogramAppId)."
   }
 } elseif (-not [string]::IsNullOrWhiteSpace($EnvId)) {
   $resolvedName = 'custom'
+  $resolvedStatus = 'CUSTOM'
   $resolvedEnvId = $EnvId
   $resolvedAppId = ''
 } else {
@@ -172,7 +185,7 @@ foreach ($cfgPath in $privateConfigs) {
   $updated += $cfgPath
 }
 
-# 4) utils/cloudEnv.ts (runtime explicit env)
+# 4) utils/cloudEnv.ts
 $cloudEnvTsPath = Join-Path $repoRoot 'utils\cloudEnv.ts'
 $cloudEnvTsFullPath = $cloudEnvTsPath
 if ($cloudEnvTsFullPath -like 'Microsoft.PowerShell.Core\FileSystem::*') {
@@ -190,10 +203,11 @@ export const CLOUD_ENV_ID = '$resolvedEnvId'
 $updated += $cloudEnvTsPath
 
 Write-Host "Cloud environment context updated."
-Write-Host ("- name:  " + $resolvedName)
-Write-Host ("- envId: " + $resolvedEnvId)
+Write-Host ("- name:   " + $resolvedName)
+Write-Host ("- status: " + $resolvedStatus)
+Write-Host ("- envId:  " + $resolvedEnvId)
 if (-not [string]::IsNullOrWhiteSpace($resolvedAppId)) {
-  Write-Host ("- appid: " + $resolvedAppId)
+  Write-Host ("- appid:  " + $resolvedAppId)
 }
 if ($updated.Count -gt 0) {
   Write-Host 'Updated files:'

@@ -1,4 +1,16 @@
-# Day时序 功能验收测试清单
+# Day?? ????????
+
+## Pre-release gate (2026-04)
+
+Run these checks before manual?? / ???
+
+```bash
+npm run env:list
+npm run check:gate
+npm run release:check
+```
+
+
 
 ## Pre-release gate (2026-04)
 

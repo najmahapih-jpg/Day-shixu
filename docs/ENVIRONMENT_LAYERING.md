@@ -2,9 +2,9 @@
 
 ## Goal
 
-This document explains the project's first environment-layering pass.
-It does **not** create a full dev/staging/prod deployment platform yet.
-Instead, it makes the environment boundary explicit and machine-checkable.
+This document explains the project's first practical environment-layering pass.
+It does **not** build a full dev/staging/prod deployment platform yet.
+Instead, it turns environment context into something explicit, named, and guardable.
 
 ## Current sources of truth
 
@@ -18,6 +18,24 @@ Instead, it makes the environment boundary explicit and machine-checkable.
 - `project.private.config.json`
 - `.wxci/private.<appid>.key`
 - optional `config/release-environments.local.json`
+
+## Current environment statuses
+
+### dev
+- `READY`
+- Has real `cloudEnvId`
+- Has real `miniprogramAppId`
+- Can be applied through `npm run env:use -- -Name dev`
+
+### staging
+- `UNCONFIGURED`
+- Exists as a named environment
+- Fails loudly if you try to apply it before supplying real values
+
+### prod
+- `UNCONFIGURED`
+- Exists as a named environment
+- Fails loudly if you try to apply it before supplying real values
 
 ## What changed in this first cut
 
@@ -34,12 +52,14 @@ Instead, it makes the environment boundary explicit and machine-checkable.
    - runtime cloud env drift
    - appid alignment
    - current named environment recognition
+   - `READY / UNCONFIGURED / INVALID` style status handling
 
 ## Important limitation
 
 Right now only `dev` is fully configured.
-`staging` and `prod` are intentionally present as reserved names, but they are not provisioned yet.
-Trying to switch to them should fail loudly instead of silently applying partial config.
+`staging` and `prod` are intentionally present as reserved named environments,
+but they are not provisioned yet. Trying to switch to them should fail loudly
+instead of silently applying partial config.
 
 ## Recommended usage
 
@@ -49,9 +69,9 @@ npm run env:use -- -Name dev
 npm run release:check
 ```
 
-## Next step after this first cut
+## Most natural next step
 
-The natural next engineering step is:
+After this first cut, the next engineering step should be:
 - provision real staging/prod values
-- add per-environment release records / rollback metadata
-- separate release approvals by environment
+- add per-environment release / rollback metadata
+- separate release approvals or checklists by environment

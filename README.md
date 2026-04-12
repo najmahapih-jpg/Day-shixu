@@ -1,4 +1,13 @@
-# Day时序
+# Day??
+
+## Release workflow entrypoints (2026-04)
+
+- `npm run release:check`: validate release context only; no deploy or upload
+- `npm run check:gate`: run the quality gate (tests + preflight + hygiene)
+- `npm run env:list` / `npm run env:use -- -Name dev`: inspect or apply named environments
+- Release / environment handoff: [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) / [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
+
+
 
 ## Release workflow entrypoints (2026-04)
 

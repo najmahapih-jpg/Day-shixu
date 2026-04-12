@@ -2,19 +2,25 @@
   "defaultEnvironment": "dev",
   "environments": {
     "dev": {
+      "status": "READY",
       "label": "Current shared development environment",
       "cloudEnvId": "cloud-dev-01-2gvgeewv8b7147fb",
-      "miniprogramAppId": "wx538aff9186f53281"
+      "miniprogramAppId": "wx538aff9186f53281",
+      "requiresLocalOverrides": false
     },
     "staging": {
-      "label": "Reserved for future staging split",
+      "status": "UNCONFIGURED",
+      "label": "Reserved for future staging rollout",
       "cloudEnvId": "",
-      "miniprogramAppId": ""
+      "miniprogramAppId": "",
+      "requiresLocalOverrides": true
     },
     "prod": {
-      "label": "Reserved for future production split",
+      "status": "UNCONFIGURED",
+      "label": "Reserved for future production rollout",
       "cloudEnvId": "",
-      "miniprogramAppId": ""
+      "miniprogramAppId": "",
+      "requiresLocalOverrides": true
     }
   }
 }
