@@ -63,6 +63,44 @@ npm.cmd run release:record -- --Version 1.0.0 --Desc "说明"
 - 没有私钥时，发布 guard 应该失败
 - 没有 `project.private.config.json` 时，脚本可以给出警告，但不代表工程配置错误
 
+## 公开仓库安全边界
+
+当前仓库按“可维护公开”处理，安全边界如下：
+
+### 可公开但不按凭据处理
+
+- `appid`
+- `envId`
+- 命名环境状态
+- release / rollback manifest 中的版本、环境、提交信息
+
+这些信息属于工程标识，不等于上传私钥或管理员凭据，因此继续保留在必要配置文件中。
+
+### 绝不能入库
+
+- `.wxci/private.<appid>.key`
+- `project.private.config.json`
+- `config/release-environments.local.json`
+- 任意 `.env*`、`.pem`、`.p12`、`.key` 文件
+
+当前 guard 入口：
+
+```bash
+npm.cmd run check:repo-safety
+```
+
+### 历史风险处理原则
+
+- 当前没有被 git 跟踪的本地私钥或私有配置
+- git 历史中曾出现过 `project.private.config.json`
+- 已核查该历史文件内容，为微信开发者工具私有配置，不含私钥、token 或云环境凭据
+
+因此当前决策是：
+
+- 不执行 history rewrite
+- 不执行凭据轮换
+- 把历史清理保留为单独安全任务，仅在未来仓库治理要求更严格时再启动
+
 ## `release:check` 当前覆盖内容
 
 当前 guard 会检查：
