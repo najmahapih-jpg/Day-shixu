@@ -9,11 +9,12 @@
 
 
 
-## 2026-04 ??????
+## 2026-04 environment notes
 
-- CloudBase CLI ???????? `cloudbaserc.json`
-- ???????? cloud env ????? `utils/cloudEnv.ts`
-- ????????`npm run release:check`???????????
+- CloudBase CLI source of truth: `cloudbaserc.json`
+- Runtime cloud env source of truth: `utils/cloudEnv.ts`
+- Named environment map: `config/release-environments.json`
+- Run `npm run release:check` before release to verify they are aligned
 
 本项目已配置 CloudBase CLI 一键部署，不再依赖微信开发者工具里逐个“上传并部署”。
 

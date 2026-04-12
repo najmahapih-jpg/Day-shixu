@@ -9,12 +9,12 @@
 
 
 
-## ??????????2026-04?
+## Release and environment current state (2026-04)
 
-- ??????`release:check` ? `check:gate` / `release:guarded`
-- ???????`cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
-- ???????`project.private.config.json`?`.wxci/private.<appid>.key`
-- ?????[`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md)
+- Release entrypoints: `release:check` ? `check:gate` / `release:guarded`
+- Environment sources of truth: `config/release-environments.json` + `cloudbaserc.json` + `utils/cloudEnv.ts` + `project.config.json`
+- Local/private files: `project.private.config.json`, `.wxci/private.<appid>.key`, optional `config/release-environments.local.json`
+- Handoff docs: [`RELEASE_HANDOFF.md`](RELEASE_HANDOFF.md) / [`ENVIRONMENT_LAYERING.md`](ENVIRONMENT_LAYERING.md)
 
 ## Timeline 当前维护状态（2026-04）
 
