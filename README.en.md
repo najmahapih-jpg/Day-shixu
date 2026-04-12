@@ -2,15 +2,26 @@
 
 # Day时序
 
-Day时序 is a WeChat Mini Program focused on habit tracking, ritual execution, journey progress, note capture, and timeline review. The repository is currently in a maintainable, handoff-ready, and release-traceable state for ongoing engineering work.
+A WeChat Mini Program for building personal growth rituals — habit tracking, daily check-ins, ritual execution, journey progress, and inspiration notes.
 
-## Current Engineering Maturity
+## Key Features
 
-- The frontend, cloud functions, release scripts, and handoff docs are maintained in one repository
-- The project has type checking, test entrypoints, release guards, named environments, and structured release records
-- The release flow records release / rollback manifests for traceability
-- `dev` is the only environment currently marked as `READY`
-- `staging` and `prod` exist as named environments but are not configured as real release targets yet
+| Module | Description |
+| --- | --- |
+| Habit Tracking | Create habits, daily check-ins, streak counting, freeze-day protection |
+| Inspiration Board | Text and checklist notes with content safety checks |
+| Ritual Flow | Timed ritual execution linked to habits, with batch check-in |
+| Journey System | Preset journey lists with step progression and completion celebration |
+| Timeline | Monthly calendar view for reviewing historical check-ins |
+| AI Insights | Weekly comparison analysis and improvement suggestions |
+| Stats | Heatmap, streak counts, and weekly comparison |
+
+## Current Status
+
+- Frontend, cloud functions, release scripts, and handoff docs are maintained in one repository
+- Includes type checking, test entrypoints, release guards, named environments, and structured release records
+- The release flow records release and rollback manifests for traceability
+- `dev` is the only `READY` environment; `staging` and `prod` are reserved names pending configuration
 
 ## Tech Stack
 
@@ -25,7 +36,7 @@ Day时序 is a WeChat Mini Program focused on habit tracking, ritual execution, 
 | Upload | `miniprogram-ci` |
 | Node | `18.x` |
 
-## First Steps for a New Maintainer
+## Getting Started
 
 1. Install dependencies: `npm install`
 2. Check types: `npm.cmd run typecheck`
@@ -69,7 +80,7 @@ Notes:
 
 - `env:use` is the supported named-environment switch entrypoint
 - `release:check` is a guard-only command and does not upload anything
-- `release:guarded` runs cleanup, quality gates, release guards, and then attempts to write structured release records after a successful upload
+- `release:guarded` runs cleanup, quality gates, and release guards, then writes structured release records after a successful upload
 
 ### Cloud Functions
 
@@ -91,23 +102,10 @@ npm.cmd run prepare:wechat
 
 ## Release and Environment Entry Points
 
-Release and environment responsibilities are split across these docs:
-
 - Release operations: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
-- Release facts, rollback anchors, and public-repo security boundaries: [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
+- Release facts, rollback anchors, and public-repo safety boundaries: [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
 - Named environments and current status: [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
 - Structured release record directory: [`releases/README.md`](releases/README.md)
-
-Structured release records currently include at least:
-
-- version
-- environment name
-- `envId`
-- `appid`
-- `branch`
-- `commit`
-- timestamp
-- rollback anchor
 
 ## Document Map
 
@@ -154,7 +152,7 @@ These files are not repository facts:
 
 If work continues later, the most natural next step is not UI refactoring. It is:
 
-1. configuring real `staging` / `prod` values under controlled rollout
-2. extending structured release records toward environment-level approvals, rollback drills, and release-status transitions
+1. Configuring real values for `staging` and `prod` under a controlled rollout
+2. Extending structured release records toward environment-level approvals, rollback drills, and release-status transitions
 
 Until then, avoid reopening broad homepage, timeline, or cloud-function restructuring work.
