@@ -1,0 +1,31 @@
+﻿{
+    "schemaVersion":  1,
+    "manifestType":  "rollback",
+    "rollbackId":  "20260413T152548Z-dev-v1.0.0-18b99a9-rollback",
+    "generatedAt":  "2026-04-13T15:25:48.5986924Z",
+    "sourceRelease":  {
+                          "releaseId":  "20260413T152548Z-dev-v1.0.0-18b99a9",
+                          "version":  "1.0.0",
+                          "phase":  "uploaded",
+                          "branch":  "main",
+                          "commit":  "18b99a95284b57bc3321c6649a0fee265b905531"
+                      },
+    "environment":  {
+                        "name":  "dev",
+                        "status":  "READY",
+                        "envId":  "cloud-dev-01-2gvgeewv8b7147fb",
+                        "appid":  "wx538aff9186f53281"
+                    },
+    "rollbackTarget":  {
+                           "releaseId":  "20260413T111946Z-dev-v1.0.0-efb4f1a",
+                           "version":  "1.0.0",
+                           "branch":  "main",
+                           "commit":  "efb4f1a4438f2719297e12c0f86388f6685cf3d4",
+                           "generatedAt":  "2026-04-13T11:19:46.8731125Z",
+                           "note":  "Prefer rolling back to the previous recorded release for the same environment."
+                       },
+    "manualRecovery":  {
+                           "cloudFunctions":  "git checkout \u003ctargetCommit\u003e -- cloudfunctions/\u003cfunction_name\u003e \u0026\u0026 npm run cf:deploy:one -- \u003cfunction_name\u003e",
+                           "miniProgram":  "WeChat console -\u003e Version Management -\u003e Rollback, or upload a hotfix build and resubmit."
+                       }
+}
