@@ -283,7 +283,7 @@ async function verifyLinkedHabit(openid: string, linkedHabitId: unknown): Promis
       return { ok: false, message: '关联习惯不存在或已归档' }
     }
     return { ok: true, linkedHabitId: normalized }
-  } catch {
+  } catch (_err) {
     return { ok: false, message: '关联习惯不存在或无权限' }
   }
 }

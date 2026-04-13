@@ -145,7 +145,7 @@ async function verifyLinkedHabit(openid, linkedHabitId) {
         }
         return { ok: true, linkedHabitId: normalized };
     }
-    catch {
+    catch (_err) {
         return { ok: false, message: '关联习惯不存在或无权限' };
     }
 }
@@ -213,7 +213,7 @@ async function create(openid, data) {
         updatedAt: now,
     };
     const _id = await addDoc(boardCol, noteData);
-    return ok({ _id, ...noteData });
+    return ok(Object.assign({ _id }, noteData));
 }
 async function update(openid, data) {
     if (!data || !data.id)

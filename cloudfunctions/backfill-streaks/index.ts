@@ -142,7 +142,7 @@ async function fetchHabits({
     try {
       const result = await habitsCol.doc(habitId).get()
       return [((result as { data: HabitDocument }).data)]
-    } catch {
+  } catch (_err) {
       return []
     }
   }

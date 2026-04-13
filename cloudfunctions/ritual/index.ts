@@ -243,7 +243,7 @@ async function get(openid: string, data: RitualIdRequest = {}): Promise<CloudRes
   let ritual: RitualDocument
   try {
     ritual = await getDoc<RitualDocument>(ritualsCol.doc(data.id))
-  } catch {
+  } catch (_err) {
     return fail('仪式不存在')
   }
   if (ritual._openid !== openid) return fail('无权访问')
@@ -306,7 +306,7 @@ async function update(openid: string, data: RitualUpdateRequest = {}): Promise<C
   let existing: RitualDocument
   try {
     existing = await getDoc<RitualDocument>(ritualsCol.doc(data.id))
-  } catch {
+  } catch (_err) {
     return fail('仪式不存在')
   }
   if (existing._openid !== openid) return fail('无权操作')
@@ -338,7 +338,7 @@ async function remove(openid: string, data: RitualIdRequest = {}): Promise<Cloud
   let existing: RitualDocument
   try {
     existing = await getDoc<RitualDocument>(ritualsCol.doc(data.id))
-  } catch {
+  } catch (_err) {
     return fail('仪式不存在')
   }
   if (existing._openid !== openid) return fail('无权操作')
@@ -509,5 +509,4 @@ export async function main(event: RitualEvent = {}, _context?: unknown): Promise
     return fail('服务器错误，请稍后重试')
   }
 }
-
 

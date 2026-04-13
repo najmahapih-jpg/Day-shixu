@@ -305,7 +305,7 @@ async function updateSettings(openid: string, data?: UpdateSettingsPayload): Pro
       return
     }
     if (key in SETTINGS_VALIDATORS) {
-      ;(supportedIncoming as Record<string, unknown>)[key] = data.settings?.[key]
+      ;(supportedIncoming as Record<string, unknown>)[key] = data.settings ? data.settings[key] : undefined
     }
   })
 

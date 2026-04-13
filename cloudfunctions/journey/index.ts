@@ -356,7 +356,7 @@ async function startJourney(openid: string, data: StartJourneyRequest = {}): Pro
   let journey: JourneyDocument
   try {
     journey = await getDoc<JourneyDocument>(journeysCol.doc(journeyId))
-  } catch {
+  } catch (_err) {
     return fail('旅程不存在')
   }
 
@@ -421,7 +421,7 @@ async function completeStep(openid: string, data: CompleteStepRequest = {}): Pro
   let userJourney: UserJourneyDocument
   try {
     userJourney = await getDoc<UserJourneyDocument>(userJourneysCol.doc(userJourneyId))
-  } catch {
+  } catch (_err) {
     return fail('用户旅程不存在')
   }
 
@@ -431,7 +431,7 @@ async function completeStep(openid: string, data: CompleteStepRequest = {}): Pro
   let journey: JourneyDocument
   try {
     journey = await getDoc<JourneyDocument>(journeysCol.doc(userJourney.journeyId))
-  } catch {
+  } catch (_err) {
     return fail('旅程模板不存在')
   }
 
@@ -493,7 +493,7 @@ async function getStepDetail(openid: string, data: CompleteStepRequest = {}): Pr
   let userJourney: UserJourneyDocument
   try {
     userJourney = await getDoc<UserJourneyDocument>(userJourneysCol.doc(userJourneyId))
-  } catch {
+  } catch (_err) {
     return fail('用户旅程不存在')
   }
 
@@ -502,7 +502,7 @@ async function getStepDetail(openid: string, data: CompleteStepRequest = {}): Pr
   let journey: JourneyDocument
   try {
     journey = await getDoc<JourneyDocument>(journeysCol.doc(userJourney.journeyId))
-  } catch {
+  } catch (_err) {
     return fail('旅程模板不存在')
   }
 

@@ -264,7 +264,7 @@ async function get(openid: string, data?: HabitIdPayload): Promise<CloudResult<H
   let habit: HabitDocument
   try {
     habit = await getDoc<HabitDocument>(habitsCol.doc(data.id))
-  } catch {
+  } catch (_err) {
     return fail('习惯不存在')
   }
   if (habit._openid !== openid) return fail('无权访问')
@@ -586,7 +586,7 @@ async function checkIn(openid: string, data?: CheckInPayload): Promise<CloudResu
   return ok({
     ...checkInRecord,
     streakCurrent,
-    streakLongest: updateData.streakLongest ?? (habit.streakLongest || 0),
+    streakLongest: updateData.streakLongest !== undefined ? updateData.streakLongest : (habit.streakLongest || 0),
   })
 }
 

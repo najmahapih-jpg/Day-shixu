@@ -145,7 +145,7 @@ async function get(openid, data) {
     try {
         habit = await getDoc(habitsCol.doc(data.id));
     }
-    catch {
+    catch (_err) {
         return fail('习惯不存在');
     }
     if (habit._openid !== openid)
@@ -177,19 +177,9 @@ async function create(openid, data) {
     if (total >= MAX_HABITS_PER_USER) {
         return fail(`习惯数量已达上限（${MAX_HABITS_PER_USER}）`);
     }
-    const record = {
-        ...sanitize(data),
-        _openid: openid,
-        createdAt: now,
-        updatedAt: now,
-        streakCurrent: 0,
-        streakLongest: 0,
-        totalCompletions: 0,
-        isArchived: false,
-        order: total,
-    };
+    const record = Object.assign(Object.assign({}, sanitize(data)), { _openid: openid, createdAt: now, updatedAt: now, streakCurrent: 0, streakLongest: 0, totalCompletions: 0, isArchived: false, order: total });
     const _id = await addDoc(habitsCol, record);
-    return ok({ _id, ...record });
+    return ok(Object.assign({ _id }, record));
 }
 async function update(openid, data) {
     if (!data || !data.id)
@@ -212,7 +202,7 @@ async function update(openid, data) {
     const fields = sanitize(data);
     fields.updatedAt = db.serverDate();
     await habitsCol.doc(data.id).update({ data: fields });
-    return ok({ _id: data.id, ...fields });
+    return ok(Object.assign({ _id: data.id }, fields));
 }
 async function remove(openid, data) {
     if (!data || !data.id)
@@ -359,7 +349,7 @@ async function checkIn(openid, data) {
         await checkInsCol.doc(existing[0]._id).update({
             data: { value: nextValue, updatedAt: db.serverDate() },
         });
-        checkInRecord = { ...existing[0], value: nextValue };
+        checkInRecord = Object.assign(Object.assign({}, existing[0]), { value: nextValue });
     }
     else {
         const newRecord = {
@@ -372,7 +362,7 @@ async function checkIn(openid, data) {
         };
         try {
             const _id = await addDoc(checkInsCol, newRecord);
-            checkInRecord = { _id, ...newRecord };
+            checkInRecord = Object.assign({ _id }, newRecord);
             await habitsCol.doc(habitId).update({
                 data: { totalCompletions: _.inc(1) },
             });
@@ -383,7 +373,7 @@ async function checkIn(openid, data) {
                 await checkInsCol.doc(raceExisting[0]._id).update({
                     data: { value: nextValue, updatedAt: db.serverDate() },
                 });
-                checkInRecord = { ...raceExisting[0], value: nextValue };
+                checkInRecord = Object.assign(Object.assign({}, raceExisting[0]), { value: nextValue });
             }
             else {
                 throw dupErr;
@@ -412,11 +402,7 @@ async function checkIn(openid, data) {
         updateData.streakLongest = streakCurrent;
     }
     await habitsCol.doc(habitId).update({ data: updateData });
-    return ok({
-        ...checkInRecord,
-        streakCurrent,
-        streakLongest: updateData.streakLongest ?? (habit.streakLongest || 0),
-    });
+    return ok(Object.assign(Object.assign({}, checkInRecord), { streakCurrent, streakLongest: updateData.streakLongest !== undefined ? updateData.streakLongest : (habit.streakLongest || 0) }));
 }
 async function uncheckIn(openid, data) {
     if (!data || !data.habitId || !data.date) {

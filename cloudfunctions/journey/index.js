@@ -210,10 +210,7 @@ async function getUserJourneys(openid) {
             }
         });
     }
-    const enriched = userJourneyList.map((item) => ({
-        ...item,
-        journey: item.journeyId ? (journeyMap[item.journeyId] || null) : null,
-    }));
+    const enriched = userJourneyList.map((item) => (Object.assign(Object.assign({}, item), { journey: item.journeyId ? (journeyMap[item.journeyId] || null) : null })));
     const deduped = [];
     const keyToIndex = {};
     enriched.forEach((item) => {
@@ -241,7 +238,7 @@ async function startJourney(openid, data = {}) {
     try {
         journey = await getDoc(journeysCol.doc(journeyId));
     }
-    catch {
+    catch (_err) {
         return fail('旅程不存在');
     }
     const existing = await getList(userJourneysCol.where({ _openid: openid, journeyId, isCompleted: false }).limit(1));
@@ -276,7 +273,7 @@ async function startJourney(openid, data = {}) {
         updatedAt: nowStr,
     };
     const _id = await addDoc(userJourneysCol, record);
-    return ok({ _id, ...record, journey });
+    return ok(Object.assign(Object.assign({ _id }, record), { journey }));
 }
 async function completeStep(openid, data = {}) {
     const { userJourneyId, stepIndex } = data;
@@ -289,7 +286,7 @@ async function completeStep(openid, data = {}) {
     try {
         userJourney = await getDoc(userJourneysCol.doc(userJourneyId));
     }
-    catch {
+    catch (_err) {
         return fail('用户旅程不存在');
     }
     if (userJourney._openid !== openid)
@@ -300,7 +297,7 @@ async function completeStep(openid, data = {}) {
     try {
         journey = await getDoc(journeysCol.doc(userJourney.journeyId));
     }
-    catch {
+    catch (_err) {
         return fail('旅程模板不存在');
     }
     const steps = Array.isArray(journey.steps) ? journey.steps : [];
@@ -328,15 +325,7 @@ async function completeStep(openid, data = {}) {
         updateData.completedAt = nowStr;
     }
     await userJourneysCol.doc(userJourneyId).update({ data: updateData });
-    return ok({
-        ...userJourney,
-        completedSteps: newCompletedSteps,
-        currentStep: newCurrentStep,
-        isCompleted: allDone,
-        updatedAt: nowStr,
-        step,
-        unlockHabits: Array.isArray(step.unlockHabits) ? step.unlockHabits : [],
-    });
+    return ok(Object.assign(Object.assign({}, userJourney), { completedSteps: newCompletedSteps, currentStep: newCurrentStep, isCompleted: allDone, updatedAt: nowStr, step, unlockHabits: Array.isArray(step.unlockHabits) ? step.unlockHabits : [] }));
 }
 async function getStepDetail(openid, data = {}) {
     const { userJourneyId, stepIndex } = data;
@@ -349,7 +338,7 @@ async function getStepDetail(openid, data = {}) {
     try {
         userJourney = await getDoc(userJourneysCol.doc(userJourneyId));
     }
-    catch {
+    catch (_err) {
         return fail('用户旅程不存在');
     }
     if (userJourney._openid !== openid)
@@ -358,7 +347,7 @@ async function getStepDetail(openid, data = {}) {
     try {
         journey = await getDoc(journeysCol.doc(userJourney.journeyId));
     }
-    catch {
+    catch (_err) {
         return fail('旅程模板不存在');
     }
     const steps = Array.isArray(journey.steps) ? journey.steps : [];

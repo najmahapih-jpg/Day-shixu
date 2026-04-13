@@ -61,7 +61,7 @@ async function fetchHabits({ skip = 0, batchSize = 50, habitId, openid, }) {
             const result = await habitsCol.doc(habitId).get();
             return [(result.data)];
         }
-        catch {
+        catch (_err) {
             return [];
         }
     }

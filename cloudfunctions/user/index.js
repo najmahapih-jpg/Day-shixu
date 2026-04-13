@@ -123,11 +123,7 @@ async function normalizeUserDocument(user) {
         updateData.updatedAt = db.serverDate();
         await usersCol.doc(user._id).update({ data: updateData });
     }
-    return {
-        ...user,
-        settings: normalizedSettings,
-        profileMeta: normalizedMeta,
-    };
+    return Object.assign(Object.assign({}, user), { settings: normalizedSettings, profileMeta: normalizedMeta });
 }
 async function checkText(content, openid, scene) {
     if (!content || typeof content !== 'string' || !content.trim())
@@ -175,7 +171,7 @@ async function login(openid) {
     };
     const result = await usersCol.add({ data: newUser });
     const _id = String(result._id);
-    return ok({ _id, ...newUser });
+    return ok(Object.assign({ _id }, newUser));
 }
 async function getProfile(openid) {
     const user = await findUserByOpenid(openid);
@@ -210,10 +206,10 @@ async function updateSettings(openid, data) {
         }
         if (key in SETTINGS_VALIDATORS) {
             ;
-            supportedIncoming[key] = data.settings?.[key];
+            supportedIncoming[key] = data.settings ? data.settings[key] : undefined;
         }
     });
-    const merged = normalizeSettings({ ...user.settings, ...supportedIncoming });
+    const merged = normalizeSettings(Object.assign(Object.assign({}, user.settings), supportedIncoming));
     await usersCol.doc(user._id).update({
         data: {
             settings: merged,
@@ -259,13 +255,9 @@ async function syncWechatProfile(openid, data) {
     if (!hasChanges)
         return fail('没有可保存的头像或昵称');
     const effectiveAvatarUrl = normalizeAvatarUrl(String(updateFields.avatarUrl || user.avatarUrl));
-    updateFields.profileMeta = {
-        ...normalizedMeta,
-        wechatAuthorized: Boolean(effectiveAvatarUrl),
-        wechatSyncAt: effectiveAvatarUrl
+    updateFields.profileMeta = Object.assign(Object.assign({}, normalizedMeta), { wechatAuthorized: Boolean(effectiveAvatarUrl), wechatSyncAt: effectiveAvatarUrl
             ? (avatarUpdated ? nowISO() : (normalizedMeta.wechatSyncAt || nowISO()))
-            : null,
-    };
+            : null });
     await usersCol.doc(user._id).update({ data: updateFields });
     const result = await usersCol.doc(user._id).get();
     const updated = result.data;

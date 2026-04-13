@@ -139,7 +139,7 @@ async function get(openid, data = {}) {
     try {
         ritual = await getDoc(ritualsCol.doc(data.id));
     }
-    catch {
+    catch (_err) {
         return fail('仪式不存在');
     }
     if (ritual._openid !== openid)
@@ -156,7 +156,7 @@ async function get(openid, data = {}) {
             .map((id) => habitMap[id])
             .filter((habit) => Boolean(habit));
     }
-    return ok({ ...ritual, habits });
+    return ok(Object.assign(Object.assign({}, ritual), { habits }));
 }
 async function create(openid, data = {}) {
     const ritual = data.ritual;
@@ -180,15 +180,9 @@ async function create(openid, data = {}) {
         return fail('仪式描述包含违规内容，请修改后重试');
     }
     const now = db.serverDate();
-    const record = {
-        ...sanitize(ritual),
-        _openid: openid,
-        createdAt: now,
-        updatedAt: now,
-        isActive: ritual.isActive !== false,
-    };
+    const record = Object.assign(Object.assign({}, sanitize(ritual)), { _openid: openid, createdAt: now, updatedAt: now, isActive: ritual.isActive !== false });
     const _id = await addDoc(ritualsCol, record);
-    return ok({ _id, ...record });
+    return ok(Object.assign({ _id }, record));
 }
 async function update(openid, data = {}) {
     if (!data.id)
@@ -197,7 +191,7 @@ async function update(openid, data = {}) {
     try {
         existing = await getDoc(ritualsCol.doc(data.id));
     }
-    catch {
+    catch (_err) {
         return fail('仪式不存在');
     }
     if (existing._openid !== openid)
@@ -218,7 +212,7 @@ async function update(openid, data = {}) {
     const fields = sanitize(ritual);
     fields.updatedAt = db.serverDate();
     await ritualsCol.doc(data.id).update({ data: fields });
-    return ok({ _id: data.id, ...fields });
+    return ok(Object.assign({ _id: data.id }, fields));
 }
 async function remove(openid, data = {}) {
     if (!data.id)
@@ -227,7 +221,7 @@ async function remove(openid, data = {}) {
     try {
         existing = await getDoc(ritualsCol.doc(data.id));
     }
-    catch {
+    catch (_err) {
         return fail('仪式不存在');
     }
     if (existing._openid !== openid)
@@ -280,7 +274,7 @@ async function execute(openid, data = {}) {
                 await checkInsCol.doc(existing[0]._id).update({
                     data: { value: 1, updatedAt: db.serverDate() },
                 });
-                checkInRecord = { ...existing[0], value: 1 };
+                checkInRecord = Object.assign(Object.assign({}, existing[0]), { value: 1 });
             }
             else {
                 const newRecord = {
@@ -293,7 +287,7 @@ async function execute(openid, data = {}) {
                 };
                 try {
                     const _id = await addDoc(checkInsCol, newRecord);
-                    checkInRecord = { _id, ...newRecord };
+                    checkInRecord = Object.assign({ _id }, newRecord);
                     wasNewRecord = true;
                 }
                 catch (dupErr) {
@@ -302,7 +296,7 @@ async function execute(openid, data = {}) {
                         await checkInsCol.doc(raceExisting[0]._id).update({
                             data: { value: 1, updatedAt: db.serverDate() },
                         });
-                        checkInRecord = { ...raceExisting[0], value: 1 };
+                        checkInRecord = Object.assign(Object.assign({}, raceExisting[0]), { value: 1 });
                     }
                     else {
                         throw dupErr;
