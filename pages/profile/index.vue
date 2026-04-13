@@ -577,7 +577,10 @@ onShow(async () => {
   appStore.switchTab('profile')
   habitStore.refreshDateIfNeeded()
 
-  if (!(await ensureLoggedIn())) return
+  if (!(await ensureLoggedIn())) {
+    uni.showToast({ title: '登录失败，请重新打开小程序', icon: 'none' })
+    return
+  }
 
   const tasks: Array<Promise<unknown>> = [userStore.fetchProfile()]
   if (habitStore.habits.length === 0) tasks.push(habitStore.fetchHabits())
