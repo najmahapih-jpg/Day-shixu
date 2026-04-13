@@ -80,6 +80,14 @@ export function useWechatProfileSync(options?: UseWechatProfileSyncOptions) {
     if (!tempUrl || typeof tempUrl !== 'string') return
     if (isBusy.value) return
 
+    const loggedIn = await userStore.ensureLoggedIn({ retry: true, silent: true })
+    if (!loggedIn) {
+      haptic.warning()
+      errorMessage.value = userStore.loginErrorMessage || '登录状态失效，请重新进入小程序'
+      phase.value = 'error'
+      return
+    }
+
     phase.value = 'uploading-avatar'
     errorMessage.value = ''
 
@@ -137,6 +145,14 @@ export function useWechatProfileSync(options?: UseWechatProfileSyncOptions) {
 
     if (!profile.nickName && !profile.avatarUrl) {
       errorMessage.value = '请先同步微信头像或填写昵称'
+      phase.value = 'error'
+      return false
+    }
+
+    const loggedIn = await userStore.ensureLoggedIn({ retry: true, silent: true })
+    if (!loggedIn) {
+      haptic.warning()
+      errorMessage.value = userStore.loginErrorMessage || '登录状态失效，请重新进入小程序'
       phase.value = 'error'
       return false
     }

@@ -173,7 +173,7 @@ const habitStore = useHabitStore()
 const userStore = useUserStore()
 const ritualStore = useRitualStore()
 const journeyStore = useJourneyStore()
-const { pageError, runSafe, retry } = usePageError()
+const { pageError, runSafe, retry, clearError } = usePageError()
 const isNeoTheme = computed(() => isNeo.value)
 const starMapCopy = PUBLIC_COPY.homeStarMap
 const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '用户'))
@@ -317,6 +317,7 @@ const {
   loadHomeOnShowData,
   refreshHomeData,
 } = useHomePageDataBus({
+  ensureLoggedIn: () => userStore.ensureLoggedIn({ retry: true, toastTitle: '登录失败，请重新打开小程序' }),
   resetDynamicLogs,
   startDynamicLogs,
   refreshDateIfNeeded: () => habitStore.refreshDateIfNeeded(),
@@ -325,6 +326,7 @@ const {
   fetchUserJourneys: () => journeyStore.fetchUserJourneys(),
   refreshAiInsightFromCache,
   runSafe,
+  clearPageError: clearError,
   stopPullDownRefresh: () => {
     uni.stopPullDownRefresh()
   },

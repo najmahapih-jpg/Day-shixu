@@ -34,7 +34,7 @@ describe('useHomeEntryEffects', () => {
       generatedAt: '2026-04-10T00:00:00.000Z',
       summary: 'summary',
       recommendations: ['r1', 'r2'],
-      slogans: ['今日继续'],
+      slogans: ['keep going'],
       trend: {
         thisWeekRate: 88,
         lastWeekRate: 76,
@@ -119,6 +119,20 @@ describe('useHomeEntryEffects', () => {
     const failingEffects = useHomeEntryEffects(failingRuntime)
 
     expect(failingEffects.initializeEntryEffects()).toBe(true)
-    expect(failingRuntime.showToast).toHaveBeenCalledWith({ title: '寮曞椤垫墦寮€澶辫触', icon: 'none' })
+    expect(failingRuntime.showToast).toHaveBeenCalledWith({ title: '引导页跳转失败', icon: 'none' })
+  })
+
+  test('fails closed and redirects to onboarding when storage read throws', () => {
+    const runtime = createRuntime({
+      app: { __hfOnboardingCompleted: false, globalData: {} },
+    })
+    runtime.getStorageSync.mockImplementation(() => {
+      throw new Error('storage unavailable')
+    })
+
+    const entryEffects = useHomeEntryEffects(runtime)
+
+    expect(entryEffects.initializeEntryEffects()).toBe(true)
+    expect(runtime.reLaunch).toHaveBeenCalledTimes(1)
   })
 })

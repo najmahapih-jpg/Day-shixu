@@ -9,6 +9,7 @@ interface TimelineCheckInLike {
 }
 
 export interface UseTimelinePageDataFlowOptions {
+  ensureLoggedIn?: () => Promise<boolean>
   selectedDate: MaybeRef<string>
   todayStr: MaybeRef<string>
   dateRange: number
@@ -18,6 +19,7 @@ export interface UseTimelinePageDataFlowOptions {
   setCurrentDate: (date: string) => void
   fetchHabits: () => Promise<unknown>
   offsetDate: (dateStr: string, days: number) => string
+  onAuthFailure?: () => void
   getCheckInRange?: (
     habitId: string,
     startDate: string,
@@ -53,10 +55,21 @@ function countUniqueHabitsByDate(checkIns: TimelineCheckInLike[]) {
 export function useTimelinePageDataFlow(options: UseTimelinePageDataFlowOptions) {
   const getCheckInRange = options.getCheckInRange || habitService.getCheckInRange
 
-  async function loadDateData(isInitial = false, _forceRefreshHabits = false) {
+  async function ensureSession(notify = false) {
+    const ready = options.ensureLoggedIn ? await options.ensureLoggedIn() : true
+    if (!ready && notify) {
+      options.onAuthFailure?.()
+    }
+    return ready
+  }
+
+  async function loadDateData(isInitial = false, _forceRefreshHabits = false, sessionReady?: boolean) {
     if (isInitial) options.setLoading(true)
 
     try {
+      const ready = sessionReady ?? (options.ensureLoggedIn ? await ensureSession(true) : true)
+      if (!ready) return
+
       options.setCurrentDate(unref(options.selectedDate))
       await options.fetchHabits()
     } catch {
@@ -66,8 +79,14 @@ export function useTimelinePageDataFlow(options: UseTimelinePageDataFlowOptions)
     }
   }
 
-  async function loadRangeCounts() {
+  async function loadRangeCounts(sessionReady?: boolean) {
     try {
+      const ready = sessionReady ?? (options.ensureLoggedIn ? await ensureSession(false) : true)
+      if (!ready) {
+        options.setRangeCounts(new Map())
+        return
+      }
+
       const today = unref(options.todayStr)
       const startDate = options.offsetDate(today, -options.dateRange)
       const endDate = options.offsetDate(today, options.dateRange)
@@ -79,14 +98,43 @@ export function useTimelinePageDataFlow(options: UseTimelinePageDataFlowOptions)
   }
 
   function loadPageEntryData() {
-    void loadDateData(true, true).then(() => {
-      options.triggerBlocksEntry()
-    })
-    void loadRangeCounts()
+    if (!options.ensureLoggedIn) {
+      void loadDateData(true, true, true).then(() => {
+        options.triggerBlocksEntry()
+      })
+      void loadRangeCounts(true)
+      return
+    }
+
+    void (async () => {
+      const ready = await ensureSession(true)
+      if (!ready) {
+        options.setLoading(false)
+        options.setRangeCounts(new Map())
+        return
+      }
+
+      void loadDateData(true, true, true).then(() => {
+        options.triggerBlocksEntry()
+      })
+      void loadRangeCounts(true)
+    })()
   }
 
   async function refreshPageData() {
-    await Promise.all([loadDateData(false, true), loadRangeCounts()])
+    if (!options.ensureLoggedIn) {
+      await Promise.all([loadDateData(false, true, true), loadRangeCounts(true)])
+      return
+    }
+
+    const ready = await ensureSession(true)
+    if (!ready) {
+      options.setLoading(false)
+      options.setRangeCounts(new Map())
+      return
+    }
+
+    await Promise.all([loadDateData(false, true, true), loadRangeCounts(true)])
   }
 
   return {

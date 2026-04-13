@@ -69,6 +69,7 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useBoardStore } from '@/stores/board'
 import { useHabitStore } from '@/stores/habit'
+import { useUserStore } from '@/stores/user'
 import type { BoardNote, NoteColor } from '@/types'
 
 import BoardHeader from '@/components/board/BoardHeader.vue'
@@ -81,6 +82,7 @@ import HfTabBar from '@/components/base/HfTabBar.vue'
 
 const boardStore = useBoardStore()
 const habitStore = useHabitStore()
+const userStore = useUserStore()
 
 // State
 const loading = computed(() => boardStore.loading)
@@ -198,7 +200,7 @@ const confirmDelete = (note: BoardNote) => {
 }
 
 // Lifecycle
-onShow(() => {
+onShow(async () => {
   // Check for pending habit filter from habit-detail navigation
   const pendingHabit = boardStore.pendingHabitFilter
   if (pendingHabit) {
@@ -206,6 +208,12 @@ onShow(() => {
     boardStore.pendingHabitFilter = ''
   } else {
     filterOptions.value = { color: null, type: null, query: '', tag: null, habitId: null }
+  }
+  const loggedIn = await userStore.ensureLoggedIn({ retry: true, silent: true })
+  if (!loggedIn) {
+    uni.showToast({ title: '登录失败，已切换到本地便签', icon: 'none' })
+    boardStore.fetchNotes()
+    return
   }
   boardStore.fetchNotes()
   habitStore.fetchHabits().catch(() => {

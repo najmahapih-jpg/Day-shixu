@@ -264,6 +264,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useHabitStore } from '@/stores/habit'
 import { useAppStore } from '@/stores/app'
+import { useUserStore } from '@/stores/user'
 import HfButton from '@/components/base/HfButton.vue'
 import HfIcon from '@/components/base/HfIcon.vue'
 import HfPageBg from '@/components/base/HfPageBg.vue'
@@ -290,6 +291,7 @@ const appStore = useAppStore()
 const { isNeo } = storeToRefs(appStore)
 const { entered: pageEntered } = usePageTransition()
 const habitStore = useHabitStore()
+const userStore = useUserStore()
 
 const isNeoTheme = computed(() => isNeo.value)
 
@@ -665,6 +667,10 @@ async function handleSave() {
 
   if (form.frequency === 'custom' && form.customDays.length === 0) {
     uni.showToast({ title: '请选择至少一天', icon: 'none' })
+    return
+  }
+
+  if (!(await userStore.ensureLoggedIn({ retry: true, toastTitle: '登录状态失效，请重新进入小程序' }))) {
     return
   }
 

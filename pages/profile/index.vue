@@ -357,13 +357,7 @@ function handleSyncExit() {
 }
 
 async function ensureLoggedIn(): Promise<boolean> {
-  if (userStore.isLoggedIn) return true
-  try {
-    await userStore.login()
-    return true
-  } catch {
-    return false
-  }
+  return userStore.ensureLoggedIn({ retry: true, toastTitle: '登录失败，请重新打开小程序' })
 }
 
 function openWxSync(forceFocus = false) {
@@ -575,12 +569,12 @@ async function handleMenuTap(key: string) {
 
 onShow(async () => {
   appStore.switchTab('profile')
-  habitStore.refreshDateIfNeeded()
 
   if (!(await ensureLoggedIn())) {
-    uni.showToast({ title: '登录失败，请重新打开小程序', icon: 'none' })
     return
   }
+
+  habitStore.refreshDateIfNeeded()
 
   const tasks: Array<Promise<unknown>> = [userStore.fetchProfile()]
   if (habitStore.habits.length === 0) tasks.push(habitStore.fetchHabits())

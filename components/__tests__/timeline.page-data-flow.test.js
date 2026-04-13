@@ -199,4 +199,31 @@ describe('useTimelinePageDataFlow', () => {
     await expect(flow.loadDateData(true, true)).resolves.toBeUndefined()
     expect(loading.value).toBe(false)
   })
+
+  test('loadPageEntryData stops early when login is not ready', async () => {
+    const calls = []
+    const flow = useTimelinePageDataFlow({
+      ensureLoggedIn: jest.fn().mockResolvedValue(false),
+      selectedDate: ref('2026-04-11'),
+      todayStr: ref('2026-04-10'),
+      dateRange: 7,
+      setLoading: (value) => calls.push(`loading:${value}`),
+      setRangeCounts: () => calls.push('setRangeCounts'),
+      triggerBlocksEntry: () => calls.push('triggerBlocksEntry'),
+      setCurrentDate: (date) => calls.push(`setCurrentDate:${date}`),
+      fetchHabits: jest.fn(),
+      offsetDate: (date, days) => `${date}:${days}`,
+      onAuthFailure: () => calls.push('authFailure'),
+    })
+
+    flow.loadPageEntryData()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(calls).toEqual([
+      'authFailure',
+      'loading:false',
+      'setRangeCounts',
+    ])
+  })
 })

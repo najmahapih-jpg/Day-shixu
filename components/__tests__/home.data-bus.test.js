@@ -39,9 +39,9 @@ describe('useHomePageDataBus', () => {
     await Promise.resolve()
 
     expect(calls).toEqual([
-      'refreshDateIfNeeded',
       'resetDynamicLogs',
       'startDynamicLogs',
+      'refreshDateIfNeeded',
       'runSafe:start',
       'fetchHabits',
       'fetchUserJourneys',
@@ -53,9 +53,9 @@ describe('useHomePageDataBus', () => {
     await Promise.resolve()
 
     expect(calls).toEqual([
-      'refreshDateIfNeeded',
       'resetDynamicLogs',
       'startDynamicLogs',
+      'refreshDateIfNeeded',
       'runSafe:start',
       'fetchHabits',
       'fetchUserJourneys',
@@ -98,9 +98,9 @@ describe('useHomePageDataBus', () => {
     await Promise.resolve()
 
     expect(calls).toEqual([
-      'refreshDateIfNeeded',
       'resetDynamicLogs',
       'startDynamicLogs',
+      'refreshDateIfNeeded',
       'runSafe:start',
       'fetchHabits',
       'fetchUserJourneys',
@@ -176,6 +176,44 @@ describe('useHomePageDataBus', () => {
     expect(calls).toEqual([
       'runSafe:start',
       'stopPullDownRefresh',
+    ])
+  })
+
+  test('loadHomeOnShowData blocks cloud fetches when login is not ready', async () => {
+    const calls = []
+    const flow = useHomePageDataBus({
+      ensureLoggedIn: jest.fn().mockResolvedValue(false),
+      resetDynamicLogs: () => calls.push('resetDynamicLogs'),
+      startDynamicLogs: () => calls.push('startDynamicLogs'),
+      refreshDateIfNeeded: async () => {
+        calls.push('refreshDateIfNeeded')
+      },
+      fetchHabits: async () => {
+        calls.push('fetchHabits')
+      },
+      loadWeekComparison: async () => {
+        calls.push('loadWeekComparison')
+      },
+      fetchUserJourneys: async () => {
+        calls.push('fetchUserJourneys')
+      },
+      refreshAiInsightFromCache: () => calls.push('refreshAiInsightFromCache'),
+      runSafe: async (fn) => {
+        calls.push('runSafe:start')
+        await fn()
+        calls.push('runSafe:end')
+      },
+      clearPageError: () => calls.push('clearPageError'),
+    })
+
+    flow.loadHomeOnShowData()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(calls).toEqual([
+      'resetDynamicLogs',
+      'startDynamicLogs',
+      'clearPageError',
     ])
   })
 })

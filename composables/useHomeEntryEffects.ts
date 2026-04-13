@@ -132,7 +132,7 @@ export function useHomeEntryEffects(options: UseHomeEntryEffectsOptions = {}) {
       const stored = getStorageSync(HAS_ONBOARDED_KEY)
       return stored === true || stored === 'true' || stored === '1'
     } catch {
-      return true
+      return false
     }
   }
 
@@ -145,7 +145,7 @@ export function useHomeEntryEffects(options: UseHomeEntryEffectsOptions = {}) {
       url: ONBOARDING_URL,
       fail: () => {
         launchRedirectPending.value = false
-        showToast({ title: '寮曞椤垫墦寮€澶辫触', icon: 'none' })
+        showToast({ title: '引导页跳转失败', icon: 'none' })
       },
       complete: () => {
         scheduleRedirectReset()

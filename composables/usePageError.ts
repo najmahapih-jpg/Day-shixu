@@ -4,7 +4,7 @@ import { ref } from 'vue'
  * Page-level error boundary composable.
  *
  * Usage:
- *   const { pageError, runSafe, retry } = usePageError()
+ *   const { pageError, runSafe, retry, clearError } = usePageError()
  *
  *   onLoad(async (query) => {
  *     await runSafe(() => loadPage(query))
@@ -16,6 +16,10 @@ import { ref } from 'vue'
 export function usePageError() {
     const pageError = ref(false)
     let lastFn: (() => Promise<void>) | null = null
+
+    function clearError() {
+        pageError.value = false
+    }
 
     async function runSafe(fn: () => Promise<void>) {
         pageError.value = false
@@ -35,5 +39,5 @@ export function usePageError() {
         }
     }
 
-    return { pageError, runSafe, retry }
+    return { pageError, runSafe, retry, clearError }
 }

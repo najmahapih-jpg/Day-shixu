@@ -140,6 +140,9 @@ export async function callCloud<T>(
     const result = res.result as ApiResponse<T>
 
     if (result.code !== 0) {
+      if (String(result.message || '').includes('未获取到用户身份')) {
+        throw new CloudError(-4, '登录状态失效，请重新进入小程序', result.data)
+      }
       // Business error: server returned a non-zero code
       // Preserve structured payload (e.g. ritual.execute all-failed errors[])
       throw new CloudError(result.code, result.message || '操作失败', result.data)

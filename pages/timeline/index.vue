@@ -654,6 +654,7 @@ const {
   loadPageEntryData,
   refreshPageData,
 } = useTimelinePageDataFlow({
+  ensureLoggedIn: () => userStore.ensureLoggedIn({ retry: true, toastTitle: '登录失败，请重新打开小程序' }),
   selectedDate,
   todayStr,
   dateRange: DATE_RANGE,
