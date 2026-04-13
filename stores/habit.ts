@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { withDefaultPinia } from './pinia'
 import * as habitService from '@/services/habitService'
-import { getToday, getWeekday1to7FromDateStr, getBeijingIsoNow } from '@/services/cloud'
+import { getToday, getWeekday1to7FromDateStr, getBeijingIsoNow, CloudError } from '@/services/cloud'
 import { getCache, setCache } from '@/utils/cache'
 import { withRetry } from '@/utils/retry'
 import { safeHabits, safeCheckIns } from '@/utils/safeData'
@@ -113,8 +113,19 @@ export const useHabitStore = withDefaultPinia(defineStore('habit', () => {
       todayCheckIns.value = map
     } catch (err) {
       if (version !== fetchVersion) return
-      uni.showToast({ title: '加载习惯失败', icon: 'none' })
-      throw err
+
+      let title = '加载习惯失败'
+      if (err instanceof CloudError) {
+        if (err.code === -3) title = '云服务暂不可用'
+        else if (err.code === -5) title = '网络不可用，请检查连接'
+        else if (err.code === -2) title = '加载超时，请重试'
+      }
+      uni.showToast({ title, icon: 'none' })
+
+      // If cached habits are already in the store, don't propagate the error
+      // (which would trigger a full-page error screen). The user can continue
+      // with the cached data until the next successful refresh.
+      if (habits.value.length === 0) throw err
     } finally {
       if (version === fetchVersion) {
         loading.value = false
