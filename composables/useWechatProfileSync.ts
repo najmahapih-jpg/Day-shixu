@@ -6,6 +6,7 @@ import {
   normalizeAvatarTempFile,
   uploadAvatarToCloud,
 } from '@/composables/useAvatarUpload'
+import { CloudError } from '@/services/cloud'
 import {
   getDisplayNickName,
   getNickNameValidationMessage,
@@ -151,9 +152,21 @@ export function useWechatProfileSync(options?: UseWechatProfileSyncOptions) {
       phase.value = 'done'
       options?.onSaved?.()
       return true
-    } catch {
+    } catch (err: unknown) {
       haptic.warning()
-      errorMessage.value = '头像或昵称保存失败，请重试'
+      if (err instanceof CloudError) {
+        const codeMessages: Record<number, string> = {
+          [-3]: '云服务暂不可用，请稍后重试',
+          [-5]: '网络不可用，请检查连接',
+          [-2]: '请求超时，请稍后重试',
+          [-4]: '权限不足，请重新登录',
+        }
+        errorMessage.value = codeMessages[err.code] ?? '头像或昵称保存失败，请重试'
+      } else if (err instanceof Error && err.message) {
+        errorMessage.value = err.message
+      } else {
+        errorMessage.value = '头像或昵称保存失败，请重试'
+      }
       phase.value = 'error'
       return false
     }
