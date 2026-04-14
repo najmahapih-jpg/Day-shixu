@@ -52,7 +52,7 @@
         <view class="tl-empty__illust">
           <HfIllustration name="custom/illustrations/timeline-empty-future" width="240rpx" height="180rpx" />
         </view>
-        <text class="tl-empty__title">杩欎竴澶╄繕娌″埌鏉?/text>
+        <text class="tl-empty__title">这一天还没到来</text>
       </view>
 
       <view v-else-if="hasNoBlocks && isPastDay" class="tl-empty tl-empty--past">
@@ -68,7 +68,7 @@
           <HfIllustration name="custom/illustrations/timeline-empty-rest" width="240rpx" height="180rpx" />
         </view>
         <text class="tl-empty__title">浠婂ぉ娌℃湁瀹夋帓</text>
-        <text class="tl-empty__subtitle">缁欒嚜宸辨斁涓亣涔熶笉閿?/text>
+        <text class="tl-empty__subtitle">给自己放个假也不错</text>
       </view>
 
       <view v-else class="timeline-wrap">
