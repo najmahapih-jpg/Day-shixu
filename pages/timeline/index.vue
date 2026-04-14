@@ -134,7 +134,6 @@
           />
         </TimelineLaneBoard>
       </view>
-      </view>
     </scroll-view>
 
     </template>
