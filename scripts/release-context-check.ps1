@@ -211,6 +211,28 @@ if (Test-Path $devtoolsAppJson) {
   Warn '_mp_devtools is missing (npm run prepare:wechat will regenerate it before upload)'
 }
 
+# 4.5) Build freshness — block release when HBuilderX output is older than source
+Write-Host "`n4.5 Build freshness" -ForegroundColor White
+$distAppJs = Join-Path $projectRoot 'unpackage\dist\dev\mp-weixin\app.js'
+if (Test-Path $distAppJs) {
+  try {
+    $buildTime = (Get-Item -LiteralPath $distAppJs).LastWriteTimeUtc
+    $headEpoch = [long](& git -C $projectRoot log -1 --format='%ct').Trim()
+    $headTime = [DateTimeOffset]::FromUnixTimeSeconds($headEpoch).UtcDateTime
+    if ($headTime -gt $buildTime.AddMinutes(2)) {
+      $buildStr = $buildTime.ToString('yyyy-MM-dd HH:mm UTC')
+      $commitStr = $headTime.ToString('yyyy-MM-dd HH:mm UTC')
+      Fail "mp-weixin build is STALE (built $buildStr, HEAD committed $commitStr). Rebuild in HBuilderX before releasing."
+    } else {
+      Pass 'mp-weixin build is current with HEAD commit'
+    }
+  } catch {
+    Warn ("Could not verify build freshness: " + $_.Exception.Message)
+  }
+} else {
+  Warn 'Skipped build freshness check (no app.js found)'
+}
+
 # 5) npm release entrypoints
 Write-Host "`n5. Release entrypoints" -ForegroundColor White
 $packageJsonPath = Join-Path $projectRoot 'package.json'
