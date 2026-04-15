@@ -14,7 +14,7 @@
 
               <!-- Collapsible body -->
               <view class="cal-habit-collapse" :class="{ 'cal-habit-collapse--open': habitsExpanded }">
-                <!-- 瑜版挻妫╂稊鐘冲劵閸掓銆冮敍鍫滅矌娴犲﹤銇夐崣顖欐唉娴滄帪绱?-->
+                <!-- Today habit list -->
                 <view v-if="selectedDate === todayStr && todayHabits.length > 0" class="cal-habit-list">
                   <HabitListItem
                     v-for="(habit, idx) in todayHabits"
@@ -27,10 +27,10 @@
                     @delete="emitDelete"
                   />
                 </view>
-                <!-- 闂堢偘绮栨径鈺傚灗閺冪姳绡勯幆?-->
+                <!-- Empty state -->
                 <view v-else class="cal-habit-empty">
                   <text class="cal-habit-empty__text">
-                    {{ selectedDate === todayStr ? '浠婂ぉ娌℃湁瀹夋帓涔犳儻' : '鏌ョ湅鍏朵粬鏃ユ湡鐨勬墦鍗¤褰曪紙鍗冲皢寮€鏀撅級' }}
+                    {{ selectedDate === todayStr ? '今天没有安排习惯' : '查看其他日期的打卡记录（即将开放）' }}
                   </text>
                 </view>
               </view>
