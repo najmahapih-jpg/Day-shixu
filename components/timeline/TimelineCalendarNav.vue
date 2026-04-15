@@ -1,14 +1,14 @@
 <template>
   <view class="calendar-magic-nav">
     <view class="month-nav-key month-nav-key--left" @tap="handlePrev">
-      <text class="month-nav-key__icon">&lt;</text>
+      <text class="month-nav-key__label">上月</text>
     </view>
     <view class="magic-nav-title">
       <text class="magic-nav-title__main">{{ year }} / {{ month }}</text>
       <text class="magic-nav-title__sub">{{ subtitle }}</text>
     </view>
     <view class="month-nav-key month-nav-key--right" @tap="handleNext">
-      <text class="month-nav-key__icon">&gt;</text>
+      <text class="month-nav-key__label">下月</text>
     </view>
   </view>
 </template>
@@ -94,10 +94,11 @@ function handleNext() {
   color: $neutral-900;
   @include tap-active;
 
-  &__icon {
-    font-size: 28rpx;
+  &__label {
+    font-size: $text-xs;
     line-height: 1;
     font-weight: 800;
+    letter-spacing: 0.04em;
   }
 
   &:active {
