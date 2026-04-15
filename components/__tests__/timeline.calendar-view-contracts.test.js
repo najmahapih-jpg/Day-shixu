@@ -1,6 +1,38 @@
 const { loadComponent, renderComponent, getEmitNames, getSetupBindings } = require('./helpers/vue-test-helpers')
 
 describe('timeline calendar nav/grid contracts', () => {
+  test('TimelineTopBar renders stable text-only switch labels and preserves mode emits', async () => {
+    const component = loadComponent('@/components/timeline/TimelineTopBar.vue')
+    const html = await renderComponent(component, {
+      statusBarHeight: 20,
+      isToday: false,
+      viewMode: 'calendar',
+    })
+
+    expect(html).toContain('时间轴')
+    expect(html).toContain('日历')
+    expect(html).toContain('switch-mark')
+    expect(html).not.toContain('clock-circle-linear')
+    expect(html).not.toContain('notebook-linear')
+    expect(getEmitNames(component)).toEqual(expect.arrayContaining(['go-today', 'switch-mode']))
+
+    const emitted = []
+    const bindings = getSetupBindings(component, {
+      statusBarHeight: 20,
+      isToday: false,
+      viewMode: 'timeline',
+    }, (name, ...payload) => emitted.push([name, ...payload]))
+
+    bindings.handleGoToday()
+    bindings.handleSwitchMode('calendar')
+    bindings.handleSwitchMode('timeline')
+
+    expect(emitted).toEqual([
+      ['go-today'],
+      ['switch-mode', 'calendar'],
+    ])
+  })
+
   test('TimelineCalendarNav renders year/month/subtitle and preserves prev/next emits', async () => {
     const component = loadComponent('@/components/timeline/TimelineCalendarNav.vue')
     const html = await renderComponent(component, {
@@ -12,6 +44,8 @@ describe('timeline calendar nav/grid contracts', () => {
     expect(html).toContain('2026')
     expect(html).toContain('4')
     expect(html).toContain('2/4 完成')
+    expect(html).toContain('上月')
+    expect(html).toContain('下月')
     expect(getEmitNames(component)).toEqual(expect.arrayContaining(['prev-month', 'next-month']))
 
     const emitted = []
