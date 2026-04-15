@@ -1,6 +1,6 @@
 <template>
   <view v-if="rituals.length > 0" class="section">
-    <HfSectionHeader title="????" :subtitle="rituals.length + ' ?'" />
+    <HfSectionHeader title="今日仪式" :subtitle="rituals.length + ' 个'" />
     <scroll-view scroll-x class="ritual-scroll" :show-scrollbar="false">
       <view class="ritual-track">
         <view
