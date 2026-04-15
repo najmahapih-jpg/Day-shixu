@@ -190,7 +190,7 @@ const props = defineProps<{
   animation-delay: var(--stamp-delay, 0ms);
   @include tap-active;
 
-  // Perforation stamp mask 閳?full 4-edge perforations
+  // Perforation stamp mask: full 4-edge perforations
   -webkit-mask-image:
     radial-gradient(circle at 0 8rpx, transparent 4rpx, black 5rpx) repeat-y,
     radial-gradient(circle at 100% 8rpx, transparent 4rpx, black 5rpx) repeat-y,
@@ -321,7 +321,7 @@ $stamp-special: #00B894;
   animation: pulseGlow 2.5s ease-in-out infinite;
 }
 
-// ========== 1. 閸忓啯妫?閳?Firework burst ==========
+// ========== 1. Firework burst ==========
 .stamp-icon--firework .stamp-icon__shape {
   width: 8rpx;
   height: 8rpx;
@@ -339,7 +339,7 @@ $stamp-special: #00B894;
   animation: fireworkBurst 2s ease-in-out infinite;
 }
 
-// ========== 2. 閸斿啿濮?閳?Hammer & wrench cross ==========
+// ========== 2. Hammer & wrench cross ==========
 .stamp-icon--hammer .stamp-icon__shape {
   width: 6rpx;
   height: 36rpx;
@@ -374,7 +374,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 3. 閸ヨ棄绨?閳?Flag ==========
+// ========== 3. Flag ==========
 .stamp-icon--flag .stamp-icon__shape {
   width: 4rpx;
   height: 48rpx;
@@ -395,7 +395,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 4. 閺勩儴濡?閳?Fu seal ==========
+// ========== 4. Fu seal ==========
 .stamp-icon--chunlian .stamp-icon__shape {
   width: 48rpx;
   height: 48rpx;
@@ -416,7 +416,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 5. 缁旑垰宕?閳?Dragon boat wave ==========
+// ========== 5. Dragon boat wave ==========
 .stamp-icon--dragonboat .stamp-icon__shape {
   width: 44rpx;
   height: 14rpx;
@@ -451,7 +451,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 6. 娑擃厾顫?閳?Moon ==========
+// ========== 6. Moon ==========
 .stamp-icon--moon .stamp-icon__shape {
   width: 44rpx;
   height: 44rpx;
@@ -483,7 +483,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 7. 閸忓啫顔?閳?Lantern ==========
+// ========== 7. Lantern ==========
 .stamp-icon--lantern .stamp-icon__shape {
   width: 36rpx;
   height: 44rpx;
@@ -517,7 +517,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 8. 姒瑦濮径?閳?Dragon horn ==========
+// ========== 8. Dragon horn ==========
 .stamp-icon--dragon .stamp-icon__shape {
   width: 20rpx;
   height: 36rpx;
@@ -539,7 +539,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 9. 娑撳﹤鐑?閳?Water ripple ==========
+// ========== 9. Water ripple ==========
 .stamp-icon--ripple .stamp-icon__shape {
   width: 16rpx;
   height: 16rpx;
@@ -551,7 +551,7 @@ $stamp-special: #00B894;
   animation: rippleExpand 2s ease-out infinite;
 }
 
-// ========== 10. 娑撳啫顦?閳?Two stars bridged ==========
+// ========== 10. Two stars bridged ==========
 .stamp-icon--magpie .stamp-icon__shape {
   width: 16rpx;
   height: 16rpx;
@@ -583,7 +583,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 11. 娑擃厼鍘?閳?Lotus flame ==========
+// ========== 11. Lotus flame ==========
 .stamp-icon--lotus .stamp-icon__shape {
   width: 12rpx;
   height: 24rpx;
@@ -616,7 +616,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 12. 闁插秹妲?閳?Mountain peak ==========
+// ========== 12. Mountain peak ==========
 .stamp-icon--mountain .stamp-icon__shape {
   width: 0;
   height: 0;
@@ -638,7 +638,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 13. 閼靛﹤鍙?閳?Bowl with steam ==========
+// ========== 13. Bowl with steam ==========
 .stamp-icon--bowl .stamp-icon__shape {
   width: 40rpx;
   height: 20rpx;
@@ -671,7 +671,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 14. 鐏忓繐鍕?閳?Broom ==========
+// ========== 14. Broom ==========
 .stamp-icon--broom .stamp-icon__shape {
   width: 4rpx;
   height: 40rpx;
@@ -694,7 +694,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 15. 闂勩倕顦?閳?Firecracker ==========
+// ========== 15. Firecracker ==========
 .stamp-icon--firecracker .stamp-icon__shape {
   width: 16rpx;
   height: 32rpx;
@@ -728,7 +728,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 16. 濞撳懏妲?閳?Willow branch ==========
+// ========== 16. Willow branch ==========
 .stamp-icon--willow .stamp-icon__shape {
   width: 4rpx;
   height: 36rpx;
@@ -765,7 +765,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 17. 鐎垫帡顥?閳?Cold ember ==========
+// ========== 17. Cold ember ==========
 .stamp-icon--ember .stamp-icon__shape {
   width: 32rpx;
   height: 32rpx;
@@ -787,7 +787,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 18. 閹懍姹?閳?Heart ==========
+// ========== 18. Heart ==========
 .stamp-icon--heart .stamp-icon__shape {
   width: 36rpx;
   height: 32rpx;
@@ -818,7 +818,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 19. 婵″洤銈?閳?Flower ==========
+// ========== 19. Flower ==========
 .stamp-icon--flower .stamp-icon__shape {
   width: 12rpx;
   height: 12rpx;
@@ -832,7 +832,7 @@ $stamp-special: #00B894;
   animation: flowerBloom 2.5s ease-in-out infinite;
 }
 
-// ========== 20. 濡炲秵鐖?閳?Seedling ==========
+// ========== 20. Seedling ==========
 .stamp-icon--seedling .stamp-icon__shape {
   width: 4rpx;
   height: 24rpx;
@@ -867,7 +867,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 21. 闂堟帒鍕?閳?Flame torch ==========
+// ========== 21. Flame torch ==========
 .stamp-icon--flame .stamp-icon__shape {
   width: 6rpx;
   height: 28rpx;
@@ -888,7 +888,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 22. 閸庤法顏?閳?Balloon ==========
+// ========== 22. Balloon ==========
 .stamp-icon--balloon .stamp-icon__shape {
   width: 28rpx;
   height: 34rpx;
@@ -920,7 +920,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 23. 娑撳啩绔?閳?Star badge ==========
+// ========== 23. Star badge ==========
 .stamp-icon--badge .stamp-icon__shape {
   width: 40rpx;
   height: 40rpx;
@@ -938,7 +938,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 24. 閸忣偂绔?閳?Shield ==========
+// ========== 24. Shield ==========
 .stamp-icon--shield .stamp-icon__shape {
   width: 32rpx;
   height: 38rpx;
@@ -959,7 +959,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 25. 閺佹瑥绗€ 閳?Open book ==========
+// ========== 25. Open book ==========
 .stamp-icon--book .stamp-icon__shape {
   width: 18rpx;
   height: 28rpx;
@@ -981,7 +981,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 26. 缁绢亜搴?閳?Monument obelisk ==========
+// ========== 26. Monument obelisk ==========
 .stamp-icon--monument .stamp-icon__shape {
   width: 12rpx;
   height: 40rpx;
@@ -1001,7 +1001,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 27. 閸?1 閳?Twin bars ==========
+// ========== 27. Twin bars ==========
 .stamp-icon--bars .stamp-icon__shape {
   width: 10rpx;
   height: 36rpx;
@@ -1022,7 +1022,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 28. 楠炲啿鐣?閳?Bell ==========
+// ========== 28. Bell ==========
 .stamp-icon--bell .stamp-icon__shape {
   width: 30rpx;
   height: 28rpx;
@@ -1056,7 +1056,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 29. 閸︼綀鐧?閳?Christmas tree ==========
+// ========== 29. Christmas tree ==========
 .stamp-icon--tree .stamp-icon__shape {
   width: 0;
   height: 0;
@@ -1104,7 +1104,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 30. 鐠恒劌鍕?閳?Hourglass ==========
+// ========== 30. Hourglass ==========
 .stamp-icon--hourglass .stamp-icon__shape {
   width: 28rpx;
   height: 40rpx;
@@ -1140,7 +1140,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 31. 濮ｅ秳缈?閳?Carnation flower ==========
+// ========== 31. Carnation flower ==========
 .stamp-icon--carnation .stamp-icon__shape {
   width: 4rpx;
   height: 20rpx;
@@ -1174,7 +1174,7 @@ $stamp-special: #00B894;
   }
 }
 
-// ========== 32. 閻栨湹缈?閳?Crown ==========
+// ========== 32. Crown ==========
 .stamp-icon--crown .stamp-icon__shape {
   width: 38rpx;
   height: 28rpx;
@@ -1183,7 +1183,7 @@ $stamp-special: #00B894;
   animation: crownShine 3s ease-in-out infinite;
 }
 
-// ========== 33. 閹扮喐浠?閳?Maple leaf ==========
+// ========== 33. Maple leaf ==========
 .stamp-icon--maple .stamp-icon__shape {
   width: 36rpx;
   height: 36rpx;
@@ -1296,33 +1296,33 @@ $stamp-special: #00B894;
   50% { transform: scale(1.15); opacity: 0.75; }
 }
 
-// 1. 閸忓啯妫?閳?Firework
+// 1. Firework
 @keyframes fireworkBurst {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.6; }
 }
 
-// 2. 閸斿啿濮?閳?Hammer
+// 2. Hammer
 @keyframes hammerSwing {
   0%, 100% { transform: rotate(-45deg); }
   50% { transform: rotate(-55deg); }
 }
 
-// 3. 閸ヨ棄绨?閳?Flag
+// 3. Flag
 @keyframes flagWave {
   0%, 100% { transform: scaleX(1) skewY(0deg); }
   25% { transform: scaleX(0.95) skewY(2deg); }
   75% { transform: scaleX(1.02) skewY(-1deg); }
 }
 
-// 4. 閺勩儴濡?閳?Fu seal stamp drop
+// 4. Fu seal stamp drop
 @keyframes stampDrop {
   0% { transform: rotate(-8deg) scale(2) translateY(-20rpx); opacity: 0; }
   60% { transform: rotate(-8deg) scale(0.95); opacity: 1; }
   100% { transform: rotate(-8deg) scale(1); }
 }
 
-// 5. 缁旑垰宕?閳?Dragon boat rock
+// 5. Dragon boat rock
 @keyframes boatRock {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
@@ -1333,37 +1333,37 @@ $stamp-special: #00B894;
   50% { transform: scaleX(1.15); opacity: 0.7; }
 }
 
-// 6. 娑擃厾顫?閳?Moon breathe
+// 6. Moon breathe
 @keyframes moonBreathe {
   0%, 100% { box-shadow: 0 0 16rpx rgba(255, 213, 79, 0.4), inset -6rpx -4rpx 10rpx rgba(180, 140, 20, 0.3); }
   50% { box-shadow: 0 0 28rpx rgba(255, 213, 79, 0.7), inset -6rpx -4rpx 10rpx rgba(180, 140, 20, 0.3); }
 }
 
-// 7. 閸忓啫顔?閳?Lantern swing
+// 7. Lantern swing
 @keyframes lanternSwing {
   0%, 100% { transform: rotate(-4deg); }
   50% { transform: rotate(4deg); }
 }
 
-// 8. 姒瑦濮径?閳?Dragon rise
+// 8. Dragon rise
 @keyframes dragonRise {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6rpx); }
 }
 
-// 9. 娑撳﹤鐑?閳?Water ripple expand
+// 9. Water ripple expand
 @keyframes rippleExpand {
   0% { box-shadow: 0 0 0 0 rgba($stamp-traditional, 0.3), 0 0 0 0 rgba($stamp-traditional, 0.2); }
   100% { box-shadow: 0 0 0 12rpx rgba($stamp-traditional, 0), 0 0 0 24rpx rgba($stamp-traditional, 0); }
 }
 
-// 10. 娑撳啫顦?閳?Magpie glow
+// 10. Magpie glow
 @keyframes magpieGlow {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.1); }
 }
 
-// 11. 娑擃厼鍘?閳?Flame flicker
+// 11. Flame flicker
 @keyframes flameFlicker {
   0%, 100% { transform: scaleY(1) scaleX(1); }
   25% { transform: scaleY(1.08) scaleX(0.95); }
@@ -1371,26 +1371,26 @@ $stamp-special: #00B894;
   75% { transform: scaleY(1.05) scaleX(0.98); }
 }
 
-// 12. 闁插秹妲?閳?Mountain float
+// 12. Mountain float
 @keyframes mountainFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4rpx); }
 }
 
-// 13. 閼靛﹤鍙?閳?Steam rise
+// 13. Steam rise
 @keyframes steamRise {
   0% { transform: translateX(-50%) translateY(0); opacity: 0.4; }
   50% { transform: translateX(-50%) translateY(-6rpx); opacity: 0.8; }
   100% { transform: translateX(-50%) translateY(-12rpx); opacity: 0; }
 }
 
-// 14. 鐏忓繐鍕?閳?Broom sweep
+// 14. Broom sweep
 @keyframes broomSweep {
   0%, 100% { transform: rotate(-20deg); }
   50% { transform: rotate(-30deg); }
 }
 
-// 15. 闂勩倕顦?閳?Firecracker shake
+// 15. Firecracker shake
 @keyframes firecrackerShake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-2rpx); }
@@ -1402,19 +1402,19 @@ $stamp-special: #00B894;
   50% { opacity: 0.2; transform: translateX(-50%) scale(0.5); }
 }
 
-// 16. 濞撳懏妲?閳?Willow sway
+// 16. Willow sway
 @keyframes willowSway {
   0%, 100% { transform: rotate(-30deg); }
   50% { transform: rotate(-20deg); }
 }
 
-// 17. 鐎垫帡顥?閳?Ember fade
+// 17. Ember fade
 @keyframes emberFade {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
 
-// 18. 閹懍姹?閳?Heart beat
+// 18. Heart beat
 @keyframes heartBeat {
   0%, 100% { transform: scale(1); }
   15% { transform: scale(1.15); }
@@ -1422,62 +1422,62 @@ $stamp-special: #00B894;
   45% { transform: scale(1.1); }
 }
 
-// 19. 婵″洤銈?閳?Flower bloom
+// 19. Flower bloom
 @keyframes flowerBloom {
   0%, 100% { transform: scale(1) rotate(0deg); }
   50% { transform: scale(1.1) rotate(15deg); }
 }
 
-// 20. 濡炲秵鐖?閳?Seedling grow
+// 20. Seedling grow
 @keyframes seedlingGrow {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(1.1); }
 }
 
-// 21. 闂堟帒鍕?閳?Torch flicker
+// 21. Torch flicker
 @keyframes torchFlicker {
   0% { transform: translateX(-50%) scaleY(1) scaleX(1); }
   100% { transform: translateX(-50%) scaleY(1.15) scaleX(0.9); }
 }
 
-// 22. 閸庤法顏?閳?Balloon float
+// 22. Balloon float
 @keyframes balloonFloat {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   33% { transform: translateY(-4rpx) rotate(2deg); }
   66% { transform: translateY(-2rpx) rotate(-2deg); }
 }
 
-// 23. 娑撳啩绔?閳?Badge spin
+// 23. Badge spin
 @keyframes badgeSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-// 24. 閸忣偂绔?閳?Shield pulse
+// 24. Shield pulse
 @keyframes shieldPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.08); opacity: 0.85; }
 }
 
-// 25. 閺佹瑥绗€ 閳?Book flip
+// 25. Book flip
 @keyframes bookFlip {
   0%, 100% { transform: skewY(-3deg); }
   50% { transform: skewY(-6deg); }
 }
 
-// 26. 缁绢亜搴?閳?Monument glow
+// 26. Monument glow
 @keyframes monumentGlow {
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 }
 
-// 27. 閸?1 閳?Bars flash
+// 27. Bars flash
 @keyframes barsFlash {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-// 28. 楠炲啿鐣?閳?Bell ring
+// 28. Bell ring
 @keyframes bellRing {
   0%, 100% { transform: rotate(0deg); }
   20% { transform: rotate(8deg); }
@@ -1486,31 +1486,31 @@ $stamp-special: #00B894;
   80% { transform: rotate(-2deg); }
 }
 
-// 29. 閸︼綀鐧?閳?Twinkle star
+// 29. Twinkle star
 @keyframes twinkle {
   0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
   50% { opacity: 0.3; transform: translateX(-50%) scale(0.6); }
 }
 
-// 30. 鐠恒劌鍕?閳?Hourglass flip
+// 30. Hourglass flip
 @keyframes hourglassFlip {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(180deg); }
 }
 
-// 31. 濮ｅ秳缈?閳?Carnation bloom
+// 31. Carnation bloom
 @keyframes carnationBloom {
   0%, 100% { transform: translateX(-50%) scale(1); }
   50% { transform: translateX(-50%) scale(1.12); }
 }
 
-// 32. 閻栨湹缈?閳?Crown shine
+// 32. Crown shine
 @keyframes crownShine {
   0%, 100% { opacity: 1; filter: brightness(1); }
   50% { opacity: 0.85; filter: brightness(1.2); }
 }
 
-// 33. 閹扮喐浠?閳?Maple leaf float
+// 33. Maple leaf float
 @keyframes mapleFloat {
   0%, 100% { transform: rotate(0deg) translateY(0); }
   25% { transform: rotate(5deg) translateY(-3rpx); }
