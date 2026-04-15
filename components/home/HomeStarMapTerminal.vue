@@ -806,10 +806,6 @@ $starmap-text-dark: #4B5563;
 
 // ─── Misc ─────────────────────────────────────────────────────────
 
-.bottom-space {
-  height: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + #{$space-2});
-}
-
 .first-tip-mask {
   @include full-overlay;
   z-index: $z-modal;
@@ -853,5 +849,4 @@ $starmap-text-dark: #4B5563;
     background: rgba($color-white, 0.97);
   }
 }
-</style>
 </style>
