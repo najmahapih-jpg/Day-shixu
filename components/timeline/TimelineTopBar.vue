@@ -13,11 +13,11 @@
 
     <view class="view-switcher">
       <view class="switch-item press-light" :class="{ active: viewMode === 'timeline' }" @tap="handleSwitchMode('timeline')">
-        <HfIcon name="clock-circle-linear" size="sm" :color="viewMode === 'timeline' ? BRAND_PRIMARY : NEUTRAL_500" />
+        <text class="switch-mark">T</text>
         <text class="switch-text">时间轴</text>
       </view>
       <view class="switch-item press-light" :class="{ active: viewMode === 'calendar' }" @tap="handleSwitchMode('calendar')">
-        <HfIcon name="notebook-linear" size="sm" :color="viewMode === 'calendar' ? BRAND_PRIMARY : NEUTRAL_500" />
+        <text class="switch-mark">C</text>
         <text class="switch-text">日历</text>
       </view>
     </view>
@@ -25,9 +25,6 @@
 </template>
 
 <script setup lang="ts">
-import HfIcon from '@/components/base/HfIcon.vue'
-import { BRAND_PRIMARY, NEUTRAL_500 } from '@/utils/constants'
-
 const props = defineProps<{
   statusBarHeight: number
   isToday: boolean
@@ -130,6 +127,31 @@ function handleSwitchMode(mode: 'timeline' | 'calendar') {
     &.active {
       background: rgba($brand-primary, 0.15);
     }
+  }
+}
+
+.switch-mark {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $text-2xs;
+  font-weight: $font-bold;
+  font-family: $mono-stack;
+  color: $neutral-500;
+  background: rgba($neutral-500, 0.12);
+  transition: color 200ms ease, background 200ms ease;
+
+  .switch-item.active & {
+    color: $color-white;
+    background: $brand-primary;
+  }
+
+  .dark-mode & {
+    color: $dark-text-secondary;
+    background: rgba($dark-text-secondary, 0.12);
   }
 }
 
