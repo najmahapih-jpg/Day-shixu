@@ -1,128 +1,131 @@
 <template>
   <HfPageBg
     variant="warm"
-    class="home-page page-transition"
-    :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }, haptic.feedbackClass]"
   >
-    <HomeTopNav
-      :status-bar-height="statusBarHeight"
-      title="Day时序"
-      :subtitle="userStore.userInfo ? `${displayNickName}，${todayFormatted}` : todayFormatted"
-    />
-
-    <scroll-view
-      scroll-y
-      class="home-scroll"
-      enable-pull-down-refresh
-      @refresherrefresh="onRefresh"
+    <view
+      class="home-page page-transition"
+      :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }, haptic.feedbackClass]"
     >
-      <view v-if="pageError" class="home-content home-content--error">
-        <HfEmpty type="network" message="页面加载失败" actionText="重新加载" @action="retry()" />
-      </view>
+      <HomeTopNav
+        :status-bar-height="statusBarHeight"
+        title="Day时序"
+        :subtitle="userStore.userInfo ? `${displayNickName}，${todayFormatted}` : todayFormatted"
+      />
 
-      <view v-else class="home-content">
-        <HomeGreetingPostcard
-          :greeting-text="greetingText"
-          :today-formatted="todayFormatted"
-          :total="total"
-          :completed="completed"
-          :greeting-character="greetingCharacter"
-          :today-slogan="todaySlogan"
-          :time-theme-class="timeThemeClass"
-        />
+      <scroll-view
+        scroll-y
+        class="home-scroll"
+        enable-pull-down-refresh
+        @refresherrefresh="onRefresh"
+      >
+        <view v-if="pageError" class="home-content home-content--error">
+          <HfEmpty type="network" message="页面加载失败" actionText="重新加载" @action="retry()" />
+        </view>
 
-        <!-- 今日进度卡片 -->
-        <ProgressBlockCard class="anim-slide-up-delay" />
+        <view v-else class="home-content">
+          <HomeGreetingPostcard
+            :greeting-text="greetingText"
+            :today-formatted="todayFormatted"
+            :total="total"
+            :completed="completed"
+            :greeting-character="greetingCharacter"
+            :today-slogan="todaySlogan"
+            :time-theme-class="timeThemeClass"
+          />
 
-        <HomeWeekShowcase
-          :week-compare-text="weekCompareText"
-          :cards="weekCardData"
-          :focus-index="weekFocusIndex"
-          :card-styles="weekCardStyles"
-          :is-neo-theme="isNeoTheme"
-          @fan-touch-start="onFanTouchStart"
-          @fan-touch-move="onFanTouchMove"
-          @fan-touch-end="onFanTouchEnd"
-          @card-tap="onCardTap"
-        />
+          <!-- 今日进度卡片 -->
+          <ProgressBlockCard class="anim-slide-up-delay" />
 
-        <HomeJourneyProgressCard
-          v-if="activeJourney"
-          :title="activeJourney.journey?.title || ''"
-          :current-step="activeJourney.currentStep + 1"
-          :is-neo-theme="isNeoTheme"
-          @tap="goJourneyDetail"
-        />
+          <HomeWeekShowcase
+            :week-compare-text="weekCompareText"
+            :cards="weekCardData"
+            :focus-index="weekFocusIndex"
+            :card-styles="weekCardStyles"
+            :is-neo-theme="isNeoTheme"
+            @fan-touch-start="onFanTouchStart"
+            @fan-touch-move="onFanTouchMove"
+            @fan-touch-end="onFanTouchEnd"
+            @card-tap="onCardTap"
+          />
 
-        <HomePendingHabitsSection
-          :habits="displayPendingHabits"
-          :today-check-ins="habitStore.todayCheckIns"
-          :fading-habit-ids="fadingHabitIds"
-          :warning-habit-ids="warningHabitIds"
-          :move-class="habitFlip.moveClass"
-          :enter-active-class="habitFlip.enterActiveClass"
-          :leave-active-class="habitFlip.leaveActiveClass"
-          :is-neo-theme="isNeoTheme"
-          @create="goCreate"
-          @check="handleCheck"
-          @uncheck="handleUncheck"
-          @delete="handleDelete"
-        />
+          <HomeJourneyProgressCard
+            v-if="activeJourney"
+            :title="activeJourney.journey?.title || ''"
+            :current-step="activeJourney.currentStep + 1"
+            :is-neo-theme="isNeoTheme"
+            @tap="goJourneyDetail"
+          />
 
-        <HomeRitualSection
-          :rituals="ritualCardItems"
-          :is-neo-theme="isNeoTheme"
-          @select-ritual="startRitual"
-        />
+          <HomePendingHabitsSection
+            :habits="displayPendingHabits"
+            :today-check-ins="habitStore.todayCheckIns"
+            :fading-habit-ids="fadingHabitIds"
+            :warning-habit-ids="warningHabitIds"
+            :move-class="habitFlip.moveClass"
+            :enter-active-class="habitFlip.enterActiveClass"
+            :leave-active-class="habitFlip.leaveActiveClass"
+            :is-neo-theme="isNeoTheme"
+            @create="goCreate"
+            @check="handleCheck"
+            @uncheck="handleUncheck"
+            @delete="handleDelete"
+          />
 
-        <HomeCompletedHabitsSection
-          :habits="displayCompletedHabits"
-          :completed-count="habitStore.completedHabits.length"
-          :open="showCompleted"
-          :today-check-ins="habitStore.todayCheckIns"
-          :warning-habit-ids="warningHabitIds"
-          :move-class="habitFlip.moveClass"
-          :enter-active-class="habitFlip.enterActiveClass"
-          :leave-active-class="habitFlip.leaveActiveClass"
-          @toggle="toggleCompleted"
-          @check="handleCheck"
-          @uncheck="handleUncheck"
-          @delete="handleDelete"
-        />
+          <HomeRitualSection
+            :rituals="ritualCardItems"
+            :is-neo-theme="isNeoTheme"
+            @select-ritual="startRitual"
+          />
 
-        <HomeStarMapTerminal
-          :copy="starMapCopy"
-          :ai-insight-exists="aiInsightExists"
-          :display-score="displayScore"
-          :display-highlight-count="displayHighlightCount"
-          :display-top-habit="displayTopHabit"
-          :dynamic-logs="dynamicLogs"
-          :is-decoding="isDecoding"
-          :decoding-text="decodingText"
-          :is-score-glitching="isScoreGlitching"
-          :glitch-score-text="glitchScoreText"
-          :is-iris-dilating="isIrisDilating"
-          :is-shattering="isShattering"
-          :eye-scroll-offset="eyeScrollOffset"
-          @open-card="navigateToAiInsight"
-          @open-cta="goAiInsightPage"
-          @trigger-iris="triggerIrisDilation"
-          @trigger-glitch="triggerGlitch"
-          @trigger-shatter="triggerQuantumShatter"
-        />
+          <HomeCompletedHabitsSection
+            :habits="displayCompletedHabits"
+            :completed-count="habitStore.completedHabits.length"
+            :open="showCompleted"
+            :today-check-ins="habitStore.todayCheckIns"
+            :warning-habit-ids="warningHabitIds"
+            :move-class="habitFlip.moveClass"
+            :enter-active-class="habitFlip.enterActiveClass"
+            :leave-active-class="habitFlip.leaveActiveClass"
+            @toggle="toggleCompleted"
+            @check="handleCheck"
+            @uncheck="handleUncheck"
+            @delete="handleDelete"
+          />
 
-        <view class="bottom-space" />
-      </view>
-    </scroll-view>
+          <HomeStarMapTerminal
+            :copy="starMapCopy"
+            :ai-insight-exists="aiInsightExists"
+            :display-score="displayScore"
+            :display-highlight-count="displayHighlightCount"
+            :display-top-habit="displayTopHabit"
+            :dynamic-logs="dynamicLogs"
+            :is-decoding="isDecoding"
+            :decoding-text="decodingText"
+            :is-score-glitching="isScoreGlitching"
+            :glitch-score-text="glitchScoreText"
+            :is-iris-dilating="isIrisDilating"
+            :is-shattering="isShattering"
+            :eye-scroll-offset="eyeScrollOffset"
+            @open-card="navigateToAiInsight"
+            @open-cta="goAiInsightPage"
+            @trigger-iris="triggerIrisDilation"
+            @trigger-glitch="triggerGlitch"
+            @trigger-shatter="triggerQuantumShatter"
+          />
 
-    <HomeFirstUseTip
-      :visible="showFirstUseTip"
-      :title="starMapCopy.firstUseTipTitle"
-      :desc="starMapCopy.firstUseTipDesc"
-      @dismiss="dismissFirstUseTip"
-    />
+          <view class="bottom-space" />
+        </view>
+      </scroll-view>
 
-    <HfTabBar />
+      <HomeFirstUseTip
+        :visible="showFirstUseTip"
+        :title="starMapCopy.firstUseTipTitle"
+        :desc="starMapCopy.firstUseTipDesc"
+        @dismiss="dismissFirstUseTip"
+      />
+
+      <HfTabBar />
+    </view>
   </HfPageBg>
 </template>
 
@@ -134,7 +137,7 @@ import { useAppStore } from '@/stores/app'
 import { useHabitStore } from '@/stores/habit'
 import { useUserStore } from '@/stores/user'
 import { useRitualStore } from '@/stores/ritual'
-import { useJourneyStore } from '@/stores/journey'
+import * as journeyStoreModule from '@/stores/journey'
 import HfTabBar from '@/components/base/HfTabBar.vue'
 import HfEmpty from '@/components/base/HfEmpty.vue'
 import HfPageBg from '@/components/base/HfPageBg.vue'
@@ -172,7 +175,18 @@ const { entered: pageEntered } = usePageTransition()
 const habitStore = useHabitStore()
 const userStore = useUserStore()
 const ritualStore = useRitualStore()
-const journeyStore = useJourneyStore()
+type JourneyStore = ReturnType<typeof journeyStoreModule.useJourneyStore>
+
+function resolveJourneyStore(): JourneyStore | null {
+  const useStore = (journeyStoreModule as unknown as { useJourneyStore?: () => JourneyStore }).useJourneyStore
+  if (typeof useStore !== 'function') {
+    console.warn('[home] Journey store unavailable; journey progress card disabled.')
+    return null
+  }
+  return useStore()
+}
+
+const journeyStore = resolveJourneyStore()
 const { pageError, runSafe, retry, clearError } = usePageError()
 const isNeoTheme = computed(() => isNeo.value)
 const starMapCopy = PUBLIC_COPY.homeStarMap
@@ -297,7 +311,7 @@ const {
   goJourneyDetail,
 } = useHomeNavigationEntrances({
   isInteractionLocked: computed(() => isPlayingEasterEgg.value),
-  activeJourneys: computed(() => journeyStore.activeJourneys),
+  activeJourneys: computed(() => journeyStore?.activeJourneys || []),
 })
 
 const {
@@ -323,7 +337,7 @@ const {
   refreshDateIfNeeded: () => habitStore.refreshDateIfNeeded(),
   fetchHabits: () => habitStore.fetchHabits(),
   loadWeekComparison,
-  fetchUserJourneys: () => journeyStore.fetchUserJourneys(),
+  fetchUserJourneys: () => journeyStore?.fetchUserJourneys() || Promise.resolve(),
   refreshAiInsightFromCache,
   runSafe,
   clearPageError: clearError,
@@ -510,6 +524,7 @@ onHide(() => {
 
 // ─── Page layout ──────────────────────────────────────────────────
 .home-page {
+  height: 100vh;
   min-height: 100vh;
   background: $neutral-50;
   display: flex;
@@ -529,6 +544,7 @@ onHide(() => {
 
 .home-scroll {
   flex: 1;
+  height: 0;
   min-height: 0;
 }
 
@@ -540,6 +556,11 @@ onHide(() => {
   &--error {
     padding-top: $space-8;
   }
+}
+
+.bottom-space {
+  height: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + 260rpx);
+  flex-shrink: 0;
 }
 
 
