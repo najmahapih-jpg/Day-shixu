@@ -63,12 +63,12 @@ export interface UseTimelineCalendarShellOptions {
 }
 
 const LUNAR_DAY_NAMES = [
-  '', 'é’æ¿…ç«´', 'é’æ¿…ç°©', 'é’æ¿…ç¬', 'é’æ¿†æ´“', 'é’æ¿…ç°²', 'é’æ¿†åš', 'é’æ¿…ç«·', 'é’æ¿†å“', 'é’æ¿…ç¯€', 'é’æ¿†å´„',
-  'é—ä½·ç«´', 'é—ä½·ç°©', 'é—ä½·ç¬', 'é—ä½¸æ´“', 'é—ä½·ç°²', 'é—ä½¸åš', 'é—ä½·ç«·', 'é—ä½¸å“', 'é—ä½·ç¯€', 'æµœå±½å´„',
-  'å¯¤å¤¸ç«´', 'å¯¤å¤¸ç°©', 'å¯¤å¤¸ç¬', 'å¯¤åž®æ´“', 'å¯¤å¤¸ç°²', 'å¯¤åž®åš', 'å¯¤å¤¸ç«·', 'å¯¤åž®å“', 'å¯¤å¤¸ç¯€', 'æ¶“å¤Šå´„',
+  '', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+  '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十',
 ]
 
-const LUNAR_MONTH_NAMES = ['', 'å§ï½†æ¹€', 'æµœå±¾æ¹€', 'æ¶“å¤‹æ¹€', 'é¥æ¶™æ¹€', 'æµœæ—€æ¹€', 'éî…Ÿæ¹€', 'æ¶“å†©æ¹€', 'éî‚£æ¹€', 'æ¶”æ¿‡æ¹€', 'é—ä½¹æ¹€', 'éî„æ¹€', 'é‘µå©ƒæ¹€']
+const LUNAR_MONTH_NAMES = ['', '正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月']
 
 /**
  * Timeline calendar-mode shell.
@@ -229,13 +229,13 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
   })
 
   const calSelectedSubtitle = computed(() => {
-    if (!calSelectedDate.value) return '????'
+    if (!calSelectedDate.value) return '选择日期'
     const day = calendarDays.value.find((item) => item.dateStr === calSelectedDate.value)
     const completed = day?.completed ?? 0
     const total = day?.total ?? 0
-    const countText = total > 0 ? `${completed}/${total} ???` : '?????'
-    if (day?.holidayFull) return `${countText} ? ${day.holidayFull}`
-    if (day?.isWeekend) return `${countText} ? ??`
+    const countText = total > 0 ? `${completed}/${total} 已完成` : '暂无安排'
+    if (day?.holidayFull) return `${countText} · ${day.holidayFull}`
+    if (day?.isWeekend) return `${countText} · 周末`
     return countText
   })
 
@@ -244,49 +244,49 @@ export function useTimelineCalendarShell(options: UseTimelineCalendarShellOption
   )
 
   function countdownLabel(daysUntil: number): string {
-    if (daysUntil === 0) return '??'
-    if (daysUntil === 1) return '??'
-    if (daysUntil === 2) return '??'
-    if (daysUntil > 0) return `${daysUntil}??`
-    if (daysUntil === -1) return '??'
-    return `${Math.abs(daysUntil)}??`
+    if (daysUntil === 0) return '今天'
+    if (daysUntil === 1) return '明天'
+    if (daysUntil === 2) return '后天'
+    if (daysUntil > 0) return `${daysUntil}天后`
+    if (daysUntil === -1) return '昨天'
+    return `${Math.abs(daysUntil)}天前`
   }
 
   function holidayIconClass(holiday: UpcomingHoliday): string {
     const iconMap: Record<string, string> = {
-      'éå†©æ£ª': 'stamp-icon--firework',
-      'é”å†²å§©': 'stamp-icon--hammer',
-      'é¥è—‰ç°¡': 'stamp-icon--flag',
-      'é„ãƒ¨å¦­': 'stamp-icon--chunlian',
-      'ç»”îˆšå´': 'stamp-icon--dragonboat',
-      'æ¶“î… î': 'stamp-icon--moon',
-      'éå†¨î†Œ': 'stamp-icon--lantern',
-      '???': 'stamp-icon--dragon',
-      'æ¶“å©‚çƒ¦': 'stamp-icon--ripple',
-      'æ¶“å†¨î˜º': 'stamp-icon--magpie',
-      'æ¶“î…žåŽ“': 'stamp-icon--lotus',
-      'é–²å¶‰æ§¼': 'stamp-icon--mountain',
-      'é‘µå©‚å“': 'stamp-icon--bowl',
-      'çå¿“å‹¾': 'stamp-icon--broom',
-      'é—„ã‚…î˜º': 'stamp-icon--firecracker',
-      'å¨“å‘®æ§‘': 'stamp-icon--willow',
-      'ç€µæŽ—î—¤': 'stamp-icon--ember',
-      'éŽ¯å‘¬æ±‰': 'stamp-icon--heart',
-      'æ¿¡å›§ã‚³': 'stamp-icon--flower',
-      'å¦žå¶†çˆ²': 'stamp-icon--seedling',
-      'é—ˆæŽ‘å‹¾': 'stamp-icon--flame',
-      'éŽè·¨î¢': 'stamp-icon--balloon',
-      'æ¶“å†§ç«´': 'stamp-icon--badge',
-      'éî‚¡ç«´': 'stamp-icon--shield',
-      'éæ¬ç¬€': 'stamp-icon--book',
-      'ç»¾î„åº·': 'stamp-icon--monument',
-      'é™?1': 'stamp-icon--bars',
-      'éªžå†²ç•¨': 'stamp-icon--bell',
-      'é¦ï½ˆç™': 'stamp-icon--tree',
-      'ç’ºã„¥å‹¾': 'stamp-icon--hourglass',
-      'å§£å¶„ç¿°': 'stamp-icon--carnation',
-      'é–æœµç¿°': 'stamp-icon--crown',
-      'éŽ°ç†¸ä»¼': 'stamp-icon--maple',
+      '元旦': 'stamp-icon--firework',
+      '劳动': 'stamp-icon--hammer',
+      '国庆': 'stamp-icon--flag',
+      '春节': 'stamp-icon--chunlian',
+      '端午': 'stamp-icon--dragonboat',
+      '中秋': 'stamp-icon--moon',
+      '元宵': 'stamp-icon--lantern',
+      '龙抬头': 'stamp-icon--dragon',
+      '上巳': 'stamp-icon--ripple',
+      '七夕': 'stamp-icon--magpie',
+      '中元': 'stamp-icon--lotus',
+      '重阳': 'stamp-icon--mountain',
+      '腊八': 'stamp-icon--bowl',
+      '小年': 'stamp-icon--broom',
+      '除夕': 'stamp-icon--firecracker',
+      '清明': 'stamp-icon--willow',
+      '寒食': 'stamp-icon--ember',
+      '情人': 'stamp-icon--heart',
+      '妇女': 'stamp-icon--flower',
+      '植树': 'stamp-icon--seedling',
+      '青年': 'stamp-icon--flame',
+      '儿童': 'stamp-icon--balloon',
+      '七一': 'stamp-icon--badge',
+      '八一': 'stamp-icon--shield',
+      '教师': 'stamp-icon--book',
+      '纪念': 'stamp-icon--monument',
+      '双11': 'stamp-icon--bars',
+      '平安': 'stamp-icon--bell',
+      '圣诞': 'stamp-icon--tree',
+      '跨年': 'stamp-icon--hourglass',
+      '母亲': 'stamp-icon--carnation',
+      '父亲': 'stamp-icon--crown',
+      '感恩': 'stamp-icon--maple',
     }
     return iconMap[holiday.shortName] || 'stamp-icon--star'
   }
