@@ -27,7 +27,7 @@
     <view class="postcard-bottom">
       <view class="slogan-chip">
         <view class="slogan-chip__dot" />
-        <text class="slogan-chip__label">????</text>
+        <text class="slogan-chip__label">今日签</text>
       </view>
       <text class="slogan-text anim-fade-in-delay">{{ todaySlogan }}</text>
     </view>
