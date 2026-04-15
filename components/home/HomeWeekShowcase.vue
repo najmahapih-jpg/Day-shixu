@@ -1,7 +1,7 @@
 <template>
   <view class="week-showcase" :class="{ 'theme-neo': isNeoTheme }">
     <view class="week-showcase__head">
-      <text class="week-showcase__title">????</text>
+      <text class="week-showcase__title">本周节奏</text>
       <text class="week-showcase__meta">{{ weekCompareText }}</text>
     </view>
 
@@ -33,7 +33,7 @@
             <HfIllustration :name="'custom/illustrations/' + card.illustration" width="100%" height="96rpx" />
           </view>
           <view class="week-card__date-box">
-            <text class="week-card__weekday">?{{ card.weekday }}</text>
+            <text class="week-card__weekday">周{{ card.weekday }}</text>
             <text class="week-card__day">{{ card.day }}</text>
           </view>
           <view class="week-card__bar">
