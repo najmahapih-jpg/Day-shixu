@@ -32,7 +32,7 @@
 
     <!-- Loading -->
     <view v-if="loading" class="state-wrap">
-      <text class="state-text">鍔犺浇涓?..</text>
+      <text class="state-text">加载中...</text>
     </view>
 
     <!-- 2. Timeline -->
@@ -58,7 +58,7 @@
       <view v-else-if="hasNoBlocks && isPastDay" class="tl-empty tl-empty--past">
         <text class="tl-empty__date">{{ formattedSelectedDate }}</text>
         <text class="tl-empty__result">
-          杩欎竴澶╂病鏈変範鎯褰?
+          这一天没有习惯记录
         </text>
       </view>
 
@@ -67,7 +67,7 @@
         <view class="tl-empty__illust">
           <HfIllustration name="custom/illustrations/timeline-empty-rest" width="240rpx" height="180rpx" />
         </view>
-        <text class="tl-empty__title">浠婂ぉ娌℃湁瀹夋帓</text>
+        <text class="tl-empty__title">今天没有安排</text>
         <text class="tl-empty__subtitle">给自己放个假也不错</text>
       </view>
 
@@ -75,7 +75,7 @@
         <!-- The Ultimate Timepiece: Astral Orchestra Chronograph -->
         <AstralClock ref="astralClockRef" />
 
-        <!-- ===== 閺侊絾婢橀崠?Rubato 閳?閺冪姴娴愮€规碍妞傞梻缈犵瘎閹?(Piano Keys) ===== -->
+        <!-- ===== Rubato Strip (Piano Keys) ===== -->
         <TimelineRubatoStrip
           :habits="floatingHabits"
           :completed-ids="completedHabitIds"
@@ -86,11 +86,11 @@
           @longpress-habit="handleDelete"
         />
 
-        <!-- 缁岃櫣濮搁幀?-->
+        <!-- Empty habits state -->
         <view v-if="habitStore.todayHabits.length === 0" class="tl-habit-empty">
-          <text class="tl-habit-empty__text">浠婂ぉ娌℃湁瀹夋帓涔犳儻</text>
+          <text class="tl-habit-empty__text">今天没有安排习惯</text>
           <view class="tl-habit-empty__btn" @tap="goCreate">
-            <text class="tl-habit-empty__btn-text">+ 鍒涘缓涔犳儻</text>
+            <text class="tl-habit-empty__btn-text">+ 创建习惯</text>
           </view>
         </view>
 
@@ -167,7 +167,7 @@
             @select-date="selectCalDate"
           />
 
-          <!-- 閺冦儲婀＄粊銊﹀祦鐠囷附鍎?(Ticket Details) -->
+          <!-- Ticket Details -->
           <TimelineCalendarDetail
             :selected-date="calSelectedDate"
             :today-str="todayStr"
@@ -261,26 +261,22 @@ const LABEL_COL_WIDTH_RPX = 80 // Width of the time label column (rpx)
 
 
 const PERIOD_LABELS: Record<number, string> = {
-  0: '鍑屾櫒',
-  3: '榛庢槑',
-  6: '娓呮櫒',
-  9: '涓婂崍',
-  12: '鍗堥棿',
-  14: '涓嬪崍',
-  18: '鍌嶆櫄',
-  21: '澶滈棿',
+  0: '凌晨',
+  3: '黎明',
+  6: '清晨',
+  9: '上午',
+  12: '午间',
+  14: '下午',
+  18: '傍晚',
+  21: '夜间',
 }
 
 // --- Poker Suit Details ---
 function getPokerSuit(hour: number): string {
-  if (hour < 8) return '?'
-  if (hour < 8) return '?'
-  if (hour >= 8 && hour < 14) return '?'
-  if (hour >= 8 && hour < 14) return '?'
-  if (hour >= 14 && hour < 20) return '?'
-  if (hour >= 14 && hour < 20) return '?'
-  return '?'
-  return '?'
+  if (hour < 8) return '♣'
+  if (hour >= 8 && hour < 14) return '♦'
+  if (hour >= 14 && hour < 20) return '♥'
+  return '♠'
 }
 
 function getPokerColorClass(hour: number): string {
@@ -345,7 +341,7 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 const { isNeo } = storeToRefs(appStore)
 const habitStore = useHabitStore()
-const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '鐢ㄦ埛'))
+const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.nickName, '用户'))
 const ritualStore = useRitualStore()
 const { entered: pageEntered } = usePageTransition()
 const isNeoTheme = computed(() => isNeo.value)
@@ -358,8 +354,8 @@ const isNeoTheme = computed(() => isNeo.value)
 // Motion helpers stay at page level because they coordinate page-wide feedback layers.
 const haptic = useHaptic()
 const parallax = useParallax([
-  { name: 'abyss', speed: 0.15 },    // 濞ｅ崬鐪伴懗灞炬珯 (閺嬩焦鍙?
-  { name: 'content', speed: 1 },     // 娑撹鍞寸€?(濮濓絽鐖?
+  { name: 'abyss', speed: 0.15 },    // background parallax layer
+  { name: 'content', speed: 1 },     // main content layer
 ])
 const ticketReveal = useScrollReveal({
   direction: 'up',
@@ -421,8 +417,8 @@ async function handleUncheck(habitId: string) {
 
 async function handleDelete(habitId: string) {
   uni.showModal({
-    title: '????',
-    content: '??????????????',
+    title: '删除习惯',
+    content: '删除后会进入归档，你仍然可以在归档中恢复。',
     success: async (res: any) => {
       if (res.confirm) {
         try {
@@ -518,8 +514,8 @@ const {
 
 const nextHabitText = computed(() => {
   const pending = habitStore.pendingHabits
-  if (pending.length === 0) return '?????????'
-  return `${pending[0].name} ? ${pending.length} ????`
+  if (pending.length === 0) return '今天都已完成'
+  return `${pending[0].name} · 还有 ${pending.length} 项`
 })
 
 // --- Date state detection ---
@@ -753,7 +749,7 @@ const timedBlocks = computed(() =>
 
 const overlapGroups = computed<OverlapGroup[]>(() => [])
 
-// 鍝嶅簲寮?activeIndex per group锛堢敤 Map 閬垮厤 overlapGroups 琚緷璧栨椂姣忔閲嶇疆 index锛?
+// Track the active carousel index per overlap group so recomputations do not reset it.
 const groupActiveIndexMap = ref<Record<string, number>>({})
 
 // Prune stale entries when groups change (e.g., habit deleted or time moved)
@@ -839,10 +835,10 @@ interface CardColors {
 type OverlapGroupType = 'single' | 'pair' | 'carousel'
 
 interface OverlapGroup {
-  id: string            // group key閿涘苯褰囨＃鏍ф健 habitId
+  id: string            // group key, usually the habit id
   type: OverlapGroupType
-  blocks: any[]         // 鐠囥儲妞傚▓鍨閺堝鍣搁崣鐘叉健
-  topMinute: number     // 缂佸嫬鍞撮張鈧弮鈺佺磻婵妞傞梻杈剧礄閸掑棝鎸撻敍
+  blocks: any[]         // grouped timeline blocks
+  topMinute: number     // earliest minute among grouped blocks
 }
 
 function deriveCardColors(hex: string): CardColors {
@@ -940,8 +936,8 @@ function onCarouselTouchEnd(e: any, groupId: string): void {
   carouselTouchStartX.value = rest
 }
 function timelineAriaLabel(block: TimeBlock): string {
-  const status = block.completed ? '???' : '???'
-  const time = block.hasReminder ? block.startTime : '????'
+  const status = block.completed ? '已完成' : '未完成'
+  const time = block.hasReminder ? block.startTime : '未设提醒'
   return `${time} ${block.name} ${status}`
 }
 
@@ -979,8 +975,8 @@ const dayCompletionRate = computed(() => {
 })
 const remainingText = computed(() => {
   const count = habitStore.pendingHabits.length
-  if (count === 0) return '?????????'
-  return `?? ${count} ????`
+  if (count === 0) return '今天都已完成'
+  return `还有 ${count} 项待完成`
 })
 
 // --- Lifecycle ---
@@ -1409,7 +1405,7 @@ onPullDownRefresh(async () => {
   }
 }
 
-// 閳光偓閳光偓閳光偓 RUBATO STRIP (Piano Keys 閳?floating habits) 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
+// RUBATO STRIP (Piano Keys / floating habits)
 
 .tl-habit-empty {
   @include flex-col;
@@ -1437,7 +1433,7 @@ onPullDownRefresh(async () => {
   }
 }
 
-// 閳光偓閳光偓閳光偓 CALENDAR HABIT LIST 閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓閳光偓
+// CALENDAR HABIT LIST
 
 .cal-habit-list {
   margin-top: $space-3;
@@ -1503,7 +1499,7 @@ onPullDownRefresh(async () => {
 }
 
 // ==========================================
-// HOLIDAY ALMANAC 閳?Festival Stamp Collection
+// HOLIDAY ALMANAC / Festival Stamp Collection
 // ==========================================
 
 </style>
