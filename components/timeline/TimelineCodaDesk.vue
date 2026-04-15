@@ -54,6 +54,8 @@ const emit = defineEmits<{
 @import '@/styles/mixins.scss';
 @import '@/styles/animation.scss';
 
+$serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
+
 .composer-desk {
   position: relative;
   background: transparent;
