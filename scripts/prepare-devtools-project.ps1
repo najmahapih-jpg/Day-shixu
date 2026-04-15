@@ -238,7 +238,7 @@ if (-not (Test-Path $targetConfig)) {
 
 $cfg = Get-Content -Raw -Encoding UTF8 $targetConfig | ConvertFrom-Json
 $cfg.miniprogramRoot = ''
-$cfg.cloudfunctionRoot = 'cloudfunctions/'
+$cfg.cloudfunctionRoot = '../cloudfunctions/'
 
 $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 [System.IO.File]::WriteAllText($targetConfigPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
