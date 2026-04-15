@@ -73,6 +73,11 @@ function handleLongpress(habitId?: string) {
 @import '@/styles/mixins.scss';
 @import '@/styles/animation.scss';
 
+$stave-bg-key: #E8ECEF;
+$ink-black-key: #0C0D0F;
+$crimson-key: #7A0016;
+$serif-stack-key: 'Playfair Display', ui-serif, Georgia, serif;
+
 .rubato-strip {
   margin: $space-2 $page-padding $space-3;
 
