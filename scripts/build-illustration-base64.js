@@ -4,6 +4,25 @@ const path = require('path');
 const staticImagesDir = path.join(__dirname, '../static/images');
 const outputFile = path.join(__dirname, '../utils/illustration-map.js');
 
+// Keep the generated map limited to illustrations that are still referenced
+// by the shipped app. Unused entries bloat the main mini-program package.
+const UNUSED_KEYS = new Set([
+    'custom/illustrations/ai-workflow',
+    'custom/illustrations/board-hero-collage',
+    'custom/illustrations/detail-general',
+    'custom/illustrations/detail-nutrition',
+    'custom/illustrations/detail-reading',
+    'custom/illustrations/holiday-celebration',
+    'custom/illustrations/home-hero-main',
+    'custom/illustrations/manga-hero-calendar',
+    'custom/illustrations/manga-hero-timeline',
+    'custom/illustrations/profile-avatar-bg-default',
+    'custom/illustrations/profile-hero-strip',
+    'custom/illustrations/profile-immersive-bg',
+    'custom/illustrations/profile-persona-strip',
+    'onboarding/start',
+]);
+
 function scanDir(dir) {
     let results = [];
     const list = fs.readdirSync(dir);
@@ -33,6 +52,11 @@ function buildMap() {
         const relativePath = path.relative(staticImagesDir, filePath);
         // Use forward slashes for cross-platform keys
         const key = relativePath.replace(/\\/g, '/').replace('.svg', '');
+
+        if (UNUSED_KEYS.has(key)) {
+            console.log(`⏭️ Skipped unused: ${key}`);
+            continue;
+        }
 
         // Read and encode
         let svgContent = fs.readFileSync(filePath, 'utf-8');

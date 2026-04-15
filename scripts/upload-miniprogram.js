@@ -105,9 +105,15 @@ console.log(`  key:     ${privateKeyPath}\n`)
 
 
 // ── Trim unused static assets from main package ──
-// onboarding SVGs are inlined via illustration-map.js (base64); the raw files are dead weight.
+// These SVG groups are already inlined via utils/illustration-map.js (base64).
+// Keeping the raw files in the upload bundle only inflates the main package.
+// Do not remove static/images/empty yet: archive subpage still references it directly.
 
-const unusedStaticDirs = ['static/images/onboarding']
+const unusedStaticDirs = [
+  'static/images/onboarding',
+  'static/images/custom/illustrations',
+  'static/images/journeys',
+]
 for (const rel of unusedStaticDirs) {
   const dir = path.join(devtoolsDir, rel)
   if (fs.existsSync(dir)) {
