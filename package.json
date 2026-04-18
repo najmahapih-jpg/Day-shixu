@@ -33,7 +33,7 @@
     "clean:dev-artifacts": "powershell -ExecutionPolicy Bypass -File ./scripts/clean-dev-artifacts.ps1",
     "check:hygiene": "powershell -ExecutionPolicy Bypass -File ./scripts/check-hygiene.ps1",
     "check:repo-safety": "powershell -ExecutionPolicy Bypass -File ./scripts/check-public-repo-safety.ps1",
-    "check:gate": "npm test && powershell -ExecutionPolicy Bypass -File ./scripts/preflight-check.ps1 && npm run check:hygiene && npm run check:repo-safety",
+    "check:gate": "npm run typecheck && npm test && powershell -ExecutionPolicy Bypass -File ./scripts/preflight-check.ps1 && npm run check:hygiene && npm run check:repo-safety",
     "release:check": "powershell -ExecutionPolicy Bypass -File ./scripts/release-context-check.ps1",
     "release:record": "powershell -ExecutionPolicy Bypass -File ./scripts/write-release-record.ps1",
     "release:record:dry": "powershell -ExecutionPolicy Bypass -File ./scripts/write-release-record.ps1 -DryRun",
