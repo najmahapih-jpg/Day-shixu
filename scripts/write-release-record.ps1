@@ -56,6 +56,10 @@ function Get-RelativePath([string]$BasePath, [string]$TargetPath) {
 
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $scriptDir '..')).Path
+$helperScript = Join-Path $scriptDir 'release-context-helper.ps1'
+if (Test-Path -LiteralPath $helperScript) {
+  . $helperScript
+}
 
 $manifestPath = Join-Path $projectRoot 'manifest.json'
 $cloudbaseRcPath = Join-Path $projectRoot 'cloudbaserc.json'
@@ -66,36 +70,44 @@ $releasesRoot = Join-Path $projectRoot 'releases'
 $historyRoot = Join-Path $releasesRoot 'history'
 
 $manifestJson = Get-JsonFile -Path $manifestPath
-$cloudbaseRc = Get-JsonFile -Path $cloudbaseRcPath
 $projectConfig = Get-JsonFile -Path $projectConfigPath
-$releaseEnvConfig = Get-JsonFile -Path $releaseEnvConfigPath
 $cloudEnvTs = Get-Content -LiteralPath $cloudEnvTsPath -Raw -Encoding UTF8
 
 $versionName = if ([string]::IsNullOrWhiteSpace($Version)) { [string]$manifestJson.versionName } else { $Version }
 $versionCode = [string]$manifestJson.versionCode
-$envId = [string]$cloudbaseRc.envId
-$appId = [string]$projectConfig.appid
+$effectiveBinding = if (Get-Command Resolve-EffectiveReleaseBinding -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveReleaseBinding -RepoRoot $projectRoot
+} else {
+  $null
+}
+$envId = if (Get-Command Resolve-EffectiveCloudEnvId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveCloudEnvId -RepoRoot $projectRoot
+} else {
+  ''
+}
+$appId = if (Get-Command Resolve-EffectiveWechatAppId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveWechatAppId -RepoRoot $projectRoot
+} else {
+  [string]$projectConfig.appid
+}
+$publicEnvId = if (Get-Command Get-PublicPlaceholderCloudEnvId -ErrorAction SilentlyContinue) {
+  Get-PublicPlaceholderCloudEnvId
+} else {
+  '<cloud env id redacted>'
+}
+$publicAppId = if (Get-Command Get-PublicPlaceholderWechatAppId -ErrorAction SilentlyContinue) {
+  Get-PublicPlaceholderWechatAppId
+} else {
+  '<wechat appid redacted>'
+}
 
 $runtimeEnvName = ''
 if ($cloudEnvTs -match "CLOUD_ENV_NAME\s*=\s*'([^']+)'") {
   $runtimeEnvName = [string]$Matches[1]
 }
 
-$environmentName = $runtimeEnvName
-$environmentStatus = 'UNKNOWN'
-
-foreach ($prop in $releaseEnvConfig.environments.PSObject.Properties) {
-  $envName = [string]$prop.Name
-  $envNode = $prop.Value
-  $envCloudId = [string]$envNode.cloudEnvId
-  $envAppId = [string]$envNode.miniprogramAppId
-  $matchesApp = [string]::IsNullOrWhiteSpace($envAppId) -or $envAppId -eq $appId
-  if (-not [string]::IsNullOrWhiteSpace($envCloudId) -and $envCloudId -eq $envId -and $matchesApp) {
-    $environmentName = $envName
-    $environmentStatus = if ([string]::IsNullOrWhiteSpace([string]$envNode.status)) { 'UNCONFIGURED' } else { [string]$envNode.status }
-    break
-  }
-}
+$environmentName = if ($effectiveBinding) { [string]$effectiveBinding.Name } else { $runtimeEnvName }
+$environmentStatus = if ($effectiveBinding) { [string]$effectiveBinding.Status } else { 'UNKNOWN' }
 
 if ([string]::IsNullOrWhiteSpace($environmentName)) {
   $environmentName = 'unknown-env'
@@ -154,8 +166,8 @@ $releaseManifest = [ordered]@{
   environment = [ordered]@{
     name = $environmentName
     status = $environmentStatus
-    envId = $envId
-    appid = $appId
+    envId = $publicEnvId
+    appid = $publicAppId
   }
   git = [ordered]@{
     branch = $branch
@@ -197,8 +209,8 @@ $rollbackManifest = [ordered]@{
   environment = [ordered]@{
     name = $environmentName
     status = $environmentStatus
-    envId = $envId
-    appid = $appId
+    envId = $publicEnvId
+    appid = $publicAppId
   }
   rollbackTarget = [ordered]@{
     releaseId = $targetReleaseId

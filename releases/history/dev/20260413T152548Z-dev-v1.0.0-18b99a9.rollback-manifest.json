@@ -1,4 +1,4 @@
-﻿{
+{
     "schemaVersion":  1,
     "manifestType":  "rollback",
     "rollbackId":  "20260413T152548Z-dev-v1.0.0-18b99a9-rollback",
@@ -13,8 +13,8 @@
     "environment":  {
                         "name":  "dev",
                         "status":  "READY",
-                        "envId":  "cloud-dev-01-2gvgeewv8b7147fb",
-                        "appid":  "wx538aff9186f53281"
+                        "envId":  "cloud-public-placeholder-env",
+                        "appid":  "wx0000000000000000"
                     },
     "rollbackTarget":  {
                            "releaseId":  "20260413T111946Z-dev-v1.0.0-efb4f1a",

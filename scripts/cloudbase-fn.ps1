@@ -16,6 +16,10 @@ if (-not $scriptDir) {
 }
 $scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
 $projectRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
+$helperScript = Join-Path $scriptDirResolved 'release-context-helper.ps1'
+if (Test-Path -LiteralPath $helperScript) {
+  . $helperScript
+}
 $cfgPath = Join-Path $projectRoot 'cloudbaserc.json'
 
 if (-not (Test-Path $cfgPath)) {
@@ -23,7 +27,11 @@ if (-not (Test-Path $cfgPath)) {
 }
 
 $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
-$envId = $cfg.envId
+$envId = if (Get-Command Resolve-EffectiveCloudEnvId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveCloudEnvId -RepoRoot $projectRoot
+} else {
+  [string]$cfg.envId
+}
 $functionRoot = if ($cfg.functionRoot) { [string]$cfg.functionRoot } else { 'cloudfunctions' }
 
 if ([string]::IsNullOrWhiteSpace($envId)) {

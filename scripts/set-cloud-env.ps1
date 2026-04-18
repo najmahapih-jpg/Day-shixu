@@ -57,6 +57,10 @@ function Resolve-EnvironmentConfigPath {
   param([string]$ConfigPath)
 
   if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $localConfigPath = Join-Path $repoRoot 'config\release-environments.local.json'
+    if (Test-Path -LiteralPath $localConfigPath) {
+      return $localConfigPath
+    }
     return (Join-Path $repoRoot 'config\release-environments.json')
   }
   return (Join-Path $repoRoot $ConfigPath)

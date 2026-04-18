@@ -1,4 +1,4 @@
-﻿{
+{
     "schemaVersion":  1,
     "manifestType":  "release",
     "releaseId":  "20260412T145603Z-dev-v1.0.0-6be6f33",
@@ -14,8 +14,8 @@
     "environment":  {
                         "name":  "dev",
                         "status":  "READY",
-                        "envId":  "cloud-dev-01-2gvgeewv8b7147fb",
-                        "appid":  "wx538aff9186f53281"
+                        "envId":  "cloud-public-placeholder-env",
+                        "appid":  "wx0000000000000000"
                     },
     "git":  {
                 "branch":  "main",

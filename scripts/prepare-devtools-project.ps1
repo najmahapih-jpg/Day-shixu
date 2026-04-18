@@ -10,6 +10,10 @@ if (-not $scriptDir) {
 
 $scriptDirResolved = (Resolve-Path -LiteralPath $scriptDir).Path
 $repoRoot = Resolve-Path -LiteralPath (Split-Path -Parent $scriptDirResolved)
+$helperScript = Join-Path $scriptDirResolved 'release-context-helper.ps1'
+if (Test-Path -LiteralPath $helperScript) {
+  . $helperScript
+}
 $rootConfig = Join-Path $repoRoot 'project.config.json'
 $rootPrivateConfig = Join-Path $repoRoot 'project.private.config.json'
 $sourceDir = Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin'
@@ -22,6 +26,18 @@ $targetAppJson = Join-Path $targetDir 'app.json'
 $memoSource = Join-Path $repoRoot 'components\board\MemoEditor.vue'
 $memoDistJs = Join-Path $sourceDir 'components\board\MemoEditor.js'
 $memoDistWxml = Join-Path $sourceDir 'components\board\MemoEditor.wxml'
+$sourceCloudEnvJs = Join-Path $sourceDir 'utils\cloudEnv.js'
+$targetCloudEnvJs = Join-Path $targetDir 'utils\cloudEnv.js'
+$effectiveAppId = if (Get-Command Resolve-EffectiveWechatAppId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveWechatAppId -RepoRoot $repoRoot
+} else {
+  ''
+}
+$effectiveCloudEnvId = if (Get-Command Resolve-EffectiveCloudEnvId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveCloudEnvId -RepoRoot $repoRoot
+} else {
+  ''
+}
 
 function Warn-IfSourceNewerThanDist {
   param(
@@ -176,6 +192,30 @@ function Sync-ProjectIdentity {
   }
 }
 
+function Sync-WechatAppId {
+  param(
+    [Parameter(Mandatory = $true)][string]$AppId,
+    [Parameter(Mandatory = $true)][string[]]$ConfigPaths
+  )
+
+  if ([string]::IsNullOrWhiteSpace($AppId)) {
+    return
+  }
+
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  foreach ($configPath in $ConfigPaths) {
+    if (-not (Test-Path $configPath)) {
+      continue
+    }
+
+    $cfg = Get-Content -Raw -Encoding UTF8 $configPath | ConvertFrom-Json
+    $cfg.appid = $AppId
+    $fullPath = (Get-Item -LiteralPath $configPath).FullName
+    [System.IO.File]::WriteAllText($fullPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
+    Write-Host "Patched: synced appid in $configPath"
+  }
+}
+
 function Sync-PrivateProjectConfig {
   param(
     [Parameter(Mandatory = $true)][string]$RootPrivateConfigPath,
@@ -196,6 +236,32 @@ function Sync-PrivateProjectConfig {
 
     [System.IO.File]::WriteAllText($configPath, $privateCfg, $utf8NoBom)
     Write-Host "Patched: synced private project config in $configPath"
+  }
+}
+
+function Patch-CloudEnvModule {
+  param(
+    [Parameter(Mandatory = $true)][string]$ModulePath,
+    [Parameter(Mandatory = $true)][string]$EnvId
+  )
+
+  if ([string]::IsNullOrWhiteSpace($EnvId) -or -not (Test-Path $ModulePath)) {
+    return
+  }
+
+  $content = Get-Content -Raw -Encoding UTF8 $ModulePath
+  $updated = [regex]::Replace(
+    $content,
+    'const CLOUD_ENV_ID = ".*?";',
+    ('const CLOUD_ENV_ID = "' + $EnvId + '";'),
+    1
+  )
+
+  if ($updated -ne $content) {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    $fullPath = (Get-Item -LiteralPath $ModulePath).FullName
+    [System.IO.File]::WriteAllText($fullPath, $updated, $utf8NoBom)
+    Write-Host "Patched: synced cloud env in $ModulePath"
   }
 }
 
@@ -244,6 +310,7 @@ $targetConfigPath = (Get-Item -LiteralPath $targetConfig).FullName
 [System.IO.File]::WriteAllText($targetConfigPath, ($cfg | ConvertTo-Json -Depth 64), $utf8NoBom)
 
 Sync-ProjectIdentity -RootConfigPath $rootConfig -ConfigPaths @($sourceConfig, $targetConfig)
+Sync-WechatAppId -AppId $effectiveAppId -ConfigPaths @($sourceConfig, $targetConfig)
 Sync-PrivateProjectConfig -RootPrivateConfigPath $rootPrivateConfig -ConfigPaths @($sourcePrivateConfig, $targetPrivateConfig)
 
 if (-not (Test-Path $targetAppJson)) {
@@ -252,6 +319,8 @@ if (-not (Test-Path $targetAppJson)) {
 
 Ensure-LazyCodeLoadingRequiredComponents -AppJsonPath (Join-Path $sourceDir 'app.json')
 Ensure-LazyCodeLoadingRequiredComponents -AppJsonPath $targetAppJson
+Patch-CloudEnvModule -ModulePath $sourceCloudEnvJs -EnvId $effectiveCloudEnvId
+Patch-CloudEnvModule -ModulePath $targetCloudEnvJs -EnvId $effectiveCloudEnvId
 
 # Patch both dist and DevTools copies because some workflows import root project
 # (miniprogramRoot -> unpackage/dist/dev/mp-weixin), while others import _mp_devtools.

@@ -43,7 +43,7 @@
                 },
     "compileType":  "miniprogram",
     "libVersion":  "3.14.2",
-    "appid":  "wx538aff9186f53281",
+    "appid":  "wx0000000000000000",
     "projectname":  "Day时序",
     "miniprogramRoot":  "unpackage/dist/dev/mp-weixin/",
     "cloudfunctionRoot":  "cloudfunctions/",

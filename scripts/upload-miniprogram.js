@@ -13,6 +13,8 @@ const { execSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 
+const PUBLIC_PLACEHOLDER_APPID = 'wx0000000000000000'
+
 // ── Fix: miniprogram-ci bundles less@4 (ESM) which breaks in Node 22+ worker threads.
 //    Downgrade to less@3 (CJS) if needed. ──
 
@@ -56,6 +58,33 @@ const args = parseArgs(process.argv.slice(2))
 const projectRoot = path.resolve(__dirname, '..')
 const devtoolsDir = path.join(projectRoot, '_mp_devtools')
 const projectConfigPath = path.join(projectRoot, 'project.config.json')
+const localReleaseConfigPath = path.join(projectRoot, 'config', 'release-environments.local.json')
+
+function readJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+}
+
+function resolveEffectiveAppId(fallbackAppId) {
+  if (fallbackAppId && fallbackAppId !== PUBLIC_PLACEHOLDER_APPID) {
+    return fallbackAppId
+  }
+
+  const localReleaseConfig = readJsonIfExists(localReleaseConfigPath)
+  if (!localReleaseConfig || !localReleaseConfig.environments) {
+    return fallbackAppId
+  }
+
+  const envName =
+    localReleaseConfig.defaultEnvironment ||
+    'dev'
+  const envNode = localReleaseConfig.environments[envName]
+  if (envNode && envNode.miniprogramAppId) {
+    return envNode.miniprogramAppId
+  }
+
+  return fallbackAppId
+}
 
 if (!fs.existsSync(path.join(devtoolsDir, 'app.json'))) {
   console.error('ERROR: _mp_devtools/app.json not found.')
@@ -66,7 +95,7 @@ if (!fs.existsSync(path.join(devtoolsDir, 'app.json'))) {
 // ── Read appid from project.config.json ──
 
 const projectConfig = JSON.parse(fs.readFileSync(projectConfigPath, 'utf8'))
-const appid = projectConfig.appid
+const appid = resolveEffectiveAppId(projectConfig.appid)
 if (!appid) {
   console.error('ERROR: appid not found in project.config.json')
   process.exit(1)

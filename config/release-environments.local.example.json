@@ -3,7 +3,7 @@
   "environments": {
     "dev": {
       "status": "READY",
-      "label": "Current shared development environment",
+      "label": "Copy this file to release-environments.local.json and fill in real local values",
       "cloudEnvId": "cloud-public-placeholder-env",
       "miniprogramAppId": "wx0000000000000000",
       "requiresLocalOverrides": false

@@ -44,6 +44,11 @@ A WeChat Mini Program for building personal growth rituals — habit tracking, d
 4. Inspect environment status: `npm.cmd run env:list`
 5. Follow the document map below based on what you are working on
 
+Public-repo convention:
+- Tracked `envId` / `appid` values stay on public placeholders
+- Real local release values belong in the ignored `config/release-environments.local.json`
+- Copy `config/release-environments.local.example.json` and fill in real values; release scripts prefer the local override automatically
+
 If you are working on release-related tasks, read these first:
 
 1. [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)

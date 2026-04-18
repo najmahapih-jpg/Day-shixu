@@ -44,6 +44,11 @@
 4. 查看环境状态：`npm.cmd run env:list`
 5. 按下面的文档导航进入对应专项
 
+公开仓库约定：
+- 跟踪中的 `envId` / `appid` 使用公开占位值
+- 本地真实发布配置放在被忽略的 `config/release-environments.local.json`
+- 可从 `config/release-environments.local.example.json` 复制一份后填入真实值，发布脚本会优先读取本地 override
+
 接手发布相关工作，建议按此顺序阅读：
 
 1. [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)

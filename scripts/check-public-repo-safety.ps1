@@ -58,6 +58,46 @@ if ($trackedSensitiveHits.Count -gt 0) {
   Pass 'No local-only sensitive files are tracked by git'
 }
 
+$publicPlaceholderEnvId = 'cloud-public-placeholder-env'
+$publicPlaceholderAppId = 'wx0000000000000000'
+
+function Assert-PublicPlaceholder {
+  param(
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter(Mandatory = $true)][string]$Pattern,
+    [Parameter(Mandatory = $true)][string]$ExpectedValue,
+    [Parameter(Mandatory = $true)][string]$Label
+  )
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return
+  }
+
+  $content = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+  $matches = [regex]::Matches($content, $Pattern)
+  foreach ($match in $matches) {
+    $value = [string]$match.Groups[1].Value
+    if (-not [string]::IsNullOrWhiteSpace($value) -and $value -ne $ExpectedValue) {
+      Fail ("Tracked public-repo identifier must be placeholder in $Path [$Label]: $value")
+    }
+  }
+}
+
+Write-Host "  Auditing tracked public-repo identifiers...`n"
+
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'cloudbaserc.json') -Pattern '"envId"\s*:\s*"([^"]+)"' -ExpectedValue $publicPlaceholderEnvId -Label 'cloudbaserc envId'
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'project.config.json') -Pattern '"appid"\s*:\s*"([^"]+)"' -ExpectedValue $publicPlaceholderAppId -Label 'project config appid'
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'manifest.json') -Pattern '"mp-weixin"\s*:\s*\{[\s\S]*?"appid"\s*:\s*"([^"]+)"' -ExpectedValue $publicPlaceholderAppId -Label 'manifest mp-weixin appid'
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'utils\cloudEnv.ts') -Pattern "CLOUD_ENV_ID\s*=\s*'([^']+)'" -ExpectedValue $publicPlaceholderEnvId -Label 'tracked cloud env export'
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'config\release-environments.json') -Pattern '"cloudEnvId"\s*:\s*"([^"]*)"' -ExpectedValue $publicPlaceholderEnvId -Label 'tracked release env cloudEnvId'
+Assert-PublicPlaceholder -Path (Join-Path $projectRoot 'config\release-environments.json') -Pattern '"miniprogramAppId"\s*:\s*"([^"]*)"' -ExpectedValue $publicPlaceholderAppId -Label 'tracked release env miniprogramAppId'
+
+$historyFiles = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'releases\history') -Recurse -File -Filter '*.json' -ErrorAction SilentlyContinue
+foreach ($historyFile in $historyFiles) {
+  Assert-PublicPlaceholder -Path $historyFile.FullName -Pattern '"envId"\s*:\s*"([^"]+)"' -ExpectedValue $publicPlaceholderEnvId -Label 'release history envId'
+  Assert-PublicPlaceholder -Path $historyFile.FullName -Pattern '"appid"\s*:\s*"([^"]+)"' -ExpectedValue $publicPlaceholderAppId -Label 'release history appid'
+}
+
 $historyAuditTargets = @(
   '.wxci',
   'project.private.config.json',

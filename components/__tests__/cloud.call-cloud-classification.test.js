@@ -7,7 +7,7 @@ describe('callCloud session classification', () => {
       useNetwork: () => ({ isConnected: ref(true) }),
     }))
     jest.doMock('@/utils/cloudEnv', () => ({
-      CLOUD_ENV_ID: 'cloud-dev-01-2gvgeewv8b7147fb',
+      CLOUD_ENV_ID: 'cloud-public-placeholder-env',
     }))
   })
 

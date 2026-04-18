@@ -19,6 +19,10 @@ function Fail($msg) { Write-Host "  [FAIL] $msg" -ForegroundColor Red; $script:f
 function Warn($msg) { Write-Host "  [WARN] $msg" -ForegroundColor Yellow; $script:warnings++ }
 
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+$helperScript = Join-Path $PSScriptRoot 'release-context-helper.ps1'
+if (Test-Path -LiteralPath $helperScript) {
+  . $helperScript
+}
 
 Write-Host "`nRelease Context Check" -ForegroundColor Cyan
 Write-Host "=====================`n" -ForegroundColor Cyan
@@ -65,6 +69,21 @@ $runtimeEnvId = ''
 $activeNamedEnvironment = ''
 $activeNamedStatus = ''
 $projectAppId = ''
+$effectiveBinding = if (Get-Command Resolve-EffectiveReleaseBinding -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveReleaseBinding -RepoRoot $projectRoot
+} else {
+  $null
+}
+$effectiveEnvId = if (Get-Command Resolve-EffectiveCloudEnvId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveCloudEnvId -RepoRoot $projectRoot
+} else {
+  ''
+}
+$effectiveAppId = if (Get-Command Resolve-EffectiveWechatAppId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveWechatAppId -RepoRoot $projectRoot
+} else {
+  ''
+}
 
 if (-not (Test-Path $cloudbaseRcPath)) {
   Fail 'cloudbaserc.json is missing'
@@ -73,6 +92,12 @@ if (-not (Test-Path $cloudbaseRcPath)) {
   $cloudbaseEnvId = [string]$cloudbaseRc.envId
   if ([string]::IsNullOrWhiteSpace($cloudbaseEnvId)) {
     Fail 'cloudbaserc.json envId is empty'
+  } elseif ((Get-Command Test-PlaceholderCloudEnvId -ErrorAction SilentlyContinue) -and (Test-PlaceholderCloudEnvId -Value $cloudbaseEnvId)) {
+    if ([string]::IsNullOrWhiteSpace($effectiveEnvId)) {
+      Fail 'cloudbaserc.json envId is placeholder, but no local release override is available'
+    } else {
+      Warn ("cloudbaserc.json envId uses public placeholder; effective envId resolves from local override: " + $effectiveEnvId)
+    }
   } else {
     Pass ("cloudbaserc envId: " + $cloudbaseEnvId)
   }
@@ -88,10 +113,16 @@ if (Test-Path $cloudEnvTsPath) {
   }
   if ($cloudEnvTs -match "CLOUD_ENV_ID\s*=\s*'([^']+)'") {
     $runtimeEnvId = $Matches[1]
-    if ($runtimeEnvId -eq $cloudbaseEnvId) {
+    if ((Get-Command Test-PlaceholderCloudEnvId -ErrorAction SilentlyContinue) -and (Test-PlaceholderCloudEnvId -Value $runtimeEnvId)) {
+      if ([string]::IsNullOrWhiteSpace($effectiveEnvId)) {
+        Fail 'utils/cloudEnv.ts envId is placeholder, but no local release override is available'
+      } else {
+        Warn ("utils/cloudEnv.ts envId uses public placeholder; release tooling will patch build output with local envId: " + $effectiveEnvId)
+      }
+    } elseif ($runtimeEnvId -eq $effectiveEnvId) {
       Pass ("utils/cloudEnv.ts matches envId: " + $runtimeEnvId)
     } else {
-      Fail ("utils/cloudEnv.ts envId mismatch: " + $runtimeEnvId + " != " + $cloudbaseEnvId)
+      Fail ("utils/cloudEnv.ts envId mismatch: " + $runtimeEnvId + " != " + $effectiveEnvId)
     }
   } else {
     Warn 'utils/cloudEnv.ts exists but CLOUD_ENV_ID could not be parsed'
@@ -128,6 +159,12 @@ if (-not (Test-Path $projectConfigPath)) {
   $projectAppId = [string]$projectConfig.appid
   if ([string]::IsNullOrWhiteSpace($projectAppId)) {
     Fail 'project.config.json appid is empty'
+  } elseif ((Get-Command Test-PlaceholderWechatAppId -ErrorAction SilentlyContinue) -and (Test-PlaceholderWechatAppId -Value $projectAppId)) {
+    if ([string]::IsNullOrWhiteSpace($effectiveAppId)) {
+      Fail 'project.config.json appid is placeholder, but no local release override is available'
+    } else {
+      Warn ("project.config.json appid uses public placeholder; effective appid resolves from local override: " + $effectiveAppId)
+    }
   } else {
     Pass ("project.config.json appid: " + $projectAppId)
   }
@@ -152,7 +189,7 @@ if (-not (Test-Path $projectConfigPath)) {
   }
 
   $envKeyPath = [Environment]::GetEnvironmentVariable('WECHAT_CI_PRIVATE_KEY_PATH')
-  $fallbackKeyPath = Join-Path $projectRoot (".wxci\private." + $projectAppId + ".key")
+  $fallbackKeyPath = Join-Path $projectRoot (".wxci\private." + $effectiveAppId + ".key")
   if (-not [string]::IsNullOrWhiteSpace($envKeyPath) -and (Test-Path $envKeyPath)) {
     Pass 'WeChat CI private key found via WECHAT_CI_PRIVATE_KEY_PATH'
   } elseif (Test-Path $fallbackKeyPath) {
@@ -162,23 +199,12 @@ if (-not (Test-Path $projectConfigPath)) {
   }
 }
 
-if (Test-Path $releaseEnvConfigPath) {
-  $releaseEnvConfig = Get-Content -Path $releaseEnvConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
-  foreach ($prop in $releaseEnvConfig.environments.PSObject.Properties) {
-    $envName = [string]$prop.Name
-    $envNode = $prop.Value
-    $envCloudId = [string]$envNode.cloudEnvId
-    $envAppId = [string]$envNode.miniprogramAppId
-    if ([string]::IsNullOrWhiteSpace($envCloudId)) { continue }
-    if ($envCloudId -eq $cloudbaseEnvId -and ([string]::IsNullOrWhiteSpace($envAppId) -or $envAppId -eq $projectAppId)) {
-      $activeNamedEnvironment = $envName
-      $activeNamedStatus = if ([string]::IsNullOrWhiteSpace([string]$envNode.status)) { 'UNCONFIGURED' } else { [string]$envNode.status }
-      break
-    }
-  }
+if ($effectiveBinding) {
+  $activeNamedEnvironment = [string]$effectiveBinding.Name
+  $activeNamedStatus = [string]$effectiveBinding.Status
 
   if ([string]::IsNullOrWhiteSpace($activeNamedEnvironment)) {
-    Fail 'Current envId/appid does not match any named environment in config/release-environments.json'
+    Fail 'Current envId/appid does not match any named environment in release environment config'
   } else {
     if ($activeNamedStatus -eq 'READY') {
       Pass ("active named environment: " + $activeNamedEnvironment)
