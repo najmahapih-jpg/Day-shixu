@@ -1,0 +1,37 @@
+﻿{
+    "schemaVersion":  1,
+    "manifestType":  "release",
+    "releaseId":  "20260419T131609Z-prod-v1.0.0-e99f976",
+    "generatedAt":  "2026-04-19T13:16:09.1275031Z",
+    "release":  {
+                    "channel":  "wechat-mini-program",
+                    "phase":  "uploaded",
+                    "version":  "1.0.0",
+                    "versionCode":  "100",
+                    "description":  "Retry after whitelist 2026-04-19T21:14:12+08:00",
+                    "robot":  1
+                },
+    "environment":  {
+                        "name":  "prod",
+                        "status":  "READY",
+                        "envId":  "cloud-public-placeholder-env",
+                        "appid":  "wx0000000000000000"
+                    },
+    "git":  {
+                "branch":  "main",
+                "commit":  "e99f9768c71f5a044b02dd04f9ff29b8c4ff80fe",
+                "shortCommit":  "e99f976"
+            },
+    "rollbackAnchor":  {
+                           "strategy":  "previous-release-for-same-environment",
+                           "targetReleaseId":  null,
+                           "targetVersion":  null,
+                           "targetCommit":  null,
+                           "targetBranch":  null,
+                           "targetGeneratedAt":  null
+                       },
+    "artifacts":  {
+                      "releaseManifestPath":  "releases\\history\\prod\\20260419T131609Z-prod-v1.0.0-e99f976.release-manifest.json",
+                      "rollbackManifestPath":  "releases\\history\\prod\\20260419T131609Z-prod-v1.0.0-e99f976.rollback-manifest.json"
+                  }
+}
