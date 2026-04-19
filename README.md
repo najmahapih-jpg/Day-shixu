@@ -54,7 +54,8 @@
 1. [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
 2. [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
 3. [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
-4. [`releases/README.md`](releases/README.md)
+4. [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
+5. [`releases/README.md`](releases/README.md)
 
 ## 常用命令
 
@@ -108,6 +109,7 @@ npm.cmd run prepare:wechat
 - 发布操作说明：[`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
 - 发布事实、回滚锚点与公开仓库安全边界：[`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
 - 环境命名与状态说明：[`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
+- 正式版发布最小闭环清单：[`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
 - 结构化发布记录目录：[`releases/README.md`](releases/README.md)
 
 ## 文档导航
@@ -121,6 +123,7 @@ npm.cmd run prepare:wechat
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | 发布执行手册 |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | 发布链事实、记录、回滚与公开仓库安全边界 |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | 环境命名、状态与限制 |
+| [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md) | 推进到可发正式版的最小清单 |
 | [`docs/ACCEPTANCE_TEST_CHECKLIST.md`](docs/ACCEPTANCE_TEST_CHECKLIST.md) | 发布前验收清单 |
 | [`docs/HOME_INDEX_HANDOFF.md`](docs/HOME_INDEX_HANDOFF.md) | 首页维护边界 |
 | [`docs/TIMELINE_INDEX_HANDOFF.md`](docs/TIMELINE_INDEX_HANDOFF.md) | timeline 维护边界 |

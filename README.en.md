@@ -54,7 +54,8 @@ If you are working on release-related tasks, read these first:
 1. [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
 2. [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
 3. [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
-4. [`releases/README.md`](releases/README.md)
+4. [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
+5. [`releases/README.md`](releases/README.md)
 
 Detailed operational and handoff docs currently remain in Chinese and are the source of truth for deep maintenance work.
 
@@ -110,6 +111,7 @@ npm.cmd run prepare:wechat
 - Release operations: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
 - Release facts, rollback anchors, and public-repo safety boundaries: [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
 - Named environments and current status: [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
+- Minimum checklist for a real production release: [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
 - Structured release record directory: [`releases/README.md`](releases/README.md)
 
 ## Document Map
@@ -123,6 +125,7 @@ npm.cmd run prepare:wechat
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | Release execution guide |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | Release facts, records, rollback entrypoints, public-repo safety boundaries |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | Environment naming, status, and limitations |
+| [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md) | Minimum checklist to reach a real production release |
 | [`docs/ACCEPTANCE_TEST_CHECKLIST.md`](docs/ACCEPTANCE_TEST_CHECKLIST.md) | Pre-release acceptance checklist |
 | [`docs/HOME_INDEX_HANDOFF.md`](docs/HOME_INDEX_HANDOFF.md) | Home page maintenance boundaries |
 | [`docs/TIMELINE_INDEX_HANDOFF.md`](docs/TIMELINE_INDEX_HANDOFF.md) | Timeline maintenance boundaries |

@@ -154,7 +154,6 @@ async function scheduledRemind(_input = {}) {
                 data: {
                     thing1: { value: displayName },
                     time2: { value: String(firstHabit.reminderTime || currentTime) },
-                    thing3: { value: '记得完成今天的习惯哦' },
                 },
             };
             await cloud.openapi.subscribeMessage.send(payload);
