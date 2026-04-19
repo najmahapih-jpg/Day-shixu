@@ -84,6 +84,11 @@ $effectiveAppId = if (Get-Command Resolve-EffectiveWechatAppId -ErrorAction Sile
 } else {
   ''
 }
+$effectiveNotifyTemplateId = if (Get-Command Resolve-EffectiveNotifyTemplateId -ErrorAction SilentlyContinue) {
+  Resolve-EffectiveNotifyTemplateId -RepoRoot $projectRoot
+} else {
+  ''
+}
 
 if (-not (Test-Path $cloudbaseRcPath)) {
   Fail 'cloudbaserc.json is missing'
@@ -197,6 +202,12 @@ if (-not (Test-Path $projectConfigPath)) {
   } else {
     Fail 'No WeChat CI private key found (set WECHAT_CI_PRIVATE_KEY_PATH or place .wxci/private.<appid>.key)'
   }
+
+  if ([string]::IsNullOrWhiteSpace($effectiveNotifyTemplateId)) {
+    Warn 'Notification template ID is not configured for the effective environment yet'
+  } else {
+    Pass 'Notification template ID is configured for the effective environment'
+  }
 }
 
 if ($effectiveBinding) {
@@ -208,6 +219,9 @@ if ($effectiveBinding) {
   } else {
     if ($activeNamedStatus -eq 'READY') {
       Pass ("active named environment: " + $activeNamedEnvironment)
+      if ([string]::IsNullOrWhiteSpace($effectiveNotifyTemplateId)) {
+        Fail ("active named environment is READY but notifyTemplateId is empty: " + $activeNamedEnvironment)
+      }
     } elseif ($activeNamedStatus -eq 'INVALID') {
       Fail ("active named environment is INVALID: " + $activeNamedEnvironment)
     } else {

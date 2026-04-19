@@ -34,12 +34,21 @@ foreach ($cf in $cfFiles) {
 
 # ── 2. Template ID ──
 Write-Host "`n2. Notification Template ID" -ForegroundColor White
-$notifyPath = Join-Path $projectRoot 'cloudfunctions\notify\index.js'
-$notifyContent = Get-Content $notifyPath -Raw
-if ($notifyContent -match 'REPLACE_WITH_REAL') {
-  Fail "notify still has placeholder TEMPLATE_ID"
+$notifyRuntimeConfigPaths = @(
+  (Join-Path $projectRoot 'cloudfunctions\notify\runtime-config.local.json'),
+  (Join-Path $projectRoot 'cloudfunctions\notify\runtime-config.json')
+)
+$notifyRuntimeConfigPath = $notifyRuntimeConfigPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $notifyRuntimeConfigPath) {
+  Fail 'notify runtime config is missing'
 } else {
-  Pass "Template ID is set"
+  $notifyRuntimeConfig = Get-Content -LiteralPath $notifyRuntimeConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $templateId = [string]$notifyRuntimeConfig.subscribeTemplateId
+  if ([string]::IsNullOrWhiteSpace($templateId) -or $templateId -eq 'REPLACE_WITH_REAL') {
+    Fail "notify runtime config still has placeholder TEMPLATE_ID"
+  } else {
+    Pass "Template ID is set"
+  }
 }
 
 # ── 3. Privacy Check ──

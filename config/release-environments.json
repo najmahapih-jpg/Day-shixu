@@ -6,6 +6,7 @@
       "label": "Current shared development environment",
       "cloudEnvId": "cloud-public-placeholder-env",
       "miniprogramAppId": "wx0000000000000000",
+      "notifyTemplateId": "",
       "requiresLocalOverrides": false
     },
     "staging": {
@@ -13,6 +14,7 @@
       "label": "Reserved for future staging rollout",
       "cloudEnvId": "",
       "miniprogramAppId": "",
+      "notifyTemplateId": "",
       "requiresLocalOverrides": true
     },
     "prod": {
@@ -20,6 +22,7 @@
       "label": "Reserved for future production rollout",
       "cloudEnvId": "",
       "miniprogramAppId": "",
+      "notifyTemplateId": "",
       "requiresLocalOverrides": true
     }
   }

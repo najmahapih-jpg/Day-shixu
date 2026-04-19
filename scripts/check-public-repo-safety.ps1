@@ -31,6 +31,7 @@ $trackedSensitivePatterns = @(
   @{ Label = '.wxci private keys'; Regex = '^(?:\.wxci/|\.wxci\\)' }
   @{ Label = 'project.private.config.json'; Regex = '(^|[\\/])project\.private\.config\.json$' }
   @{ Label = 'config/release-environments.local.json'; Regex = '^config[\\/]release-environments\.local\.json$' }
+  @{ Label = 'cloud function runtime-config.local.json'; Regex = '^cloudfunctions[\\/].+[\\/]runtime-config\.local\.json$' }
   @{ Label = '.env files'; Regex = '(^|[\\/])\.env(\..+)?$' }
   @{ Label = '.pem files'; Regex = '\.pem$' }
   @{ Label = '.p12 files'; Regex = '\.p12$' }
@@ -101,7 +102,8 @@ foreach ($historyFile in $historyFiles) {
 $historyAuditTargets = @(
   '.wxci',
   'project.private.config.json',
-  'config/release-environments.local.json'
+  'config/release-environments.local.json',
+  'cloudfunctions/*/runtime-config.local.json'
 )
 
 foreach ($target in $historyAuditTargets) {

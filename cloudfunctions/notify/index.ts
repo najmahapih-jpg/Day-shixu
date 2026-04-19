@@ -1,6 +1,12 @@
 import cloud = require('wx-server-sdk')
 import type { CloudResult } from '../_shared/cloud-types'
 
+declare const require: (name: string) => any
+declare const __dirname: string
+
+const fs = require('fs')
+const path = require('path')
+
 type HabitFrequency = 'daily' | 'weekdays' | 'weekends' | 'custom'
 type NotifyAction = 'scheduledRemind'
 
@@ -58,6 +64,40 @@ const db: any = cloud.database()
 const _: any = db.command
 const habitsCol: any = db.collection('habits')
 const usersCol: any = db.collection('users')
+const PLACEHOLDER_TEMPLATE_ID = 'REPLACE_WITH_REAL'
+
+type NotifyRuntimeConfig = {
+  subscribeTemplateId?: string
+}
+
+function readNotifyRuntimeConfig(): NotifyRuntimeConfig {
+  const configPaths = [
+    path.join(__dirname, 'runtime-config.local.json'),
+    path.join(__dirname, 'runtime-config.json'),
+  ]
+
+  for (const configPath of configPaths) {
+    if (!fs.existsSync(configPath)) continue
+    try {
+      const raw = fs.readFileSync(configPath, 'utf8')
+      return JSON.parse(raw) as NotifyRuntimeConfig
+    } catch (err) {
+      console.error('[notify] runtime config parse failed', { configPath, err })
+      return {}
+    }
+  }
+
+  return {}
+}
+
+function getSubscribeTemplateId(): string {
+  const runtimeConfig = readNotifyRuntimeConfig()
+  const templateId = String(runtimeConfig.subscribeTemplateId || '').trim()
+  if (!templateId || templateId === PLACEHOLDER_TEMPLATE_ID) {
+    return ''
+  }
+  return templateId
+}
 
 function fail<T = unknown>(message: string, data?: T): Extract<CloudResult<never>, { code: -1 }> {
   const result: Extract<CloudResult<never>, { code: -1 }> = { code: -1, message }
@@ -103,6 +143,11 @@ async function getList<T>(query: any): Promise<T[]> {
 }
 
 async function scheduledRemind(_input: ScheduledRemindInput = {}): Promise<CloudResult<NotifyResult>> {
+  const templateId = getSubscribeTemplateId()
+  if (!templateId) {
+    return fail('notify subscribe template is not configured')
+  }
+
   const currentTime = getCurrentHHmm()
   const dow = getCurrentDow()
 
@@ -179,7 +224,7 @@ async function scheduledRemind(_input: ScheduledRemindInput = {}): Promise<Cloud
     try {
       const payload: SubscribeMessagePayload = {
         touser: openid,
-        templateId: 'vRh8S5mGFwJRclVVnG8pqK4l1wT1kXtjNzfp0xt20K0',
+        templateId,
         page: 'pages/index/index',
         data: {
           thing1: { value: displayName },

@@ -95,6 +95,21 @@ function Resolve-EnvironmentNode {
   return $envNode
 }
 
+function Write-NotifyRuntimeConfig {
+  param(
+    [Parameter(Mandatory = $true)][string]$RepoRoot,
+    [Parameter(Mandatory = $true)][string]$TemplateId
+  )
+
+  $notifyConfigPath = Join-Path $RepoRoot 'cloudfunctions\notify\runtime-config.local.json'
+  $payload = [ordered]@{
+    subscribeTemplateId = $TemplateId
+  }
+
+  Write-JsonNoBom -Path $notifyConfigPath -Object $payload
+  return $notifyConfigPath
+}
+
 $resolvedConfigPath = Resolve-EnvironmentConfigPath -ConfigPath $ConfigPath
 $config = Load-EnvironmentConfig -ResolvedConfigPath $resolvedConfigPath
 
@@ -106,7 +121,8 @@ if ($ListAvailable) {
     $envNode = $prop.Value
     $status = if ([string]::IsNullOrWhiteSpace([string]$envNode.status)) { 'UNCONFIGURED' } else { [string]$envNode.status }
     $defaultSuffix = if ($envName -eq $defaultName) { ' (default)' } else { '' }
-    Write-Host ("- {0}{1} [{2}] envId={3} appid={4}" -f $envName, $defaultSuffix, $status, $envNode.cloudEnvId, $envNode.miniprogramAppId)
+    $templateState = if ([string]::IsNullOrWhiteSpace([string]$envNode.notifyTemplateId)) { 'template=<empty>' } else { 'template=<set>' }
+    Write-Host ("- {0}{1} [{2}] envId={3} appid={4} {5}" -f $envName, $defaultSuffix, $status, $envNode.cloudEnvId, $envNode.miniprogramAppId, $templateState)
   }
   exit 0
 }
@@ -115,6 +131,7 @@ $resolvedName = ''
 $resolvedStatus = ''
 $resolvedEnvId = ''
 $resolvedAppId = ''
+$resolvedNotifyTemplateId = ''
 
 if (-not [string]::IsNullOrWhiteSpace($Name)) {
   $resolvedName = $Name
@@ -122,6 +139,7 @@ if (-not [string]::IsNullOrWhiteSpace($Name)) {
   $resolvedStatus = [string]$envNode.status
   $resolvedEnvId = [string]$envNode.cloudEnvId
   $resolvedAppId = [string]$envNode.miniprogramAppId
+  $resolvedNotifyTemplateId = [string]$envNode.notifyTemplateId
 
   if ($resolvedStatus -eq 'INVALID') {
     throw "Environment '$Name' is marked INVALID and cannot be applied."
@@ -130,11 +148,15 @@ if (-not [string]::IsNullOrWhiteSpace($Name)) {
   if ([string]::IsNullOrWhiteSpace($resolvedEnvId) -or [string]::IsNullOrWhiteSpace($resolvedAppId)) {
     throw "Environment '$Name' is not fully configured yet (missing cloudEnvId or miniprogramAppId)."
   }
+  if (-not [string]::IsNullOrWhiteSpace($resolvedStatus) -and $resolvedStatus -eq 'READY' -and [string]::IsNullOrWhiteSpace($resolvedNotifyTemplateId)) {
+    throw "Environment '$Name' is marked READY but notifyTemplateId is empty."
+  }
 } elseif (-not [string]::IsNullOrWhiteSpace($EnvId)) {
   $resolvedName = 'custom'
   $resolvedStatus = 'CUSTOM'
   $resolvedEnvId = $EnvId
   $resolvedAppId = ''
+  $resolvedNotifyTemplateId = ''
 } else {
   throw "Usage: set-cloud-env.ps1 -Name dev | -EnvId <envId> | -ListAvailable"
 }
@@ -205,6 +227,12 @@ export const CLOUD_ENV_ID = '$resolvedEnvId'
 "@
 [System.IO.File]::WriteAllText($cloudEnvTsFullPath, $cloudEnvTsContent, $utf8NoBom)
 $updated += $cloudEnvTsPath
+
+# 5) notify runtime config
+if (-not [string]::IsNullOrWhiteSpace($resolvedNotifyTemplateId)) {
+  $notifyRuntimeConfigPath = Write-NotifyRuntimeConfig -RepoRoot $repoRoot -TemplateId $resolvedNotifyTemplateId
+  $updated += $notifyRuntimeConfigPath
+}
 
 Write-Host "Cloud environment context updated."
 Write-Host ("- name:   " + $resolvedName)

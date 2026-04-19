@@ -134,11 +134,19 @@ function Resolve-EffectiveReleaseBinding {
     $appId = [string]$trackedNode.miniprogramAppId
   }
 
+  $notifyTemplateId = ''
+  if ($localNode -and -not [string]::IsNullOrWhiteSpace([string]$localNode.notifyTemplateId)) {
+    $notifyTemplateId = [string]$localNode.notifyTemplateId
+  } elseif ($trackedNode -and -not [string]::IsNullOrWhiteSpace([string]$trackedNode.notifyTemplateId)) {
+    $notifyTemplateId = [string]$trackedNode.notifyTemplateId
+  }
+
   return [PSCustomObject]@{
     Name = $resolvedName
     Status = $status
     EnvId = $envId
     AppId = $appId
+    NotifyTemplateId = $notifyTemplateId
     HasLocalOverride = $null -ne $localConfig
     LocalConfigPath = Get-LocalReleaseEnvironmentConfigPath -RepoRoot $RepoRoot
     TrackedConfigPath = Get-TrackedReleaseEnvironmentConfigPath -RepoRoot $RepoRoot
@@ -171,4 +179,10 @@ function Resolve-EffectiveWechatAppId {
   }
 
   return [string](Resolve-EffectiveReleaseBinding -RepoRoot $RepoRoot).AppId
+}
+
+function Resolve-EffectiveNotifyTemplateId {
+  param([string]$RepoRoot)
+
+  return [string](Resolve-EffectiveReleaseBinding -RepoRoot $RepoRoot).NotifyTemplateId
 }

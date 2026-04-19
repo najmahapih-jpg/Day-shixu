@@ -3,8 +3,14 @@
  * Focus: trigger-metadata validation, notifyEnabled enforcement,
  *        multi-page user pagination, DB error handling.
  */
+const fs = require('fs')
+const path = require('path')
 const cloud = require('wx-server-sdk')
 const { main } = require('../index')
+
+const runtimeConfigLocalPath = path.join(__dirname, '..', 'runtime-config.local.json')
+let originalRuntimeConfigLocalContent = null
+let hadOriginalRuntimeConfigLocal = false
 
 // Compute the current HH:mm string the same way the scheduler does
 function currentHHmm() {
@@ -19,11 +25,24 @@ function currentHHmm() {
 const TIMER_EVENT = { Type: 'Timer', action: 'scheduledRemind' }
 
 beforeEach(() => {
+  hadOriginalRuntimeConfigLocal = fs.existsSync(runtimeConfigLocalPath)
+  originalRuntimeConfigLocalContent = hadOriginalRuntimeConfigLocal
+    ? fs.readFileSync(runtimeConfigLocalPath, 'utf8')
+    : null
   cloud.__resetDB()
   cloud.__setWXContext({ OPENID: '', APPID: 'test' })
   cloud.__clearNextGetError()
   cloud.openapi.subscribeMessage.send.mockClear()
   cloud.openapi.subscribeMessage.send.mockImplementation(() => Promise.resolve({ errCode: 0 }))
+  fs.writeFileSync(runtimeConfigLocalPath, JSON.stringify({ subscribeTemplateId: 'test-template-id' }), 'utf8')
+})
+
+afterEach(() => {
+  if (hadOriginalRuntimeConfigLocal) {
+    fs.writeFileSync(runtimeConfigLocalPath, originalRuntimeConfigLocalContent, 'utf8')
+  } else if (fs.existsSync(runtimeConfigLocalPath)) {
+    fs.unlinkSync(runtimeConfigLocalPath)
+  }
 })
 
 describe('notify trigger-metadata validation', () => {

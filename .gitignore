@@ -21,6 +21,7 @@ nul
 # HBuilderX private config (contains local paths and appid)
 project.private.config.json
 config/release-environments.local.json
+cloudfunctions/*/runtime-config.local.json
 
 # Local orchestration/runtime state
 .omc/

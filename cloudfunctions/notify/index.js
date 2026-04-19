@@ -2,11 +2,41 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = main;
 const cloud = require("wx-server-sdk");
+const fs = require("fs");
+const path = require("path");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const habitsCol = db.collection('habits');
 const usersCol = db.collection('users');
+const PLACEHOLDER_TEMPLATE_ID = 'REPLACE_WITH_REAL';
+function readNotifyRuntimeConfig() {
+    const configPaths = [
+        path.join(__dirname, 'runtime-config.local.json'),
+        path.join(__dirname, 'runtime-config.json'),
+    ];
+    for (const configPath of configPaths) {
+        if (!fs.existsSync(configPath))
+            continue;
+        try {
+            const raw = fs.readFileSync(configPath, 'utf8');
+            return JSON.parse(raw);
+        }
+        catch (err) {
+            console.error('[notify] runtime config parse failed', { configPath, err });
+            return {};
+        }
+    }
+    return {};
+}
+function getSubscribeTemplateId() {
+    const runtimeConfig = readNotifyRuntimeConfig();
+    const templateId = String(runtimeConfig.subscribeTemplateId || '').trim();
+    if (!templateId || templateId === PLACEHOLDER_TEMPLATE_ID) {
+        return '';
+    }
+    return templateId;
+}
 function fail(message, data) {
     const result = { code: -1, message };
     if (data !== undefined) {
@@ -49,6 +79,10 @@ async function getList(query) {
     return (res.data || []);
 }
 async function scheduledRemind(_input = {}) {
+    const templateId = getSubscribeTemplateId();
+    if (!templateId) {
+        return fail('notify subscribe template is not configured');
+    }
     const currentTime = getCurrentHHmm();
     const dow = getCurrentDow();
     const [hour, minute] = currentTime.split(':').map(Number);
@@ -115,7 +149,7 @@ async function scheduledRemind(_input = {}) {
         try {
             const payload = {
                 touser: openid,
-                templateId: 'vRh8S5mGFwJRclVVnG8pqK4l1wT1kXtjNzfp0xt20K0',
+                templateId,
                 page: 'pages/index/index',
                 data: {
                     thing1: { value: displayName },
