@@ -68,14 +68,14 @@ function Get-ConfiguredEnvironmentNameFromCloudEnvTs {
 function Resolve-EffectiveEnvironmentName {
   param([string]$RepoRoot)
 
-  $configuredName = Get-ConfiguredEnvironmentNameFromCloudEnvTs -RepoRoot $RepoRoot
-  if (-not [string]::IsNullOrWhiteSpace($configuredName)) {
-    return $configuredName
-  }
-
   $localConfig = Get-LocalReleaseEnvironmentConfig -RepoRoot $RepoRoot
   if ($localConfig -and -not [string]::IsNullOrWhiteSpace([string]$localConfig.defaultEnvironment)) {
     return [string]$localConfig.defaultEnvironment
+  }
+
+  $configuredName = Get-ConfiguredEnvironmentNameFromCloudEnvTs -RepoRoot $RepoRoot
+  if (-not [string]::IsNullOrWhiteSpace($configuredName)) {
+    return $configuredName
   }
 
   $trackedConfig = Get-TrackedReleaseEnvironmentConfig -RepoRoot $RepoRoot

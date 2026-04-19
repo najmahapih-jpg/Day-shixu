@@ -112,6 +112,8 @@ function Write-NotifyRuntimeConfig {
 
 $resolvedConfigPath = Resolve-EnvironmentConfigPath -ConfigPath $ConfigPath
 $config = Load-EnvironmentConfig -ResolvedConfigPath $resolvedConfigPath
+$localOverrideConfigPath = Join-Path $repoRoot 'config\release-environments.local.json'
+$usesLocalOverrideConfig = (Test-Path -LiteralPath $localOverrideConfigPath) -and ((Resolve-Path -LiteralPath $resolvedConfigPath).Path -eq (Resolve-Path -LiteralPath $localOverrideConfigPath).Path)
 
 if ($ListAvailable) {
   $defaultName = [string]$config.defaultEnvironment
@@ -163,9 +165,15 @@ if (-not [string]::IsNullOrWhiteSpace($Name)) {
 
 $updated = @()
 
+if ($usesLocalOverrideConfig -and -not [string]::IsNullOrWhiteSpace($resolvedName) -and (Test-Path -LiteralPath $resolvedConfigPath)) {
+  $config.defaultEnvironment = $resolvedName
+  Write-JsonNoBom -Path $resolvedConfigPath -Object $config
+  $updated += $resolvedConfigPath
+}
+
 # 1) cloudbaserc.json
 $cloudbaseRc = Join-Path $repoRoot 'cloudbaserc.json'
-if (Test-Path $cloudbaseRc) {
+if (-not $usesLocalOverrideConfig -and (Test-Path $cloudbaseRc)) {
   $cfg = Get-Content -Raw -Encoding UTF8 $cloudbaseRc | ConvertFrom-Json
   $cfg.envId = $resolvedEnvId
   Write-JsonNoBom -Path $cloudbaseRc -Object $cfg
@@ -174,10 +182,13 @@ if (Test-Path $cloudbaseRc) {
 
 # 2) project.config.json + generated build configs
 $projectConfigPaths = @(
-  (Join-Path $repoRoot 'project.config.json'),
   (Join-Path $repoRoot 'unpackage\dist\dev\mp-weixin\project.config.json'),
   (Join-Path $repoRoot '_mp_devtools\project.config.json')
 )
+
+if (-not $usesLocalOverrideConfig) {
+  $projectConfigPaths = @((Join-Path $repoRoot 'project.config.json')) + $projectConfigPaths
+}
 
 if (-not [string]::IsNullOrWhiteSpace($resolvedAppId)) {
   foreach ($cfgPath in $projectConfigPaths) {
@@ -213,20 +224,22 @@ foreach ($cfgPath in $privateConfigs) {
 
 # 4) utils/cloudEnv.ts
 $cloudEnvTsPath = Join-Path $repoRoot 'utils\cloudEnv.ts'
-$cloudEnvTsFullPath = $cloudEnvTsPath
-if ($cloudEnvTsFullPath -like 'Microsoft.PowerShell.Core\FileSystem::*') {
-  $cloudEnvTsFullPath = $cloudEnvTsFullPath -replace '^Microsoft\.PowerShell\.Core\\FileSystem::', ''
-}
-$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$cloudEnvTsContent = @"
+if (-not $usesLocalOverrideConfig) {
+  $cloudEnvTsFullPath = $cloudEnvTsPath
+  if ($cloudEnvTsFullPath -like 'Microsoft.PowerShell.Core\FileSystem::*') {
+    $cloudEnvTsFullPath = $cloudEnvTsFullPath -replace '^Microsoft\.PowerShell\.Core\\FileSystem::', ''
+  }
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $cloudEnvTsContent = @"
 // Generated / maintained by scripts/set-cloud-env.ps1.
 // Keep these values aligned with cloudbaserc.json and config/release-environments.json.
 
 export const CLOUD_ENV_NAME = '$resolvedName'
 export const CLOUD_ENV_ID = '$resolvedEnvId'
 "@
-[System.IO.File]::WriteAllText($cloudEnvTsFullPath, $cloudEnvTsContent, $utf8NoBom)
-$updated += $cloudEnvTsPath
+  [System.IO.File]::WriteAllText($cloudEnvTsFullPath, $cloudEnvTsContent, $utf8NoBom)
+  $updated += $cloudEnvTsPath
+}
 
 # 5) notify runtime config
 if (-not [string]::IsNullOrWhiteSpace($resolvedNotifyTemplateId)) {

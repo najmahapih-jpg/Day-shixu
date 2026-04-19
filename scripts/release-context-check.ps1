@@ -74,6 +74,7 @@ $effectiveBinding = if (Get-Command Resolve-EffectiveReleaseBinding -ErrorAction
 } else {
   $null
 }
+$usesLocalOverride = if ($effectiveBinding) { [bool]$effectiveBinding.HasLocalOverride } else { $false }
 $effectiveEnvId = if (Get-Command Resolve-EffectiveCloudEnvId -ErrorAction SilentlyContinue) {
   Resolve-EffectiveCloudEnvId -RepoRoot $projectRoot
 } else {
@@ -229,7 +230,11 @@ if ($effectiveBinding) {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($runtimeEnvName) -and $runtimeEnvName -ne $activeNamedEnvironment) {
-      Fail ("utils/cloudEnv.ts env name mismatch: " + $runtimeEnvName + " != " + $activeNamedEnvironment)
+      if ($usesLocalOverride) {
+        Warn ("utils/cloudEnv.ts env name stays on tracked placeholder/default while local override selects: " + $activeNamedEnvironment)
+      } else {
+        Fail ("utils/cloudEnv.ts env name mismatch: " + $runtimeEnvName + " != " + $activeNamedEnvironment)
+      }
     }
   }
 }
