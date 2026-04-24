@@ -4,7 +4,7 @@
   >
     <view
       class="home-page page-transition"
-      :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }, haptic.feedbackClass]"
+      :class="[{ 'theme-neo': isNeoTheme, 'page-entered': pageEntered }]"
     >
       <HomeTopNav
         :status-bar-height="statusBarHeight"
@@ -117,8 +117,18 @@
         </view>
       </scroll-view>
 
+      <view class="home-presence-layer">
+        <HomeResidentPresenceText @open="handleKineticYOpen" />
+      </view>
+
+      <KineticYOverlay
+        :visible="showKineticY"
+        :reduce-motion="appStore.reduceMotion"
+        @close="handleKineticYClose"
+      />
+
       <HomeFirstUseTip
-        :visible="showFirstUseTip"
+        :visible="showFirstUseTip && !showKineticY"
         :title="starMapCopy.firstUseTipTitle"
         :desc="starMapCopy.firstUseTipDesc"
         @dismiss="dismissFirstUseTip"
@@ -131,7 +141,7 @@
 
 <script setup lang="ts">
 import { ref, computed, provide } from 'vue'
-import { onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import { useHabitStore } from '@/stores/habit'
@@ -151,6 +161,8 @@ import HomePendingHabitsSection from '@/components/home/HomePendingHabitsSection
 import HomeCompletedHabitsSection from '@/components/home/HomeCompletedHabitsSection.vue'
 import HomeStarMapTerminal from '@/components/home/HomeStarMapTerminal.vue'
 import HomeFirstUseTip from '@/components/home/HomeFirstUseTip.vue'
+import HomeResidentPresenceText from '@/components/home/HomeResidentPresenceText.vue'
+import KineticYOverlay from '@/components/kinetic-y/index.vue'
 import { useHomeDisplayDerivations } from '@/composables/useHomeDisplayDerivations'
 import { useHomeNavigationEntrances } from '@/composables/useHomeNavigationEntrances'
 import { usePageError } from '@/composables/usePageError'
@@ -164,7 +176,8 @@ import { useHomeStarMapDisplay } from '@/composables/useHomeStarMapDisplay'
 import { useHomeStarMapRuntime } from '@/composables/useHomeStarMapRuntime'
 import { useHomeWeekShowcaseFan } from '@/composables/useHomeWeekShowcaseFan'
 import { useHomePageDataBus } from '@/composables/useHomePageDataBus'
-import { useFLIPGroup, useHaptic } from '@/composables/motion'
+import { useHomeKineticYOverlay } from '@/composables/useHomeKineticYOverlay'
+import { useFLIPGroup } from '@/composables/motion'
 import { getToday } from '@/services/cloud'
 import { PUBLIC_COPY } from '@/utils/publicCopy'
 import { getDisplayNickName } from '@/utils/nickName'
@@ -175,6 +188,10 @@ const { entered: pageEntered } = usePageTransition()
 const habitStore = useHabitStore()
 const userStore = useUserStore()
 const ritualStore = useRitualStore()
+const kineticYOverlay = useHomeKineticYOverlay({
+  checkFirstVisit: () => appStore.checkFirstVisit(),
+  markFirstVisitSeen: () => appStore.markFirstVisitSeen(),
+})
 type JourneyStore = ReturnType<typeof journeyStoreModule.useJourneyStore>
 
 function resolveJourneyStore(): JourneyStore | null {
@@ -198,7 +215,6 @@ const displayNickName = computed(() => getDisplayNickName(userStore.userInfo?.ni
 // 3) retain only the remaining business entrypoints and StarMap easter-egg state machine here
 
 // Motion helpers stay at page level because they coordinate across sections.
-const haptic = useHaptic()
 const habitFlip = useFLIPGroup()
 
 function getStatusBarHeight() {
@@ -233,6 +249,8 @@ const {
   initializeEntryEffects,
   resetEntryEffects,
 } = useHomeEntryEffects()
+
+const { visible: showKineticY } = kineticYOverlay
 
 const {
   aiInsightExists,
@@ -415,14 +433,12 @@ const {
 } = useHomeWeekShowcaseFan({
   cardCount: computed(() => weekCardData.value.length),
   getTodayIndex: getBaseTodayIndex,
-  hapticLight: () => haptic.light(),
+  hapticLight: () => {},
 })
 
 async function handleCheck(habitId: string, value: number) {
   resetHabitUi(habitId)
   startCheckTransition(habitId)
-
-  haptic.success()
 
   try {
     await habitStore.checkIn(habitId, value)
@@ -432,15 +448,10 @@ async function handleCheck(habitId: string, value: number) {
       todayCheckIns: habitStore.todayCheckIns,
     })
     loadWeekComparison()
-    settleCheckTransition(habitId, () => {
-      if (habitStore.todayHabits.length > 0 && habitStore.pendingHabits.length === 0) {
-        haptic.celebration()
-      }
-    })
+    settleCheckTransition(habitId)
   } catch {
     clearHabitTransition(habitId)
     markHabitWarning(habitId)
-    haptic.warning()
   }
 }
 
@@ -457,7 +468,6 @@ async function handleUncheck(habitId: string) {
     loadWeekComparison()
   } catch {
     markHabitWarning(habitId)
-    haptic.warning()
   }
 }
 
@@ -485,6 +495,17 @@ function handleDelete(habitId: string) {
 function onRefresh() {
   void refreshHomeData()
 }
+function checkFirstVisit() {
+  return kineticYOverlay.checkFirstVisit()
+}
+
+function handleKineticYClose() {
+  kineticYOverlay.closeOverlay()
+}
+
+function handleKineticYOpen() {
+  kineticYOverlay.openOverlay()
+}
 
 // ── 分享能力 ──
 onShareAppMessage(() => ({
@@ -496,13 +517,19 @@ onShareTimeline(() => ({
   title: 'Day时序 — 让好习惯自然发生',
 }))
 
+onLoad(() => {
+  checkFirstVisit()
+})
+
 onShow(() => {
   appStore.switchTab('index')
   if (initializeEntryEffects()) return
+  kineticYOverlay.scheduleAutoReveal()
   loadHomeOnShowData()
 })
 
 onHide(() => {
+  kineticYOverlay.clearRevealTimer()
   stopDynamicLogs()
   resetAllHabitUi()
   resetEntryEffects()
@@ -524,6 +551,7 @@ onHide(() => {
 
 // ─── Page layout ──────────────────────────────────────────────────
 .home-page {
+  position: relative;
   height: 100vh;
   min-height: 100vh;
   background: $neutral-50;
@@ -543,6 +571,8 @@ onHide(() => {
 
 
 .home-scroll {
+  position: relative;
+  z-index: 1;
   flex: 1;
   height: 0;
   min-height: 0;
@@ -559,8 +589,22 @@ onHide(() => {
 }
 
 .bottom-space {
-  height: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + 260rpx);
+  height: calc(#{$tabbar-height} + env(safe-area-inset-bottom) + 236rpx);
   flex-shrink: 0;
+}
+
+.home-presence-layer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + #{$tabbar-height} + 24rpx);
+  transform: translate3d(-50%, 0, 0);
+  width: auto;
+  max-width: calc(100% - (#{$page-padding} * 2));
+  display: flex;
+  justify-content: center;
+  padding: 0 $page-padding;
+  pointer-events: auto;
+  z-index: $z-tabbar + 1;
 }
 
 

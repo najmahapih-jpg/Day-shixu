@@ -3,6 +3,28 @@ import { defineStore } from 'pinia'
 import { withDefaultPinia } from './pinia'
 
 type ThemeMode = 'neo'
+const FIRST_VISIT_STORAGE_KEY = 'v_1_0_visited'
+
+type StorageAdapter = {
+  getStorageSync?: (key: string) => unknown
+  setStorageSync?: (key: string, value: unknown) => void
+}
+
+function resolveStorageAdapter(): StorageAdapter {
+  const wxLike = (globalThis as { wx?: StorageAdapter }).wx
+  if (wxLike?.getStorageSync || wxLike?.setStorageSync) {
+    return wxLike
+  }
+
+  return {
+    getStorageSync: typeof uni?.getStorageSync === 'function' ? uni.getStorageSync : undefined,
+    setStorageSync: typeof uni?.setStorageSync === 'function' ? uni.setStorageSync : undefined,
+  }
+}
+
+function isVisitedValue(value: unknown) {
+  return value === true || value === 'true' || value === '1'
+}
 
 export const useAppStore = withDefaultPinia(defineStore('app', () => {
   const currentTab = ref<string>('index')
@@ -11,6 +33,8 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
   const weekStartsOn = ref<0 | 1>(1)
   const notifyEnabled = ref(true)
   const systemInfo = ref<UniApp.GetSystemInfoResult | null>(null)
+  const isFirstVisit = ref(false)
+  const hasCheckedFirstVisit = ref(false)
 
   const normalizedTheme = computed<'neo'>(() => 'neo')
 
@@ -54,6 +78,32 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     notifyEnabled.value = value
   }
 
+  function checkFirstVisit(storageKey = FIRST_VISIT_STORAGE_KEY) {
+    const adapter = resolveStorageAdapter()
+
+    try {
+      const stored = adapter.getStorageSync?.(storageKey)
+      isFirstVisit.value = !isVisitedValue(stored)
+    } catch {
+      isFirstVisit.value = true
+    }
+
+    hasCheckedFirstVisit.value = true
+    return isFirstVisit.value
+  }
+
+  function markFirstVisitSeen(storageKey = FIRST_VISIT_STORAGE_KEY) {
+    isFirstVisit.value = false
+    hasCheckedFirstVisit.value = true
+
+    try {
+      const adapter = resolveStorageAdapter()
+      adapter.setStorageSync?.(storageKey, '1')
+    } catch {
+      // ignore storage write failures
+    }
+  }
+
   return {
     currentTab,
     theme,
@@ -61,6 +111,8 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     weekStartsOn,
     notifyEnabled,
     systemInfo,
+    isFirstVisit,
+    hasCheckedFirstVisit,
     isDark,
     isNeo,
     isPaper,
@@ -71,5 +123,7 @@ export const useAppStore = withDefaultPinia(defineStore('app', () => {
     setReduceMotion,
     setWeekStartsOn,
     setNotifyEnabled,
+    checkFirstVisit,
+    markFirstVisitSeen,
   }
 }))

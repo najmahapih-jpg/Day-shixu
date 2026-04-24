@@ -42,6 +42,7 @@ onLaunch(() => {
 
   const appStore = useAppStore()
   appStore.initSystemInfo()
+  appStore.checkFirstVisit()
 
   try {
     const storedReduceMotion = uni.getStorageSync('reduceMotion')

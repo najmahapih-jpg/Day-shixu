@@ -1,0 +1,144 @@
+var startY = 0
+var startX = 0
+var lastY = 0
+var lastX = 0
+var startTime = 0
+var peakDeltaY = 0
+var exodusFired = false
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function isDisabled(event) {
+  var elasticity = event.currentTarget.dataset.elasticity
+  return elasticity === 0 || elasticity === '0' || elasticity === false
+}
+
+function resolveNode(event, ownerInstance) {
+  var targetClass = event.currentTarget.dataset.target
+  if (!targetClass) return null
+  return ownerInstance.selectComponent('.' + targetClass)
+}
+
+function setStage(ownerInstance, rotX, rotY, transitionMs) {
+  var stage = ownerInstance.selectComponent('.kinetic-y__stage')
+  if (!stage) return
+  stage.setStyle({
+    transition: 'transform ' + transitionMs + 'ms cubic-bezier(0.22, 1, 0.36, 1)',
+    transform: 'perspective(1200rpx) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)',
+    willChange: 'transform'
+  })
+}
+
+function setGlow(ownerInstance, x, y, visible) {
+  var glow = ownerInstance.selectComponent('.kinetic-y__glow')
+  if (!glow) return
+  glow.setStyle({
+    left: x + 'px',
+    top: y + 'px',
+    opacity: visible ? 1 : 0,
+    transition: 'opacity 240ms ease'
+  })
+}
+
+function onTouchStart(event, ownerInstance) {
+  if (isDisabled(event)) return
+
+  var touch = event.touches && event.touches[0]
+  if (!touch) return
+
+  startY = touch.clientY
+  startX = touch.clientX
+  lastY = startY
+  lastX = startX
+  startTime = getDate().getTime()
+  peakDeltaY = 0
+  exodusFired = false
+
+  setGlow(ownerInstance, touch.clientX, touch.clientY, true)
+
+  var node = resolveNode(event, ownerInstance)
+  if (!node) return
+
+  node.setStyle({
+    transition: 'transform 32ms linear',
+    transform: 'translateZ(0) scaleY(1.02) skewY(0.5deg)',
+    willChange: 'transform'
+  })
+}
+
+function onTouchMove(event, ownerInstance) {
+  if (isDisabled(event)) return
+
+  var touch = event.touches && event.touches[0]
+  if (!touch) return
+
+  var deltaY = touch.clientY - startY
+  var deltaX = touch.clientX - startX
+  lastY = touch.clientY
+  lastX = touch.clientX
+
+  var absDy = deltaY < 0 ? -deltaY : deltaY
+  var damped = Math.sqrt(absDy) * 6
+  var stretch = 1 + Math.min(0.6, damped / 180)
+  var skew = deltaY / 22
+
+  stretch = clamp(stretch, 1, 1.6)
+  skew = clamp(skew, -8, 8)
+
+  var node = resolveNode(event, ownerInstance)
+  if (node) {
+    node.setStyle({
+      transition: 'transform 32ms linear',
+      transform: 'translateZ(0) scaleY(' + stretch + ') skewY(' + skew + 'deg)',
+      willChange: 'transform'
+    })
+  }
+
+  var rotX = clamp(-deltaY / 40, -5, 5)
+  var rotY = clamp(deltaX / 40, -5, 5)
+  setStage(ownerInstance, rotX, rotY, 32)
+
+  setGlow(ownerInstance, touch.clientX, touch.clientY, true)
+
+  if (deltaY < peakDeltaY) peakDeltaY = deltaY
+}
+
+function onTouchEnd(event, ownerInstance) {
+  var now = getDate().getTime()
+  var elapsed = now - startTime
+  if (elapsed < 1) elapsed = 1
+
+  var totalDeltaY = lastY - startY
+  var velocityY = totalDeltaY / elapsed
+
+  setGlow(ownerInstance, lastX, lastY, false)
+
+  var isSwipeUp = totalDeltaY < -75 || (velocityY < -0.8 && totalDeltaY < -30)
+
+  if (isSwipeUp && !exodusFired) {
+    exodusFired = true
+    ownerInstance.callMethod('triggerExodus')
+    return
+  }
+
+  setStage(ownerInstance, 0, 0, 560)
+
+  var node = resolveNode(event, ownerInstance)
+  if (node) {
+    node.setStyle({
+      transition: 'transform 560ms cubic-bezier(0.22, 1, 0.36, 1)',
+      transform: 'translateZ(0) scaleY(1) skewY(0deg)',
+      willChange: 'transform'
+    })
+  }
+
+  ownerInstance.callMethod('triggerSnapBackHaptic')
+}
+
+module.exports = {
+  onTouchStart: onTouchStart,
+  onTouchMove: onTouchMove,
+  onTouchEnd: onTouchEnd
+}

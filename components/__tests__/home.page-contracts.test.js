@@ -1,3 +1,5 @@
+const fs = require('fs')
+const path = require('path')
 const { makeStub, loadComponent, renderComponent, getEmitNames, getSetupBindings } = require('./helpers/vue-test-helpers')
 
 jest.mock('@/components/base/HfIllustration.vue', () => ({
@@ -276,5 +278,12 @@ describe('home phase-one split regression contracts', () => {
     }, (name, payload) => emitted.push([name, payload]))
     bindings.stopEvent()
     expect(emitted).toEqual([])
+  })
+
+  test('home resident entrance stays above the tabbar instead of behind it', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'pages/index/index.vue'), 'utf8')
+
+    expect(source).toContain('bottom: calc(env(safe-area-inset-bottom) + #{$tabbar-height} + 24rpx);')
+    expect(source).toContain('z-index: $z-tabbar + 1;')
   })
 })
