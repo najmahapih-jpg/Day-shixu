@@ -126,7 +126,7 @@ const {
 
 // --- Constants ---
 
-const version = '1.0.0'
+const version = '1.0.2'
 
 const weekStartOptions = [
   { value: 1 as const, label: '周一' },
@@ -181,7 +181,7 @@ async function handleExport() {
     ])
 
     const exportData = {
-      version: '1.0.0',
+      version,
       exportedAt: getBeijingIsoNow(),
       habits,
       checkIns,

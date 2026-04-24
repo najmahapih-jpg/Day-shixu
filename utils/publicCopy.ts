@@ -212,6 +212,6 @@ export const PUBLIC_COPY = {
     ],
   } as ProfileCopy,
   settingsAbout: {
-    developerValue: 'Day时序',
+    developerValue: 'YZ',
   } as SettingsAboutCopy,
 } as const
