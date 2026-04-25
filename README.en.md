@@ -12,7 +12,6 @@ A WeChat Mini Program for personal growth tracking. It brings habits, rituals, j
 | Run locally | [Getting Started](#getting-started) |
 | Release or inspect envs | [Release Cheatsheet](#release-cheatsheet) |
 | Find docs | [Document Map](#document-map) |
-| Maintain safely | [Stable Boundaries](#stable-boundaries) |
 
 ## Core Modules
 
@@ -63,7 +62,7 @@ Read before release work: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md), [`do
 | Document | Purpose |
 | --- | --- |
 | [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | Directories, pages, state, services, release folders |
-| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | Stable boundaries and next engineering topics |
+| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | Engineering governance handoff |
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | Release execution guide |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | Release facts, records, rollback entrypoints, public-repo boundaries |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | Environment names, status, limitations |
@@ -71,15 +70,3 @@ Read before release work: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md), [`do
 | [`docs/HOME_INDEX_HANDOFF.md`](docs/HOME_INDEX_HANDOFF.md) | Home page maintenance boundaries |
 | [`docs/TIMELINE_INDEX_HANDOFF.md`](docs/TIMELINE_INDEX_HANDOFF.md) | Timeline maintenance boundaries |
 | [`docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md`](docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md) | Cloud function CLI flow |
-
-## Stable Boundaries
-
-- Do not change business semantics, routes, or store contracts.
-- Do not casually reopen homepage splitting, timeline governance, or cloud-function governance.
-- Keep `cloudbaserc.json`, `utils/cloudEnv.ts`, and `project.config.json` aligned.
-- Do not skip `release:check`.
-- Do not treat `project.private.config.json`, `.wxci/private.<appid>.key`, `config/release-environments.local.json`, or `.omx/` as repository facts.
-
-## Next Step
-
-The next natural work is configuring real `staging` / `prod` values, then extending release records with environment-level approvals, rollback drills, and release-state transitions. Broad page or cloud-function restructuring should stay closed for now.

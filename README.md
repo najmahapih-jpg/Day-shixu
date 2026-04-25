@@ -12,7 +12,6 @@
 | 本地验证 | [快速上手](#快速上手) |
 | 发版与环境 | [发布速查](#发布速查) |
 | 找代码和文档 | [文档地图](#文档地图) |
-| 接手维护 | [稳定边界](#稳定边界) |
 
 ## 核心模块
 
@@ -63,7 +62,7 @@ npm.cmd run env:list
 | 文档 | 用途 |
 | --- | --- |
 | [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | 目录、页面、状态层、服务层、发布目录 |
-| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | 稳定边界和后续工程课题 |
+| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | 工程治理交接 |
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | 发布执行手册 |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | 发布事实、记录、回滚入口和公开仓库边界 |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | 环境命名、状态和限制 |
@@ -71,15 +70,3 @@ npm.cmd run env:list
 | [`docs/HOME_INDEX_HANDOFF.md`](docs/HOME_INDEX_HANDOFF.md) | 首页维护边界 |
 | [`docs/TIMELINE_INDEX_HANDOFF.md`](docs/TIMELINE_INDEX_HANDOFF.md) | timeline 维护边界 |
 | [`docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md`](docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md) | 云函数 CLI 流程 |
-
-## 稳定边界
-
-- 不改业务语义、路由结构或 store 契约。
-- 不顺手重启首页拆分、timeline 治理或云函数治理。
-- 不让 `cloudbaserc.json`、`utils/cloudEnv.ts`、`project.config.json` 漂移。
-- 不跳过 `release:check`。
-- 不把 `project.private.config.json`、`.wxci/private.<appid>.key`、`config/release-environments.local.json`、`.omx/` 当作仓库事实。
-
-## 下一步
-
-更自然的推进方向是补齐 `staging` / `prod` 真实配置，并把 release record 扩展到环境级审批、回滚演练和发布状态流转。此阶段不建议重新打开大范围页面或云函数重构。
