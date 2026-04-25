@@ -2,165 +2,84 @@
 
 # Day时序
 
-A WeChat Mini Program for building personal growth rituals — habit tracking, daily check-ins, ritual execution, journey progress, and inspiration notes.
+A WeChat Mini Program for personal growth tracking. It brings habits, rituals, journeys, inspiration notes, and weekly review into one timeline. This repository contains the frontend, cloud functions, release scripts, and handoff docs.
 
-## Key Features
+## Quick Links
 
-| Module | Description |
+| Goal | Start Here |
 | --- | --- |
-| Habit Tracking | Create habits, daily check-ins, streak counting, freeze-day protection |
-| Inspiration Board | Text and checklist notes with content safety checks |
-| Ritual Flow | Timed ritual execution linked to habits, with batch check-in |
-| Journey System | Preset journey lists with step progression and completion celebration |
-| Timeline | Monthly calendar view for reviewing historical check-ins |
-| AI Insights | Weekly comparison analysis and improvement suggestions |
-| Stats | Heatmap, streak counts, and weekly comparison |
+| Understand scope | [Core Modules](#core-modules) |
+| Run locally | [Getting Started](#getting-started) |
+| Release or inspect envs | [Release Cheatsheet](#release-cheatsheet) |
+| Find docs | [Document Map](#document-map) |
+| Maintain safely | [Stable Boundaries](#stable-boundaries) |
 
-## Current Status
+## Core Modules
 
-- Frontend, cloud functions, release scripts, and handoff docs are maintained in one repository
-- Includes type checking, test entrypoints, release guards, named environments, and structured release records
-- The release flow records release and rollback manifests for traceability
-- `dev` is the only `READY` environment; `staging` and `prod` are reserved names pending configuration
-
-## Tech Stack
-
-| Area | Details |
+| Module | Scope |
 | --- | --- |
-| Frontend | `uni-app` + `Vue 3 Composition API` |
-| Language | `TypeScript` + `JavaScript` |
-| Styling | `SCSS` |
-| State | `Pinia` |
-| Cloud | WeChat Cloud Development / CloudBase |
-| Target | WeChat Mini Program (`mp-weixin`) |
-| Upload | `miniprogram-ci` |
-| Node | `18.x` |
+| Habits | Create habits, check in, track streaks, use freeze days |
+| Board | Text and checklist notes with content safety checks |
+| Rituals | Timed ritual runs linked to habits, with batch check-in |
+| Journeys | Preset steps, progress, completion celebration |
+| Timeline | Monthly calendar for historical check-ins |
+| AI Insights | Weekly comparison and improvement suggestions |
+| Stats | Heatmap, streaks, weekly comparison |
+
+## Project Status
+
+- `dev` is the only `READY` environment; `staging` and `prod` are reserved names.
+- Release and rollback manifests are recorded for traceability.
+- Public files keep placeholder `envId` / `appid` values; real local values belong in ignored config.
+- Stack: `uni-app`, `Vue 3 Composition API`, `Pinia`, `SCSS`, WeChat Cloud Development / CloudBase, `miniprogram-ci`, Node `18.x`.
 
 ## Getting Started
 
-1. Install dependencies: `npm install`
-2. Check types: `npm.cmd run typecheck`
-3. Run baseline tests: `npx.cmd jest --runInBand`
-4. Inspect environment status: `npm.cmd run env:list`
-5. Follow the document map below based on what you are working on
-
-Public-repo convention:
-- Tracked `envId` / `appid` values stay on public placeholders
-- Real local release values belong in the ignored `config/release-environments.local.json`
-- Copy `config/release-environments.local.example.json` and fill in real values; release scripts prefer the local override automatically
-
-If you are working on release-related tasks, read these first:
-
-1. [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
-2. [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
-3. [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
-4. [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
-5. [`releases/README.md`](releases/README.md)
-
-Detailed operational and handoff docs currently remain in Chinese and are the source of truth for deep maintenance work.
-
-## Common Commands
-
-### Engineering Checks
-
 ```bash
-npm.cmd run build:cloudfunctions:ts
+npm install
 npm.cmd run typecheck
 npx.cmd jest --runInBand
-powershell -ExecutionPolicy Bypass -File ./scripts/preflight-check.ps1
-powershell -ExecutionPolicy Bypass -File ./scripts/check-hygiene.ps1
-npm.cmd run check:repo-safety
-```
-
-### Environment and Release
-
-```bash
 npm.cmd run env:list
-npm.cmd run env:use -- -Name dev
-npm.cmd run release:check
-npm.cmd run release:record:dry -- --Version 1.0.0 --Desc "dry run"
-npm.cmd run release:guarded
 ```
 
-Notes:
+For local release config, copy `config/release-environments.local.example.json` to `config/release-environments.local.json` and fill in real values. Release scripts prefer the local override.
 
-- `env:use` is the supported named-environment switch entrypoint
-- `release:check` is a guard-only command and does not upload anything
-- `release:guarded` runs cleanup, quality gates, and release guards, then writes structured release records after a successful upload
+## Release Cheatsheet
 
-### Cloud Functions
+| Scenario | Commands / Docs |
+| --- | --- |
+| Engineering checks | `npm.cmd run build:cloudfunctions:ts`, `npm.cmd run typecheck`, `npx.cmd jest --runInBand` |
+| Repo safety | `npm.cmd run check:hygiene`, `npm.cmd run check:repo-safety` |
+| Environments | `npm.cmd run env:list`, `npm.cmd run env:use -- -Name dev` |
+| Release guard | `npm.cmd run release:check` |
+| Guarded release | `npm.cmd run release:guarded` |
+| Cloud functions | `npm.cmd run cf:deps`, `npm.cmd run cf:deploy:changed`, `npm.cmd run cf:deploy:one -- habit` |
+| Mini Program prep | `npm.cmd run fix:mp-config`, `npm.cmd run prepare:wechat` |
 
-```bash
-npm.cmd run cf:deps
-npm.cmd run cf:sync:shared
-npm.cmd run cf:deploy:all
-npm.cmd run cf:deploy:one -- habit
-npm.cmd run cf:deploy:changed
-```
-
-### Mini Program Build Prep
-
-```bash
-npm.cmd run fix:mp-config
-npm.cmd run prepare:devtools
-npm.cmd run prepare:wechat
-```
-
-## Release and Environment Entry Points
-
-- Release operations: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
-- Release facts, rollback anchors, and public-repo safety boundaries: [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md)
-- Named environments and current status: [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md)
-- Minimum checklist for a real production release: [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md)
-- Structured release record directory: [`releases/README.md`](releases/README.md)
+Read before release work: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md), [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md), [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md), [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md).
 
 ## Document Map
 
 | Document | Purpose |
 | --- | --- |
-| [`README.md`](README.md) | Chinese primary entrypoint |
-| [`README.en.md`](README.en.md) | English overview and entrypoint |
-| [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | Repository map: directories, pages, state, services, release folders |
+| [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | Directories, pages, state, services, release folders |
 | [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | Stable boundaries and next engineering topics |
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | Release execution guide |
-| [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | Release facts, records, rollback entrypoints, public-repo safety boundaries |
-| [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | Environment naming, status, and limitations |
-| [`docs/PROD_RELEASE_MINIMUM_CHECKLIST.md`](docs/PROD_RELEASE_MINIMUM_CHECKLIST.md) | Minimum checklist to reach a real production release |
-| [`docs/ACCEPTANCE_TEST_CHECKLIST.md`](docs/ACCEPTANCE_TEST_CHECKLIST.md) | Pre-release acceptance checklist |
+| [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | Release facts, records, rollback entrypoints, public-repo boundaries |
+| [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | Environment names, status, limitations |
+| [`docs/ACCEPTANCE_TEST_CHECKLIST.md`](docs/ACCEPTANCE_TEST_CHECKLIST.md) | Pre-release acceptance |
 | [`docs/HOME_INDEX_HANDOFF.md`](docs/HOME_INDEX_HANDOFF.md) | Home page maintenance boundaries |
 | [`docs/TIMELINE_INDEX_HANDOFF.md`](docs/TIMELINE_INDEX_HANDOFF.md) | Timeline maintenance boundaries |
-| [`docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md`](docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md) | Cloud function CLI workflow |
+| [`docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md`](docs/CLOUDFUNCTIONS_CLI_WORKFLOW.md) | Cloud function CLI flow |
 
 ## Stable Boundaries
 
-### Business and Structure
+- Do not change business semantics, routes, or store contracts.
+- Do not casually reopen homepage splitting, timeline governance, or cloud-function governance.
+- Keep `cloudbaserc.json`, `utils/cloudEnv.ts`, and `project.config.json` aligned.
+- Do not skip `release:check`.
+- Do not treat `project.private.config.json`, `.wxci/private.<appid>.key`, `config/release-environments.local.json`, or `.omx/` as repository facts.
 
-- Do not change business semantics
-- Do not change route structure
-- Do not change store contracts
-- Do not reopen broad page-splitting or cloud-function governance work casually
+## Next Step
 
-### Release and Environment
-
-- `dev` is the only `READY` environment
-- `staging` and `prod` are reserved names, not active release targets
-- Keep `cloudbaserc.json`, `utils/cloudEnv.ts`, and `project.config.json` aligned
-- Do not skip `release:check`
-
-### Local-only Files
-
-These files are not repository facts:
-
-- `project.private.config.json`
-- `.wxci/private.<appid>.key`
-- optional `config/release-environments.local.json`
-- local runtime directories such as `.omx/`
-
-## Most Natural Next Step
-
-If work continues later, the most natural next step is not UI refactoring. It is:
-
-1. Configuring real values for `staging` and `prod` under a controlled rollout
-2. Extending structured release records toward environment-level approvals, rollback drills, and release-status transitions
-
-Until then, avoid reopening broad homepage, timeline, or cloud-function restructuring work.
+The next natural work is configuring real `staging` / `prod` values, then extending release records with environment-level approvals, rollback drills, and release-state transitions. Broad page or cloud-function restructuring should stay closed for now.
