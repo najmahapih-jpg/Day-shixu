@@ -9,6 +9,7 @@
 | 目标 | 入口 |
 | --- | --- |
 | 看功能范围 | [核心模块](#核心模块) |
+| 查工程入口 | [工程速查](#工程速查) |
 | 本地验证 | [快速上手](#快速上手) |
 | 发版与环境 | [发布速查](#发布速查) |
 | 找代码和文档 | [文档地图](#文档地图) |
@@ -30,7 +31,18 @@
 - `dev` 是当前唯一 `READY` 环境；`staging` / `prod` 只是预留命名。
 - 发布链会记录 release / rollback manifest，便于追溯。
 - 公开仓库只保留占位 `envId` / `appid`；真实值放在被忽略的 `config/release-environments.local.json`。
-- 栈：`uni-app`、`Vue 3 Composition API`、`Pinia`、`SCSS`、微信云开发 / CloudBase、`miniprogram-ci`、Node `18.x`。
+
+## 工程速查
+
+| 项 | 内容 |
+| --- | --- |
+| 运行目标 | 微信小程序 `mp-weixin`；主包为 `pages/index`、`pages/timeline`、`pages/board`、`pages/profile` |
+| 本地运行 | Node `18.x` + npm；发布和开发者工具准备脚本使用 PowerShell |
+| 前端 | `uni-app`、`Vue 3 Composition API`、`Pinia`、`SCSS` |
+| 云端 | 微信云开发 / CloudBase；云函数在 `cloudfunctions/`，共享逻辑在 `cloudfunctions/_shared/` |
+| 质量门禁 | `typecheck` 覆盖前端和云函数；`jest` 跑前端与云函数测试；CI 在 `.github/workflows/ci.yml` |
+| 发布链 | `miniprogram-ci` 上传；`release:guarded` 执行清理、质量门禁、release guard，并写入 release / rollback manifest |
+| 私有配置 | 真实环境值放 `config/release-environments.local.json`，不进入仓库 |
 
 ## 快速上手
 

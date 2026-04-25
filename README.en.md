@@ -9,6 +9,7 @@ A WeChat Mini Program for personal growth tracking. It brings habits, rituals, j
 | Goal | Start Here |
 | --- | --- |
 | Understand scope | [Core Modules](#core-modules) |
+| Check stack and layout | [Engineering Facts](#engineering-facts) |
 | Run locally | [Getting Started](#getting-started) |
 | Release or inspect envs | [Release Cheatsheet](#release-cheatsheet) |
 | Find docs | [Document Map](#document-map) |
@@ -30,7 +31,18 @@ A WeChat Mini Program for personal growth tracking. It brings habits, rituals, j
 - `dev` is the only `READY` environment; `staging` and `prod` are reserved names.
 - Release and rollback manifests are recorded for traceability.
 - Public files keep placeholder `envId` / `appid` values; real local values belong in ignored config.
-- Stack: `uni-app`, `Vue 3 Composition API`, `Pinia`, `SCSS`, WeChat Cloud Development / CloudBase, `miniprogram-ci`, Node `18.x`.
+
+## Engineering Facts
+
+| Item | Details |
+| --- | --- |
+| Target | WeChat Mini Program `mp-weixin`; main package pages are `pages/index`, `pages/timeline`, `pages/board`, `pages/profile` |
+| Local runtime | Node `18.x` + npm; release and DevTools prep scripts run through PowerShell |
+| Frontend | `uni-app`, `Vue 3 Composition API`, `Pinia`, `SCSS` |
+| Cloud | WeChat Cloud Development / CloudBase; functions live in `cloudfunctions/`, shared code in `cloudfunctions/_shared/` |
+| Quality gate | `typecheck` covers frontend and cloud functions; `jest` covers frontend and cloud-function tests; CI lives in `.github/workflows/ci.yml` |
+| Release chain | `miniprogram-ci` uploads; `release:guarded` runs cleanup, quality gates, release guard, then writes release / rollback manifests |
+| Private config | Real environment values belong in ignored `config/release-environments.local.json` |
 
 ## Getting Started
 
