@@ -24,16 +24,12 @@ This README is the primary engineering entrypoint. Use it first to understand th
 | Item | Current Fact |
 | --- | --- |
 | Product type | Personal-growth WeChat Mini Program |
-| Current version | `v1.0.2`, from `manifest.json` |
 | Runtime target | `mp-weixin` |
 | Main package pages | `pages/index`, `pages/timeline`, `pages/board`, `pages/profile` |
 | Subpackage pages | Habit create/detail, ritual edit/execute, journey list/detail/complete, stats detail, AI insight, archive, settings, onboarding |
 | Frontend stack | `uni-app`, Vue 3 Composition API, Pinia, SCSS |
 | Cloud stack | WeChat Cloud Development / CloudBase, `wx-server-sdk`, TypeScript cloud functions |
-| Node version | `18.x`, from `package.json` and `.nvmrc` |
-| Quality gate | `npm.cmd run check:gate` combines type checks, tests, preflight checks, repo hygiene, and public-repo safety checks |
 | Release records | `releases/history/<environment>/` stores release and rollback manifests |
-| Environment status | In tracked public config, only `dev` is `READY`; `staging` and `prod` remain `UNCONFIGURED`, and real releases require local overrides plus WeChat backend resources |
 
 ## Product Loop
 
