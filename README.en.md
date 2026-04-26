@@ -12,6 +12,10 @@ Day Shixu is a WeChat Mini Program for personal growth tracking. It combines hab
 
 This README is the primary engineering entrypoint. Use it first to understand the current state, local workflow, quality gates, release boundaries, and deeper documentation map.
 
+<p align="center">
+  <img src="static/images/custom/illustrations/home-hero-main.svg" alt="Day Shixu product illustration" width="720">
+</p>
+
 ## Current Status
 
 - Current Mini Program version is `v1.0.2`, sourced from `manifest.json`.
