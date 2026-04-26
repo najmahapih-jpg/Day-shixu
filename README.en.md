@@ -257,7 +257,7 @@ Current rollback support is a traceable rollback anchor, not a fully automated r
 | Document | Purpose |
 | --- | --- |
 | [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | Directories, pages, state layer, service layer, release folders |
-| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | Current governance status, stable boundaries, next engineering topics |
+| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | Engineering governance handoff, maintenance record, and release readiness |
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | Release execution guide |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | Release chain boundaries, env sources, guard coverage, rollback entrypoints |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | Named environments, statuses, current limitations |

@@ -257,7 +257,7 @@ npm.cmd run release:guarded
 | 文档 | 用途 |
 | --- | --- |
 | [`docs/PROJECT_STRUCTURE_OVERVIEW.md`](docs/PROJECT_STRUCTURE_OVERVIEW.md) | 目录、页面、状态层、服务层、发布目录 |
-| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | 当前工程治理状态、稳定边界和后续建议 |
+| [`docs/ENGINEERING_GOVERNANCE_HANDOFF.md`](docs/ENGINEERING_GOVERNANCE_HANDOFF.md) | 工程治理交接、维护记录与发布准备状态 |
 | [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md) | 发布执行手册 |
 | [`docs/RELEASE_HANDOFF.md`](docs/RELEASE_HANDOFF.md) | 发布链边界、环境来源、guard 覆盖、回滚入口 |
 | [`docs/ENVIRONMENT_LAYERING.md`](docs/ENVIRONMENT_LAYERING.md) | 命名环境、状态和当前限制 |
