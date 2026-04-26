@@ -7,7 +7,7 @@
     - local-only sensitive files are currently tracked by git
 
   WARN:
-    - known local-only files appeared in git history before and may need history cleanup
+    - unacknowledged local-only files appeared in git history before and may need history cleanup
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -106,11 +106,31 @@ $historyAuditTargets = @(
   'cloudfunctions/*/runtime-config.local.json'
 )
 
+$acknowledgedHistoryHits = @{
+  # Audited in docs/RELEASE_HANDOFF.md:
+  # This was a WeChat DevTools private config without private keys, tokens, or cloud credentials.
+  # Keep warning on any future, unaudited commits that touch the same path.
+  'project.private.config.json' = @(
+    'aea7e29016deef1f5b9ee78eaca44ade7c1ce81d',
+    '7e334383a0f2e7af5cf540493d987d907f68dad5'
+  )
+}
+
 foreach ($target in $historyAuditTargets) {
   $historyHits = @(& git -C $projectRoot log --all --format=%H -- $target 2>$null) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
   if ($historyHits.Count -gt 0) {
-    $latestCommit = $historyHits[0]
-    Warn ("Sensitive path appears in git history: " + $target + " (latest hit " + $latestCommit + ")")
+    $acknowledgedHits = @()
+    if ($acknowledgedHistoryHits.ContainsKey($target)) {
+      $acknowledgedHits = @($acknowledgedHistoryHits[$target])
+    }
+
+    $unacknowledgedHits = @($historyHits | Where-Object { $acknowledgedHits -notcontains $_ })
+    if ($unacknowledgedHits.Count -gt 0) {
+      $latestCommit = $unacknowledgedHits[0]
+      Warn ("Sensitive path appears in git history: " + $target + " (latest unacknowledged hit " + $latestCommit + ")")
+    } else {
+      Pass ("Acknowledged non-secret git history hit for " + $target + " (" + $historyHits.Count + " audited commit(s))")
+    }
   } else {
     Pass ("No git history hits for " + $target)
   }
