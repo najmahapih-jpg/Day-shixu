@@ -2,9 +2,22 @@
 
 # Day Shixu
 
+[![CI](https://github.com/najmahapih-jpg/Day-shixu/actions/workflows/ci.yml/badge.svg)](https://github.com/najmahapih-jpg/Day-shixu/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-v1.0.2-2f855a)
+![Platform](https://img.shields.io/badge/platform-WeChat%20Mini%20Program-07c160)
+![Node](https://img.shields.io/badge/node-18.x-339933)
+![Release](https://img.shields.io/badge/release-dev%20ready%20%7C%20prod%20manual-f59e0b)
+
 Day Shixu is a WeChat Mini Program for personal growth tracking. It combines habits, rituals, journeys, inspiration notes, timeline review, statistics, and reflection into one product loop. This repository contains the frontend, WeChat CloudBase functions, engineering scripts, release records, and handoff documentation.
 
 This README is the primary engineering entrypoint. Use it first to understand the current state, local workflow, quality gates, release boundaries, and deeper documentation map.
+
+## Current Status
+
+- Current Mini Program version is `v1.0.2`, sourced from `manifest.json`.
+- In tracked public config, only `dev` is directly usable as the engineering baseline; `staging` and `prod` require local overrides plus WeChat backend resources.
+- The standard local handoff gate is `npm.cmd run check:gate`, covering type checks, Jest, preflight checks, repo hygiene, and public-repo safety checks.
+- WeChat Mini Program release still requires an HBuilderX build, WeChat DevTools/backend validation, and manual audit flow.
 
 ## Project Snapshot
 
@@ -21,6 +34,20 @@ This README is the primary engineering entrypoint. Use it first to understand th
 | Quality gate | `npm.cmd run check:gate` combines type checks, tests, preflight checks, repo hygiene, and public-repo safety checks |
 | Release records | `releases/history/<environment>/` stores release and rollback manifests |
 | Environment status | In tracked public config, only `dev` is `READY`; `staging` and `prod` remain `UNCONFIGURED`, and real releases require local overrides plus WeChat backend resources |
+
+## Product Loop
+
+```mermaid
+flowchart LR
+  Home[Home daily work] --> Habit[Habit check-in]
+  Habit --> Timeline[Timeline review]
+  Timeline --> Stats[Stats and weekly comparison]
+  Stats --> Insight[AI insight]
+  Insight --> Home
+  Home --> Ritual[Ritual execution]
+  Home --> Journey[Journey progress]
+  Home --> Board[Inspiration board]
+```
 
 ## Core Capabilities
 
@@ -82,13 +109,28 @@ Maintenance rules:
 - WeChat DevTools
 - For cloud function deployment, log in to CloudBase CLI first: `npx tcb login`
 
-### Install and Validate
+### Choose a Path
+
+| Goal | Suggested action |
+| --- | --- |
+| Code-level validation only | Install dependencies, then run `npm.cmd run typecheck` and `npx.cmd jest --runInBand` |
+| Full handoff gate | Run `npm.cmd run check:gate` |
+| WeChat Mini Program debugging | Build `mp-weixin` in HBuilderX, then run `npm.cmd run prepare:wechat` |
+| Cloud function deployment | Run `npx tcb login` first, then use the `cf:deploy:*` scripts |
+
+Minimum local validation:
 
 ```bash
 npm install
 npm.cmd run env:list
 npm.cmd run typecheck
 npx.cmd jest --runInBand
+```
+
+Full handoff gate:
+
+```bash
+npm.cmd run check:gate
 ```
 
 ### Local WeChat Mini Program Debugging
